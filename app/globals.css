@@ -101,7 +101,7 @@
 
   .tiptap ul[data-type="taskList"] li {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.5em;
     margin: 0;
   }
@@ -109,8 +109,6 @@
   .tiptap ul[data-type="taskList"] li > label {
     display: flex;
     align-items: center;
-    position: relative;
-    top: 0.3em;
   }
 
   .tiptap ul[data-type="taskList"] li > label input[type="checkbox"] {
