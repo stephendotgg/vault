@@ -248,23 +248,19 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
 
           {/* Sub-pages list */}
           {childPages.length > 0 && (
-            <div className="mb-8">
-              <div className="border border-[#2f2f2f] rounded-lg overflow-hidden">
-                {childPages.map((child, index) => (
-                  <button
-                    key={child.id}
-                    onClick={() => onSelectNote(child.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#2a2a2a] transition-colors cursor-pointer text-left ${
-                      index !== childPages.length - 1 ? "border-b border-[#2f2f2f]" : ""
-                    }`}
-                  >
-                    <NoteIcon hasContent={child.content.length > 0 && child.content !== "<p></p>"} />
-                    <span className="text-[#e3e3e3] text-sm truncate">
-                      {child.title || "Untitled"}
-                    </span>
-                  </button>
-                ))}
-              </div>
+            <div className="mb-6 -mx-2">
+              {childPages.map((child) => (
+                <button
+                  key={child.id}
+                  onClick={() => onSelectNote(child.id)}
+                  className="w-full flex items-center gap-2 px-2 py-1 hover:bg-[#2a2a2a] rounded transition-colors cursor-pointer text-left"
+                >
+                  <NoteIcon hasContent={child.content.length > 0 && child.content !== "<p></p>"} />
+                  <span className="text-[#9b9b9b] text-sm truncate">
+                    {child.title || "Untitled"}
+                  </span>
+                </button>
+              ))}
             </div>
           )}
 
