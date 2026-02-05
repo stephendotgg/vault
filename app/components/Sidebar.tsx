@@ -445,7 +445,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
         {/* VAULT Section */}
         <div
-          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-6"
+          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-4"
           onClick={() => toggleSection("vault")}
         >
           <svg
@@ -476,7 +476,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
         {/* MEMORIES Section */}
         <div
-          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-6"
+          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-4"
           onClick={() => toggleSection("memories")}
         >
           <svg
@@ -507,7 +507,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
         {/* DREAM JOURNAL Section */}
         <div
-          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-6"
+          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-4"
           onClick={() => toggleSection("dreamJournal")}
         >
           <svg
@@ -529,7 +529,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
         {/* VOICE LOG Section */}
         <div
-          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-6"
+          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-4"
           onClick={() => toggleSection("voiceLog")}
         >
           <svg
