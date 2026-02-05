@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Note, VaultItem } from "@/types/models";
+import { Note } from "@/types/models";
 
 type SectionKey = "notes" | "vault" | "memories" | "dreamJournal" | "voiceLog";
 
@@ -24,8 +24,6 @@ interface SidebarProps {
   onGoHome: () => void;
   onOpenVault: (startAdding?: boolean) => void;
   notes: Note[];
-  vaultItems: VaultItem[];
-  onDeleteVaultItem: (id: string) => void;
 }
 
 // Build tree structure from flat notes array
@@ -252,7 +250,7 @@ interface CreateMenuState {
   y: number;
 }
 
-export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onGoHome, onOpenVault, notes, vaultItems, onDeleteVaultItem }: SidebarProps) {
+export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onGoHome, onOpenVault, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -452,13 +450,9 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
             className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors"
             onClick={() => onOpenVault()}
           >
-            <svg
-              className={`w-3 h-3 transition-transform duration-150 ${openSections.vault ? "rotate-90" : ""}`}
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              onClick={(e) => { e.stopPropagation(); toggleSection("vault"); }}
-            >
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
             <span>Vault</span>
           </div>
@@ -475,55 +469,6 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
             </svg>
           </button>
         </div>
-        {openSections.vault && (
-          <div className="ml-1 mt-0.5 flex flex-col gap-[1px]">
-            {vaultItems.length === 0 ? (
-              <div className="px-2 py-2 text-[#6b6b6b] text-sm italic">
-                No items yet
-              </div>
-            ) : (
-              vaultItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="group flex items-center gap-2 px-2 py-[3px] text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] cursor-pointer text-sm transition-all"
-                  title={`${item.key}: ${item.value}`}
-                  onClick={() => onOpenVault()}
-                >
-                  <svg className="w-4 h-4 shrink-0 text-[#6b6b6b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                  </svg>
-                  <span className="truncate flex-1">{item.key}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigator.clipboard.writeText(item.value);
-                    }}
-                    className="p-0.5 text-[#6b6b6b] hover:text-[#aeaeae] opacity-0 group-hover:opacity-100 transition-all"
-                    title="Copy value"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteVaultItem(item.id);
-                    }}
-                    className="p-0.5 text-[#6b6b6b] hover:text-[#ff6b6b] opacity-0 group-hover:opacity-100 transition-all"
-                    title="Delete"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        )}
 
         {/* MEMORIES Section */}
         <div

@@ -214,13 +214,11 @@ export function AppShell() {
     <div className="flex flex-1 overflow-hidden">
       <Sidebar
         notes={notes}
-        vaultItems={vaultItems}
         selectedNoteId={selectedNoteId}
         onSelectNote={handleSelectNote}
         onCreateNote={handleCreateNote}
         onArchiveNote={handleArchiveNote}
         onRenameNote={handleRenameNote}
-        onDeleteVaultItem={handleDeleteVaultItem}
         onOpenVault={handleOpenVault}
         onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}
       />
