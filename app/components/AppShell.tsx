@@ -76,10 +76,10 @@ export function AppShell() {
         onGoHome={() => setSelectedNoteId(null)}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">
-        {selectedNoteId ? (
+        {selectedNoteId && notes.find(n => n.id === selectedNoteId) ? (
           <NoteEditor
             key={selectedNoteId}
-            noteId={selectedNoteId}
+            note={notes.find(n => n.id === selectedNoteId)!}
             onUpdate={handleUpdateNote}
             onDelete={handleDeleteNote}
           />
