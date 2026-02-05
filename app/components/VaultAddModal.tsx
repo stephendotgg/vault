@@ -13,6 +13,7 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
   const [value, setValue] = useState("");
   const [tags, setTags] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetchingTitle, setIsFetchingTitle] = useState(false);
   const keyInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -20,6 +21,46 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
       keyInputRef.current.focus();
     }
   }, [isOpen]);
+
+  // Check if URL is a YouTube link
+  const isYouTubeUrl = (url: string): boolean => {
+    const patterns = [
+      /^https?:\/\/(www\.)?youtube\.com\/watch\?v=/,
+      /^https?:\/\/youtu\.be\//,
+      /^https?:\/\/(www\.)?youtube\.com\/shorts\//,
+    ];
+    return patterns.some((pattern) => pattern.test(url));
+  };
+
+  // Fetch YouTube video title using oEmbed
+  const fetchYouTubeTitle = async (url: string): Promise<string | null> => {
+    try {
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      const res = await fetch(oembedUrl);
+      if (res.ok) {
+        const data = await res.json();
+        return data.title || null;
+      }
+    } catch (error) {
+      console.error("Failed to fetch YouTube title:", error);
+    }
+    return null;
+  };
+
+  // Handle paste in value field
+  const handleValuePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData("text").trim();
+    
+    if (isYouTubeUrl(pastedText) && !key) {
+      setIsFetchingTitle(true);
+      const title = await fetchYouTubeTitle(pastedText);
+      if (title) {
+        setKey(title);
+        setTags((prev) => prev ? `${prev}, youtube` : "youtube");
+      }
+      setIsFetchingTitle(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!key.trim() || isSubmitting) return;
@@ -76,7 +117,10 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
         {/* Body */}
         <div className="p-4 space-y-3">
           <div>
-            <label className="block text-xs text-[#9b9b9b] mb-1.5">Key</label>
+            <label className="block text-xs text-[#9b9b9b] mb-1.5">
+              Key
+              {isFetchingTitle && <span className="ml-2 text-[#6b6b6b]">Fetching title...</span>}
+            </label>
             <input
               ref={keyInputRef}
               type="text"
@@ -88,12 +132,13 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-[#9b9b9b] mb-1.5">Value</label>
+            <label className="block text-xs text-[#9b9b9b] mb-1.5">Value <span className="text-[#6b6b6b]">(paste YouTube link to auto-fill title)</span></label>
             <input
               type="text"
               placeholder="The actual secret or value"
               value={value}
               onChange={(e) => setValue(e.target.value)}
+              onPaste={handleValuePaste}
               onKeyDown={handleKeyDown}
               className="w-full bg-[#1a1a1a] text-[#ebebeb] text-sm px-3 py-2 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b] font-mono"
             />
