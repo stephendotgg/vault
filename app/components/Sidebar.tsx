@@ -1,0 +1,72 @@
+export function Sidebar() {
+  return (
+    <aside className="flex flex-col w-60 h-full bg-[#202020] border-r border-[#2f2f2f] shrink-0">
+      {/* Workspace header */}
+      <div className="flex items-center h-11 px-3 hover:bg-[#2f2f2f] cursor-pointer">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs font-medium text-white">
+            M
+          </div>
+          <span className="text-sm font-medium text-[#e3e3e3] truncate">Mothership</span>
+        </div>
+      </div>
+
+      {/* Search and quick actions */}
+      <div className="px-2 py-1">
+        <div className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span>Search</span>
+        </div>
+        <div className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          <span>New page</span>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-[#2f2f2f] mx-2 my-1" />
+
+      {/* Pages section */}
+      <div className="flex-1 overflow-auto px-2 py-1">
+        <div className="text-xs font-medium text-[#6b6b6b] px-2 py-1.5 uppercase tracking-wider">
+          Private
+        </div>
+        
+        {/* Sample pages */}
+        <div className="flex items-center gap-2 px-2 py-1.5 text-[#e3e3e3] bg-[#2f2f2f] rounded cursor-pointer text-sm">
+          <span className="text-base">📄</span>
+          <span className="truncate">Home</span>
+        </div>
+        <div className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm">
+          <span className="text-base">📝</span>
+          <span className="truncate">Notes</span>
+        </div>
+        <div className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm">
+          <span className="text-base">✅</span>
+          <span className="truncate">Tasks</span>
+        </div>
+      </div>
+
+      {/* Bottom section */}
+      <div className="px-2 py-2 border-t border-[#2f2f2f]">
+        <div className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Help & Support</span>
+        </div>
+        <div className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Settings</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
