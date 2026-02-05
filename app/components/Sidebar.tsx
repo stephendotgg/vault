@@ -167,30 +167,40 @@ function NoteItem({
 }
 
 export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onGoHome, notes }: SidebarProps) {
-  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("sidebar-sections");
-      if (saved) return JSON.parse(saved);
-    }
-    return { notes: true, vault: true, memories: false };
+  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
+    notes: true,
+    vault: true,
+    memories: false,
   });
-  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("expanded-notes");
-      if (saved) return new Set(JSON.parse(saved));
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load from localStorage after hydration
+  useEffect(() => {
+    const savedSections = localStorage.getItem("sidebar-sections");
+    if (savedSections) {
+      setOpenSections(JSON.parse(savedSections));
     }
-    return new Set();
-  });
+    const savedExpanded = localStorage.getItem("expanded-notes");
+    if (savedExpanded) {
+      setExpandedNotes(new Set(JSON.parse(savedExpanded)));
+    }
+    setHydrated(true);
+  }, []);
 
   // Persist open sections to localStorage
   useEffect(() => {
-    localStorage.setItem("sidebar-sections", JSON.stringify(openSections));
-  }, [openSections]);
+    if (hydrated) {
+      localStorage.setItem("sidebar-sections", JSON.stringify(openSections));
+    }
+  }, [openSections, hydrated]);
 
   // Persist expanded notes to localStorage
   useEffect(() => {
-    localStorage.setItem("expanded-notes", JSON.stringify([...expandedNotes]));
-  }, [expandedNotes]);
+    if (hydrated) {
+      localStorage.setItem("expanded-notes", JSON.stringify([...expandedNotes]));
+    }
+  }, [expandedNotes, hydrated]);
 
   const noteTree = useMemo(() => buildNoteTree(notes), [notes]);
 

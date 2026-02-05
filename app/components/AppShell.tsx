@@ -7,22 +7,29 @@ import { Note } from "@/types/models";
 
 export function AppShell() {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("selected-note-id");
-    }
-    return null;
-  });
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load selected note from localStorage after hydration
+  useEffect(() => {
+    const saved = localStorage.getItem("selected-note-id");
+    if (saved) {
+      setSelectedNoteId(saved);
+    }
+    setHydrated(true);
+  }, []);
 
   // Persist selected note to localStorage
   useEffect(() => {
-    if (selectedNoteId) {
-      localStorage.setItem("selected-note-id", selectedNoteId);
-    } else {
-      localStorage.removeItem("selected-note-id");
+    if (hydrated) {
+      if (selectedNoteId) {
+        localStorage.setItem("selected-note-id", selectedNoteId);
+      } else {
+        localStorage.removeItem("selected-note-id");
+      }
     }
-  }, [selectedNoteId]);
+  }, [selectedNoteId, hydrated]);
 
   // Fetch all notes
   const fetchNotes = useCallback(async () => {
