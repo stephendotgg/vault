@@ -67,18 +67,9 @@
   }
 
   .tiptap > p.is-editor-empty:first-child::before {
-    content: "Start typing...\A\AFormatting\ACtrl+B  bold\ACtrl+I   italic\ACtrl+U  underline\A\ALists & Blocks\A-         bullet list\A1.        numbered list\A[ ]       checklist\A#         heading\A>         quote\A```       code block";
-    white-space: pre;
+    content: "Start typing...";
     color: #4a4a4a;
     pointer-events: none;
-    display: block;
-    position: absolute;
-    line-height: 1.8;
-    font-size: 14px;
-  }
-
-  .tiptap > p.is-editor-empty:first-child {
-    position: relative;
   }
 
   .tiptap ul {
