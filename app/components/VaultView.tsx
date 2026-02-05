@@ -8,9 +8,11 @@ interface VaultViewProps {
   onCreateVaultItem: (key: string, value: string, tags?: string) => Promise<VaultItem | undefined>;
   onDeleteVaultItem: (id: string) => void;
   onUpdateVaultItem: (id: string, data: Partial<VaultItem>) => void;
+  startAdding?: boolean;
+  onStartAddingConsumed?: () => void;
 }
 
-export function VaultView({ vaultItems, onCreateVaultItem, onDeleteVaultItem, onUpdateVaultItem }: VaultViewProps) {
+export function VaultView({ vaultItems, onCreateVaultItem, onDeleteVaultItem, onUpdateVaultItem, startAdding, onStartAddingConsumed }: VaultViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [newKey, setNewKey] = useState("");
@@ -18,6 +20,14 @@ export function VaultView({ vaultItems, onCreateVaultItem, onDeleteVaultItem, on
   const [newTags, setNewTags] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const keyInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle startAdding prop from parent
+  useEffect(() => {
+    if (startAdding) {
+      setIsAdding(true);
+      onStartAddingConsumed?.();
+    }
+  }, [startAdding, onStartAddingConsumed]);
 
   useEffect(() => {
     if (isAdding && keyInputRef.current) {

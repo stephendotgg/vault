@@ -13,6 +13,7 @@ export function AppShell() {
   const [vaultItems, setVaultItems] = useState<VaultItem[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>("home");
+  const [vaultStartAdding, setVaultStartAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
 
@@ -96,9 +97,10 @@ export function AppShell() {
   };
 
   // Open vault view
-  const handleOpenVault = () => {
+  const handleOpenVault = (startAdding?: boolean) => {
     setSelectedNoteId(null);
     setCurrentView("vault");
+    setVaultStartAdding(startAdding || false);
   };
 
   // Update note in list
@@ -214,12 +216,10 @@ export function AppShell() {
         notes={notes}
         vaultItems={vaultItems}
         selectedNoteId={selectedNoteId}
-        currentView={currentView}
         onSelectNote={handleSelectNote}
         onCreateNote={handleCreateNote}
         onArchiveNote={handleArchiveNote}
         onRenameNote={handleRenameNote}
-        onCreateVaultItem={handleCreateVaultItem}
         onDeleteVaultItem={handleDeleteVaultItem}
         onOpenVault={handleOpenVault}
         onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}
@@ -240,6 +240,8 @@ export function AppShell() {
             onCreateVaultItem={handleCreateVaultItem}
             onDeleteVaultItem={handleDeleteVaultItem}
             onUpdateVaultItem={handleUpdateVaultItem}
+            startAdding={vaultStartAdding}
+            onStartAddingConsumed={() => setVaultStartAdding(false)}
           />
         ) : (
           <div className="flex flex-col h-full">

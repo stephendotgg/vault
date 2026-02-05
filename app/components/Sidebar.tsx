@@ -17,16 +17,14 @@ interface ContextMenuState {
 
 interface SidebarProps {
   selectedNoteId?: string | null;
-  currentView?: "home" | "note" | "vault";
   onSelectNote: (id: string) => void;
   onCreateNote: (parentId?: string) => void;
   onArchiveNote: (id: string) => void;
   onRenameNote: (id: string, newTitle: string) => void;
   onGoHome: () => void;
-  onOpenVault: () => void;
+  onOpenVault: (startAdding?: boolean) => void;
   notes: Note[];
   vaultItems: VaultItem[];
-  onCreateVaultItem: (key: string, value: string, tags?: string) => Promise<VaultItem | undefined>;
   onDeleteVaultItem: (id: string) => void;
 }
 
@@ -254,7 +252,7 @@ interface CreateMenuState {
   y: number;
 }
 
-export function Sidebar({ selectedNoteId, currentView, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onGoHome, onOpenVault, notes, vaultItems, onCreateVaultItem, onDeleteVaultItem }: SidebarProps) {
+export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onGoHome, onOpenVault, notes, vaultItems, onDeleteVaultItem }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -267,10 +265,6 @@ export function Sidebar({ selectedNoteId, currentView, onSelectNote, onCreateNot
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [createMenu, setCreateMenu] = useState<CreateMenuState | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [addingVaultItem, setAddingVaultItem] = useState(false);
-  const [newVaultKey, setNewVaultKey] = useState("");
-  const [newVaultValue, setNewVaultValue] = useState("");
-  const vaultInputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage after hydration
   useEffect(() => {
@@ -351,32 +345,6 @@ export function Sidebar({ selectedNoteId, currentView, onSelectNote, onCreateNot
   const handleFinishRename = (id: string, newTitle: string) => {
     onRenameNote(id, newTitle);
     setEditingNoteId(null);
-  };
-
-  // Focus vault input when adding
-  useEffect(() => {
-    if (addingVaultItem && vaultInputRef.current) {
-      vaultInputRef.current.focus();
-    }
-  }, [addingVaultItem]);
-
-  const handleAddVaultItem = async () => {
-    if (newVaultKey.trim()) {
-      await onCreateVaultItem(newVaultKey.trim(), newVaultValue.trim());
-      setNewVaultKey("");
-      setNewVaultValue("");
-      setAddingVaultItem(false);
-    }
-  };
-
-  const handleVaultKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleAddVaultItem();
-    } else if (e.key === "Escape") {
-      setAddingVaultItem(false);
-      setNewVaultKey("");
-      setNewVaultValue("");
-    }
   };
 
   return (
@@ -481,9 +449,7 @@ export function Sidebar({ selectedNoteId, currentView, onSelectNote, onCreateNot
         {/* VAULT Section */}
         <div className="flex items-center justify-between mt-5">
           <div
-            className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium uppercase tracking-wider cursor-pointer rounded transition-colors ${
-              currentView === "vault" ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]" : "text-[#91918e] hover:text-[#aeaeae]"
-            }`}
+            className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors"
             onClick={() => onOpenVault()}
           >
             <svg
@@ -499,7 +465,7 @@ export function Sidebar({ selectedNoteId, currentView, onSelectNote, onCreateNot
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setAddingVaultItem(true);
+              onOpenVault(true);
             }}
             className="p-1 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.055)] rounded transition-all"
             title="Add to vault"
@@ -511,47 +477,7 @@ export function Sidebar({ selectedNoteId, currentView, onSelectNote, onCreateNot
         </div>
         {openSections.vault && (
           <div className="ml-1 mt-0.5 flex flex-col gap-[1px]">
-            {/* Add new vault item form */}
-            {addingVaultItem && (
-              <div className="flex flex-col gap-1 px-2 py-2">
-                <input
-                  ref={vaultInputRef}
-                  type="text"
-                  placeholder="Key (e.g. GitHub Token)"
-                  value={newVaultKey}
-                  onChange={(e) => setNewVaultKey(e.target.value)}
-                  onKeyDown={handleVaultKeyDown}
-                  className="bg-[#2f2f2f] text-[#ebebeb] text-sm px-2 py-1 rounded outline-none border border-[#3f3f3f] focus:border-[#5f5f5f]"
-                />
-                <input
-                  type="text"
-                  placeholder="Value"
-                  value={newVaultValue}
-                  onChange={(e) => setNewVaultValue(e.target.value)}
-                  onKeyDown={handleVaultKeyDown}
-                  className="bg-[#2f2f2f] text-[#ebebeb] text-sm px-2 py-1 rounded outline-none border border-[#3f3f3f] focus:border-[#5f5f5f]"
-                />
-                <div className="flex gap-1 mt-1">
-                  <button
-                    onClick={handleAddVaultItem}
-                    className="flex-1 text-xs bg-[#3f3f3f] text-[#ebebeb] px-2 py-1 rounded hover:bg-[#4f4f4f] transition-colors"
-                  >
-                    Add
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAddingVaultItem(false);
-                      setNewVaultKey("");
-                      setNewVaultValue("");
-                    }}
-                    className="flex-1 text-xs bg-transparent text-[#9b9b9b] px-2 py-1 rounded hover:bg-[#2f2f2f] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-            {vaultItems.length === 0 && !addingVaultItem ? (
+            {vaultItems.length === 0 ? (
               <div className="px-2 py-2 text-[#6b6b6b] text-sm italic">
                 No items yet
               </div>
@@ -561,6 +487,7 @@ export function Sidebar({ selectedNoteId, currentView, onSelectNote, onCreateNot
                   key={item.id}
                   className="group flex items-center gap-2 px-2 py-[3px] text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] cursor-pointer text-sm transition-all"
                   title={`${item.key}: ${item.value}`}
+                  onClick={() => onOpenVault()}
                 >
                   <svg className="w-4 h-4 shrink-0 text-[#6b6b6b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
