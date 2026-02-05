@@ -244,6 +244,11 @@ function NoteItem({
   );
 }
 
+interface CreateMenuState {
+  x: number;
+  y: number;
+}
+
 export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onGoHome, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
@@ -253,6 +258,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [createMenu, setCreateMenu] = useState<CreateMenuState | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
   // Load from localStorage after hydration
@@ -276,6 +282,15 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
       return () => document.removeEventListener("click", handleClick);
     }
   }, [contextMenu]);
+
+  // Close create menu on click outside
+  useEffect(() => {
+    const handleClick = () => setCreateMenu(null);
+    if (createMenu) {
+      document.addEventListener("click", handleClick);
+      return () => document.removeEventListener("click", handleClick);
+    }
+  }, [createMenu]);
 
   // Persist open sections to localStorage
   useEffect(() => {
@@ -352,7 +367,10 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
         </div>
         <div 
           className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
-          onClick={() => onCreateNote()}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setCreateMenu({ x: rect.right + 4, y: rect.top });
+          }}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -537,6 +555,29 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
             </svg>
             Archive
+          </button>
+        </div>
+      )}
+
+      {/* Create Menu */}
+      {createMenu && (
+        <div
+          className="fixed bg-[#252525] border border-[#2f2f2f] rounded-lg shadow-xl p-1 min-w-[160px] z-50"
+          style={{ left: createMenu.x, top: createMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-[#9b9b9b] hover:bg-[#2f2f2f] rounded text-left cursor-pointer"
+            onClick={() => {
+              onCreateNote();
+              setCreateMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+              <polyline points="14,2 14,8 20,8"/>
+            </svg>
+            Note
           </button>
         </div>
       )}
