@@ -90,6 +90,10 @@
     margin: 0;
   }
 
+  .tiptap ul > li::marker {
+    font-size: 1.2em;
+  }
+
   .tiptap strong {
     font-weight: 700;
   }
