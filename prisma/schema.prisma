@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Notes - stored in the Notes section
+model Note {
+  id        String   @id @default(cuid())
+  title     String   @default("Untitled")
+  content   String   @default("")
+  icon      String   @default("📄")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Vault items - secure storage
+model VaultItem {
+  id        String   @id @default(cuid())
+  title     String   @default("Untitled")
+  content   String   @default("")
+  icon      String   @default("🔐")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Memories - photos, videos, journal entries
+model Memory {
+  id        String   @id @default(cuid())
+  title     String   @default("Untitled")
+  content   String   @default("")
+  icon      String   @default("📸")
+  type      String   @default("journal") // photo, video, journal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

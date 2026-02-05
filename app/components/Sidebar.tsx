@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Note } from "@/types/models";
 
 type SectionKey = "notes" | "vault" | "memories";
 
-export function Sidebar() {
+interface SidebarProps {
+  selectedNoteId?: string | null;
+  onSelectNote: (id: string) => void;
+  onCreateNote: () => void;
+  notes: Note[];
+}
+
+export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -35,7 +43,10 @@ export function Sidebar() {
           </svg>
           <span>Search</span>
         </div>
-        <div className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm">
+        <div 
+          className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
+          onClick={onCreateNote}
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
@@ -64,18 +75,26 @@ export function Sidebar() {
         </div>
         {openSections.notes && (
           <div className="ml-1 mt-0.5 flex flex-col gap-[1px]">
-            <div className="flex items-center gap-2.5 px-2 py-[5px] text-[#ebebeb] bg-[rgba(255,255,255,0.055)] rounded-[6px] cursor-pointer text-sm transition-all">
-              <span className="text-[15px]">📄</span>
-              <span className="truncate">Quick Notes</span>
-            </div>
-            <div className="flex items-center gap-2.5 px-2 py-[5px] text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] cursor-pointer text-sm transition-all">
-              <span className="text-[15px]">📝</span>
-              <span className="truncate">Meeting Notes</span>
-            </div>
-            <div className="flex items-center gap-2.5 px-2 py-[5px] text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] cursor-pointer text-sm transition-all">
-              <span className="text-[15px]">💡</span>
-              <span className="truncate">Ideas</span>
-            </div>
+            {notes.length === 0 ? (
+              <div className="px-2 py-2 text-[#6b6b6b] text-sm italic">
+                No notes yet
+              </div>
+            ) : (
+              notes.map((note) => (
+                <div
+                  key={note.id}
+                  className={`flex items-center gap-2.5 px-2 py-[5px] rounded-[6px] cursor-pointer text-sm transition-all ${
+                    selectedNoteId === note.id
+                      ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
+                      : "text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb]"
+                  }`}
+                  onClick={() => onSelectNote(note.id)}
+                >
+                  <span className="text-[15px]">{note.icon}</span>
+                  <span className="truncate">{note.title || "Untitled"}</span>
+                </div>
+              ))
+            )}
           </div>
         )}
 
