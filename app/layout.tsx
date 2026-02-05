@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "./components/Sidebar";
+import { TitleBar } from "./components/TitleBar";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -21,11 +22,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} antialiased`}>
-        <div className="flex h-screen w-screen overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 overflow-auto bg-[#191919]">
-            {children}
-          </main>
+        <div className="flex flex-col h-screen w-screen overflow-hidden">
+          <TitleBar />
+          <div className="flex flex-1 overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 overflow-auto bg-[#191919]">
+              {children}
+            </main>
+          </div>
         </div>
       </body>
     </html>
