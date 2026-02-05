@@ -13,6 +13,7 @@ interface SidebarProps {
   selectedNoteId?: string | null;
   onSelectNote: (id: string) => void;
   onCreateNote: (parentId?: string) => void;
+  onArchiveNote: (id: string) => void;
   onGoHome: () => void;
   notes: Note[];
 }
@@ -56,6 +57,7 @@ interface NoteItemProps {
   onExpandNote: (id: string) => void;
   onSelectNote: (id: string) => void;
   onCreateNote: (parentId?: string) => void;
+  onArchiveNote: (id: string) => void;
 }
 
 function NoteItem({ 
@@ -66,7 +68,8 @@ function NoteItem({
   onToggleExpand,
   onExpandNote, 
   onSelectNote,
-  onCreateNote 
+  onCreateNote,
+  onArchiveNote
 }: NoteItemProps) {
   const hasChildren = note.children.length > 0;
   const isExpanded = expandedNotes.has(note.id);
@@ -110,20 +113,36 @@ function NoteItem({
           <span className="truncate">{note.title || "Untitled"}</span>
         </div>
 
-        {/* Add sub-note button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onExpandNote(note.id); // Auto-expand parent when adding child
-            onCreateNote(note.id);
-          }}
-          className="opacity-0 group-hover:opacity-100 p-0.5 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.1)] rounded transition-all"
-          title="Add sub-note"
-        >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-        </button>
+        {/* Action buttons */}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+          {/* Add sub-note button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onExpandNote(note.id);
+              onCreateNote(note.id);
+            }}
+            className="p-0.5 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.1)] rounded transition-all"
+            title="Add sub-note"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </button>
+          {/* Archive button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onArchiveNote(note.id);
+            }}
+            className="p-0.5 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.1)] rounded transition-all"
+            title="Archive note"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Children */}
@@ -140,6 +159,7 @@ function NoteItem({
               onExpandNote={onExpandNote}
               onSelectNote={onSelectNote}
               onCreateNote={onCreateNote}
+              onArchiveNote={onArchiveNote}
             />
           ))}
         </div>
@@ -148,7 +168,7 @@ function NoteItem({
   );
 }
 
-export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onGoHome, notes }: SidebarProps) {
+export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onGoHome, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -267,6 +287,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onGoHome, 
                   onExpandNote={expandNote}
                   onSelectNote={onSelectNote}
                   onCreateNote={onCreateNote}
+                  onArchiveNote={onArchiveNote}
                 />
               ))
             )}

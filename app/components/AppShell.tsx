@@ -68,6 +68,26 @@ export function AppShell() {
     }
   };
 
+  // Archive note (hide without deleting)
+  const handleArchiveNote = async (id: string) => {
+    try {
+      const res = await fetch(`/api/notes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archived: true }),
+      });
+
+      if (res.ok) {
+        setNotes((prev) => prev.filter((n) => n.id !== id));
+        if (selectedNoteId === id) {
+          setSelectedNoteId(null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to archive note:", error);
+    }
+  };
+
   return (
     <div className="flex flex-1 overflow-hidden">
       <Sidebar
@@ -75,6 +95,7 @@ export function AppShell() {
         selectedNoteId={selectedNoteId}
         onSelectNote={handleSelectNote}
         onCreateNote={handleCreateNote}
+        onArchiveNote={handleArchiveNote}
         onGoHome={() => setSelectedNoteId(null)}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">

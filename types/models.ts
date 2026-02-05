@@ -4,6 +4,7 @@ export interface Note {
   content: string;
   icon: string;
   order: number;
+  archived: boolean;
   parentId: string | null;
   createdAt: string;
   updatedAt: string;

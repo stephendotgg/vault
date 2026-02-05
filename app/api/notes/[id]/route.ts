@@ -40,6 +40,7 @@ export async function PATCH(
         ...(body.icon !== undefined && { icon: body.icon }),
         ...(body.parentId !== undefined && { parentId: body.parentId }),
         ...(body.order !== undefined && { order: body.order }),
+        ...(body.archived !== undefined && { archived: body.archived }),
       },
     });
     

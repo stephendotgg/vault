@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const notes = await prisma.note.findMany({
+      where: { archived: false },
       orderBy: { order: "asc" },
     });
     return NextResponse.json(notes);
