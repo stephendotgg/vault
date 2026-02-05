@@ -58,6 +58,13 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
     return trail;
   }, [note, allNotes]);
 
+  // Get child pages (sub-notes) for current note
+  const childPages = useMemo(() => {
+    return allNotes
+      .filter(n => n.parentId === note.id && !n.archived)
+      .sort((a, b) => a.order - b.order);
+  }, [note.id, allNotes]);
+
   // Auto-save function
   const saveNote = useCallback(async (newTitle: string, newContent: string) => {
     setIsSaving(true);
@@ -238,6 +245,28 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
             placeholder="Untitled"
             className="w-full text-4xl font-bold text-[#e3e3e3] bg-transparent border-none outline-none placeholder-[#4a4a4a] mb-4"
           />
+
+          {/* Sub-pages list */}
+          {childPages.length > 0 && (
+            <div className="mb-8">
+              <div className="border border-[#2f2f2f] rounded-lg overflow-hidden">
+                {childPages.map((child, index) => (
+                  <button
+                    key={child.id}
+                    onClick={() => onSelectNote(child.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#2a2a2a] transition-colors cursor-pointer text-left ${
+                      index !== childPages.length - 1 ? "border-b border-[#2f2f2f]" : ""
+                    }`}
+                  >
+                    <NoteIcon hasContent={child.content.length > 0 && child.content !== "<p></p>"} />
+                    <span className="text-[#e3e3e3] text-sm truncate">
+                      {child.title || "Untitled"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Rich Text Editor */}
           <EditorContent editor={editor} />
