@@ -3,12 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Sidebar } from "./Sidebar";
 import { NoteEditor } from "./NoteEditor";
+import { VaultView } from "./VaultView";
 import { Note, VaultItem } from "@/types/models";
+
+type ViewType = "home" | "note" | "vault";
 
 export function AppShell() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [vaultItems, setVaultItems] = useState<VaultItem[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<ViewType>("home");
   const [isLoading, setIsLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
 
@@ -78,6 +82,7 @@ export function AppShell() {
         const newNote = await res.json();
         setNotes((prev) => [...prev, newNote]);
         setSelectedNoteId(newNote.id);
+        setCurrentView("note");
       }
     } catch (error) {
       console.error("Failed to create note:", error);
@@ -87,6 +92,13 @@ export function AppShell() {
   // Select note
   const handleSelectNote = (id: string) => {
     setSelectedNoteId(id);
+    setCurrentView("note");
+  };
+
+  // Open vault view
+  const handleOpenVault = () => {
+    setSelectedNoteId(null);
+    setCurrentView("vault");
   };
 
   // Update note in list
@@ -176,22 +188,44 @@ export function AppShell() {
     }
   };
 
+  // Update vault item
+  const handleUpdateVaultItem = async (id: string, data: Partial<VaultItem>) => {
+    try {
+      const res = await fetch(`/api/vault/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setVaultItems((prev) =>
+          prev.map((item) => (item.id === id ? updated : item))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to update vault item:", error);
+    }
+  };
+
   return (
     <div className="flex flex-1 overflow-hidden">
       <Sidebar
         notes={notes}
         vaultItems={vaultItems}
         selectedNoteId={selectedNoteId}
+        currentView={currentView}
         onSelectNote={handleSelectNote}
         onCreateNote={handleCreateNote}
         onArchiveNote={handleArchiveNote}
         onRenameNote={handleRenameNote}
         onCreateVaultItem={handleCreateVaultItem}
         onDeleteVaultItem={handleDeleteVaultItem}
-        onGoHome={() => setSelectedNoteId(null)}
+        onOpenVault={handleOpenVault}
+        onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">
-        {selectedNoteId && notes.find(n => n.id === selectedNoteId) ? (
+        {currentView === "note" && selectedNoteId && notes.find(n => n.id === selectedNoteId) ? (
           <NoteEditor
             key={selectedNoteId}
             note={notes.find(n => n.id === selectedNoteId)!}
@@ -199,6 +233,13 @@ export function AppShell() {
             onUpdate={handleUpdateNote}
             onDelete={handleDeleteNote}
             onSelectNote={handleSelectNote}
+          />
+        ) : currentView === "vault" ? (
+          <VaultView
+            vaultItems={vaultItems}
+            onCreateVaultItem={handleCreateVaultItem}
+            onDeleteVaultItem={handleDeleteVaultItem}
+            onUpdateVaultItem={handleUpdateVaultItem}
           />
         ) : (
           <div className="flex flex-col h-full">

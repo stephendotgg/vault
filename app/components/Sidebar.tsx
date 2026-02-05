@@ -17,11 +17,13 @@ interface ContextMenuState {
 
 interface SidebarProps {
   selectedNoteId?: string | null;
+  currentView?: "home" | "note" | "vault";
   onSelectNote: (id: string) => void;
   onCreateNote: (parentId?: string) => void;
   onArchiveNote: (id: string) => void;
   onRenameNote: (id: string, newTitle: string) => void;
   onGoHome: () => void;
+  onOpenVault: () => void;
   notes: Note[];
   vaultItems: VaultItem[];
   onCreateVaultItem: (key: string, value: string, tags?: string) => Promise<VaultItem | undefined>;
@@ -252,7 +254,7 @@ interface CreateMenuState {
   y: number;
 }
 
-export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onGoHome, notes, vaultItems, onCreateVaultItem, onDeleteVaultItem }: SidebarProps) {
+export function Sidebar({ selectedNoteId, currentView, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onGoHome, onOpenVault, notes, vaultItems, onCreateVaultItem, onDeleteVaultItem }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -479,13 +481,16 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
         {/* VAULT Section */}
         <div className="flex items-center justify-between mt-5">
           <div
-            className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors"
-            onClick={() => toggleSection("vault")}
+            className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium uppercase tracking-wider cursor-pointer rounded transition-colors ${
+              currentView === "vault" ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]" : "text-[#91918e] hover:text-[#aeaeae]"
+            }`}
+            onClick={() => onOpenVault()}
           >
             <svg
               className={`w-3 h-3 transition-transform duration-150 ${openSections.vault ? "rotate-90" : ""}`}
               fill="currentColor"
               viewBox="0 0 20 20"
+              onClick={(e) => { e.stopPropagation(); toggleSection("vault"); }}
             >
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
