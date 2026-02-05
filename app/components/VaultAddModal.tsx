@@ -32,6 +32,16 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
     return patterns.some((pattern) => pattern.test(url));
   };
 
+  // Check if string is a valid URL
+  const isValidUrl = (str: string): boolean => {
+    try {
+      const url = new URL(str);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
   // Fetch YouTube video title using oEmbed
   const fetchYouTubeTitle = async (url: string): Promise<string | null> => {
     try {
@@ -47,16 +57,43 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
     return null;
   };
 
+  // Fetch page title via our API
+  const fetchPageTitle = async (url: string): Promise<string | null> => {
+    try {
+      const res = await fetch(`/api/fetch-title?url=${encodeURIComponent(url)}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.title || null;
+      }
+    } catch (error) {
+      console.error("Failed to fetch page title:", error);
+    }
+    return null;
+  };
+
   // Handle paste in value field
   const handleValuePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = e.clipboardData.getData("text").trim();
     
-    if (isYouTubeUrl(pastedText) && !key) {
+    // Only auto-fetch if key is empty
+    if (!key && isValidUrl(pastedText)) {
       setIsFetchingTitle(true);
-      const title = await fetchYouTubeTitle(pastedText);
+      
+      let title: string | null = null;
+      
+      // Use YouTube oEmbed for YouTube links (faster, more reliable)
+      if (isYouTubeUrl(pastedText)) {
+        title = await fetchYouTubeTitle(pastedText);
+        if (title) {
+          setTags((prev) => prev ? `${prev}, youtube` : "youtube");
+        }
+      } else {
+        // Use our API for other URLs
+        title = await fetchPageTitle(pastedText);
+      }
+      
       if (title) {
         setKey(title);
-        setTags((prev) => prev ? `${prev}, youtube` : "youtube");
       }
       setIsFetchingTitle(false);
     }
@@ -132,7 +169,7 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
             />
           </div>
           <div>
-            <label className="block text-xs text-[#9b9b9b] mb-1.5">Value <span className="text-[#6b6b6b]">(paste YouTube link to auto-fill title)</span></label>
+            <label className="block text-xs text-[#9b9b9b] mb-1.5">Value <span className="text-[#6b6b6b]">(paste URL to auto-fill title)</span></label>
             <input
               type="text"
               placeholder="The actual secret or value"
