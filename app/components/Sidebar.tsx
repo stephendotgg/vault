@@ -554,7 +554,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
       <div className="h-px bg-[#2f2f2f] mx-2 my-1" />
 
       {/* Bottom section */}
-      <div className="px-2 py-2">
+      <div className="px-2 py-1">
         <div className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
