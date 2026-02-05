@@ -147,7 +147,7 @@ function NoteItem({
 
       {/* Children */}
       {isExpanded && hasChildren && (
-        <div className="flex flex-col gap-[1px]">
+        <div className="flex flex-col gap-[1px] mt-[1px]">
           {note.children.map((child) => (
             <NoteItem
               key={child.id}
