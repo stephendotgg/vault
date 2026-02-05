@@ -16,7 +16,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex flex-col w-60 h-full bg-[#202020] border-r border-[#2f2f2f] shrink-0">
+    <aside className="flex flex-col w-60 h-full bg-[#202020] border-r border-[#2f2f2f] shrink-0 select-none">
       {/* Workspace header */}
       <div className="flex items-center h-11 px-3 hover:bg-[#2f2f2f] cursor-pointer">
         <div className="flex items-center gap-2">
