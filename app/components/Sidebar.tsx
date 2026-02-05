@@ -119,14 +119,11 @@ function NoteItem({
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
+      setEditValue(note.title);
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [isEditing]);
-
-  useEffect(() => {
-    setEditValue(note.title);
-  }, [note.title]);
+  }, [isEditing, note.title]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
