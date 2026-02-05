@@ -135,7 +135,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
               ) : (
                 <button
                   onClick={() => onSelectNote(crumb.id)}
-                  className="flex items-center gap-1.5 hover:text-[#e3e3e3] transition-colors min-w-0"
+                  className="flex items-center gap-1.5 hover:text-[#e3e3e3] transition-colors min-w-0 cursor-pointer"
                 >
                   <span className="shrink-0">{crumb.icon}</span>
                   <span className="truncate max-w-[120px]">{crumb.title || "Untitled"}</span>
