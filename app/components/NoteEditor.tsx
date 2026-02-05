@@ -60,6 +60,9 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
     const newTitle = e.target.value;
     setTitle(newTitle);
 
+    // Optimistically update the note in parent state for instant sidebar update
+    onUpdate({ ...note, title: newTitle });
+
     // Clear existing timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
