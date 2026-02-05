@@ -60,6 +60,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
 
   // TipTap editor
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         bulletList: {
