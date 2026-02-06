@@ -218,6 +218,47 @@ export function AppShell() {
     }
   };
 
+  // Move note (drag and drop)
+  const handleMoveNote = async (noteId: string, newParentId: string | null, newOrder: number) => {
+    // Optimistic update
+    setNotes((prev) => {
+      const updated = prev.map((n) => {
+        if (n.id === noteId) {
+          return { ...n, parentId: newParentId, order: newOrder };
+        }
+        // Adjust order of siblings if needed
+        if ((n.parentId || null) === newParentId && n.id !== noteId && n.order >= newOrder) {
+          return { ...n, order: n.order + 1 };
+        }
+        return n;
+      });
+      return updated;
+    });
+
+    try {
+      // First update the moved note
+      await fetch(`/api/notes/${noteId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parentId: newParentId, order: newOrder }),
+      });
+
+      // Then reorder siblings
+      const siblings = notes.filter((n) => (n.parentId || null) === newParentId && n.id !== noteId);
+      for (const sibling of siblings) {
+        if (sibling.order >= newOrder) {
+          await fetch(`/api/notes/${sibling.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ order: sibling.order + 1 }),
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to move note:", error);
+    }
+  };
+
   return (
     <div className="flex flex-1 overflow-hidden">
       <Sidebar
@@ -227,6 +268,7 @@ export function AppShell() {
         onCreateNote={handleCreateNote}
         onArchiveNote={handleArchiveNote}
         onRenameNote={handleRenameNote}
+        onMoveNote={handleMoveNote}
         onOpenVault={handleOpenVault}
         onOpenVaultAddModal={handleOpenVaultAddModal}
         onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}

@@ -21,6 +21,7 @@ interface SidebarProps {
   onCreateNote: (parentId?: string) => void;
   onArchiveNote: (id: string) => void;
   onRenameNote: (id: string, newTitle: string) => void;
+  onMoveNote: (noteId: string, newParentId: string | null, newOrder: number) => void;
   onGoHome: () => void;
   onOpenVault: () => void;
   onOpenVaultAddModal: (tag?: string) => void;
@@ -57,12 +58,21 @@ function buildNoteTree(notes: Note[]): NoteWithChildren[] {
   return roots;
 }
 
+type DropPosition = "before" | "after" | "inside";
+
+interface DragState {
+  draggedId: string | null;
+  targetId: string | null;
+  position: DropPosition | null;
+}
+
 interface NoteItemProps {
   note: NoteWithChildren;
   depth: number;
   selectedNoteId?: string | null;
   expandedNotes: Set<string>;
   editingNoteId: string | null;
+  dragState: DragState;
   onToggleExpand: (id: string) => void;
   onExpandNote: (id: string) => void;
   onSelectNote: (id: string) => void;
@@ -72,6 +82,11 @@ interface NoteItemProps {
   onStartRename: (id: string) => void;
   onFinishRename: (id: string, newTitle: string) => void;
   onCancelRename: () => void;
+  onDragStart: (id: string) => void;
+  onDragOver: (e: React.DragEvent, id: string) => void;
+  onDragLeave: () => void;
+  onDrop: (targetId: string) => void;
+  onDragEnd: () => void;
 }
 
 // Document icon - filled if has content, outline if empty
@@ -102,6 +117,7 @@ function NoteItem({
   selectedNoteId, 
   expandedNotes,
   editingNoteId,
+  dragState,
   onToggleExpand,
   onExpandNote, 
   onSelectNote,
@@ -110,12 +126,20 @@ function NoteItem({
   onContextMenu,
   onStartRename,
   onFinishRename,
-  onCancelRename
+  onCancelRename,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd
 }: NoteItemProps) {
   const hasChildren = note.children.length > 0;
   const isExpanded = expandedNotes.has(note.id);
   const isSelected = selectedNoteId === note.id;
   const isEditing = editingNoteId === note.id;
+  const isDragging = dragState.draggedId === note.id;
+  const isDropTarget = dragState.targetId === note.id;
+  const dropPosition = isDropTarget ? dragState.position : null;
   const inputRef = useRef<HTMLInputElement>(null);
   const [editValue, setEditValue] = useState(note.title);
 
@@ -137,14 +161,32 @@ function NoteItem({
   };
 
   return (
-    <div>
+    <div className="relative">
+      {/* Drop indicator - before */}
+      {dropPosition === "before" && (
+        <div className="absolute left-2 right-2 top-0 h-0.5 bg-blue-500 rounded-full z-10" />
+      )}
+      
       <div
         className={`group flex items-center gap-1 pr-2 py-[3px] rounded-[6px] cursor-pointer text-sm transition-all ${
           isSelected
             ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
             : "text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb]"
-        }`}
+        } ${isDragging ? "opacity-50" : ""} ${dropPosition === "inside" ? "ring-2 ring-blue-500 ring-inset" : ""}`}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
+        draggable={!isEditing}
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", note.id);
+          onDragStart(note.id);
+        }}
+        onDragOver={(e) => onDragOver(e, note.id)}
+        onDragLeave={onDragLeave}
+        onDrop={(e) => {
+          e.preventDefault();
+          onDrop(note.id);
+        }}
+        onDragEnd={onDragEnd}
         onClick={() => !isEditing && onSelectNote(note.id)}
         onContextMenu={(e) => onContextMenu(e, note.id)}
       >
@@ -238,9 +280,20 @@ function NoteItem({
               onStartRename={onStartRename}
               onFinishRename={onFinishRename}
               onCancelRename={onCancelRename}
+              dragState={dragState}
+              onDragStart={onDragStart}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              onDragEnd={onDragEnd}
             />
           ))}
         </div>
+      )}
+      
+      {/* Drop indicator - after */}
+      {dropPosition === "after" && (
+        <div className="absolute left-2 right-2 bottom-0 h-0.5 bg-blue-500 rounded-full z-10" />
       )}
     </div>
   );
@@ -251,7 +304,7 @@ interface CreateMenuState {
   y: number;
 }
 
-export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onGoHome, onOpenVault, onOpenVaultAddModal, notes }: SidebarProps) {
+export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onGoHome, onOpenVault, onOpenVaultAddModal, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -264,6 +317,13 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [createMenu, setCreateMenu] = useState<CreateMenuState | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  
+  // Drag and drop state
+  const [dragState, setDragState] = useState<DragState>({
+    draggedId: null,
+    targetId: null,
+    position: null,
+  });
 
   // Load from localStorage after hydration
   useEffect(() => {
@@ -344,6 +404,91 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
   const handleFinishRename = (id: string, newTitle: string) => {
     onRenameNote(id, newTitle);
     setEditingNoteId(null);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (id: string) => {
+    setDragState({ draggedId: id, targetId: null, position: null });
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!dragState.draggedId || dragState.draggedId === targetId) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const height = rect.height;
+
+    let position: DropPosition;
+    if (y < height * 0.25) {
+      position = "before";
+    } else if (y > height * 0.75) {
+      position = "after";
+    } else {
+      position = "inside";
+    }
+
+    if (dragState.targetId !== targetId || dragState.position !== position) {
+      setDragState((prev) => ({ ...prev, targetId, position }));
+    }
+  };
+
+  const handleDragLeave = () => {
+    // Don't clear immediately - let dragOver of next element handle it
+  };
+
+  const handleDrop = (targetId: string) => {
+    if (!dragState.draggedId || dragState.draggedId === targetId || !dragState.position) {
+      setDragState({ draggedId: null, targetId: null, position: null });
+      return;
+    }
+
+    const draggedNote = notes.find((n) => n.id === dragState.draggedId);
+    const targetNote = notes.find((n) => n.id === targetId);
+    if (!draggedNote || !targetNote) return;
+
+    // Prevent dropping a note into its own children
+    const isDescendant = (parentId: string, childId: string): boolean => {
+      const children = notes.filter((n) => n.parentId === parentId);
+      for (const child of children) {
+        if (child.id === childId) return true;
+        if (isDescendant(child.id, childId)) return true;
+      }
+      return false;
+    };
+
+    if (isDescendant(dragState.draggedId, targetId)) {
+      setDragState({ draggedId: null, targetId: null, position: null });
+      return;
+    }
+
+    let newParentId: string | null;
+    let newOrder: number;
+
+    if (dragState.position === "inside") {
+      // Make it a child of target
+      newParentId = targetId;
+      const siblings = notes.filter((n) => n.parentId === targetId);
+      newOrder = siblings.length > 0 ? Math.max(...siblings.map((n) => n.order)) + 1 : 0;
+      // Expand the target so user can see the dropped note
+      expandNote(targetId);
+    } else {
+      // Same parent as target
+      newParentId = targetNote.parentId || null;
+      
+      if (dragState.position === "before") {
+        newOrder = targetNote.order;
+      } else {
+        newOrder = targetNote.order + 1;
+      }
+    }
+
+    onMoveNote(dragState.draggedId, newParentId, newOrder);
+    setDragState({ draggedId: null, targetId: null, position: null });
+  };
+
+  const handleDragEnd = () => {
+    setDragState({ draggedId: null, targetId: null, position: null });
   };
 
   return (
@@ -430,6 +575,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
                   selectedNoteId={selectedNoteId}
                   expandedNotes={expandedNotes}
                   editingNoteId={editingNoteId}
+                  dragState={dragState}
                   onToggleExpand={toggleNoteExpand}
                   onExpandNote={expandNote}
                   onSelectNote={onSelectNote}
@@ -439,6 +585,11 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
                   onStartRename={(id) => setEditingNoteId(id)}
                   onFinishRename={handleFinishRename}
                   onCancelRename={() => setEditingNoteId(null)}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onDragEnd={handleDragEnd}
                 />
               ))
             )}
