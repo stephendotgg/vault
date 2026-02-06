@@ -7,9 +7,10 @@ interface VaultAddModalProps {
   onClose: () => void;
   onAdd: (key: string, value: string, tags?: string) => Promise<void>;
   initialTag?: string;
+  availableTags?: string[];
 }
 
-export function VaultAddModal({ isOpen, onClose, onAdd, initialTag }: VaultAddModalProps) {
+export function VaultAddModal({ isOpen, onClose, onAdd, initialTag, availableTags = [] }: VaultAddModalProps) {
   const [key, setKey] = useState("");
   const [value, setValue] = useState("");
   const [tags, setTags] = useState("");
@@ -200,7 +201,7 @@ export function VaultAddModal({ isOpen, onClose, onAdd, initialTag }: VaultAddMo
             />
             {/* Quick tag buttons */}
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {["shows", "music", "topics", "food", "youtube", "work"].map((tag) => {
+              {availableTags.map((tag) => {
                 const tagList = tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
                 const isActive = tagList.includes(tag);
                 return (

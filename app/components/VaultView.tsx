@@ -14,8 +14,26 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Quick filter tags
-  const quickTags = ["shows", "music", "topics", "food", "youtube", "work"];
+  // Priority tags that always show first (in this order)
+  const priorityTags = ["shows", "music", "topics", "food", "youtube", "work"];
+  
+  // Compute all unique tags from vault items
+  const allTags = (() => {
+    const tagSet = new Set<string>();
+    vaultItems.forEach((item) => {
+      if (item.tags) {
+        item.tags.split(",").forEach((t) => {
+          const trimmed = t.trim().toLowerCase();
+          if (trimmed) tagSet.add(trimmed);
+        });
+      }
+    });
+    
+    // Priority tags first (only if they exist in items), then remaining tags alphabetically
+    const existingPriority = priorityTags.filter((t) => tagSet.has(t));
+    const remainingTags = [...tagSet].filter((t) => !priorityTags.includes(t)).sort();
+    return [...existingPriority, ...remainingTags];
+  })();
 
   const filteredItems = vaultItems.filter((item) => {
     // First filter by active tag if set
@@ -106,7 +124,7 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
 
           {/* Quick filter tags */}
           <div className="flex flex-wrap gap-2 mb-6">
-            {quickTags.map((tag) => (
+            {allTags.map((tag) => (
               <button
                 key={tag}
                 onClick={() => handleTagClick(tag)}

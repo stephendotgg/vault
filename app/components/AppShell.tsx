@@ -103,6 +103,23 @@ export function AppShell() {
     setCurrentView("vault");
   };
 
+  // Compute available tags for vault (priority tags first, then others alphabetically)
+  const priorityTags = ["shows", "music", "topics", "food", "youtube", "work"];
+  const availableVaultTags = (() => {
+    const tagSet = new Set<string>();
+    vaultItems.forEach((item) => {
+      if (item.tags) {
+        item.tags.split(",").forEach((t) => {
+          const trimmed = t.trim().toLowerCase();
+          if (trimmed) tagSet.add(trimmed);
+        });
+      }
+    });
+    const existingPriority = priorityTags.filter((t) => tagSet.has(t));
+    const remainingTags = [...tagSet].filter((t) => !priorityTags.includes(t)).sort();
+    return [...existingPriority, ...remainingTags];
+  })();
+
   // Open vault add modal
   const [vaultModalInitialTag, setVaultModalInitialTag] = useState<string | undefined>(undefined);
   const handleOpenVaultAddModal = (tag?: string) => {
@@ -259,6 +276,7 @@ export function AppShell() {
           await handleCreateVaultItem(key, value, tags);
         }}
         initialTag={vaultModalInitialTag}
+        availableTags={availableVaultTags}
       />
     </div>
   );
