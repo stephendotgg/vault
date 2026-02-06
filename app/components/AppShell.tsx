@@ -6,6 +6,7 @@ import { NoteEditor } from "./NoteEditor";
 import { VaultView } from "./VaultView";
 import { VaultAddModal } from "./VaultAddModal";
 import { MemoriesView } from "./MemoriesView";
+import { MemoryAddModal } from "./MemoryAddModal";
 import { Note, VaultItem, Occasion } from "@/types/models";
 
 type ViewType = "home" | "note" | "vault" | "memories";
@@ -284,6 +285,13 @@ export function AppShell() {
   // Selected occasion state for memories view
   const [selectedOccasionId, setSelectedOccasionId] = useState<string | null>(null);
 
+  // Memory add modal state (global, like Vault)
+  const [isMemoryModalOpen, setIsMemoryModalOpen] = useState(false);
+
+  const handleOpenMemoryAddModal = () => {
+    setIsMemoryModalOpen(true);
+  };
+
   // Create occasion and memory together
   const handleCreateOccasionAndMemory = async (title: string, memoryContent: string) => {
     try {
@@ -417,6 +425,7 @@ export function AppShell() {
         onOpenVault={handleOpenVault}
         onOpenVaultAddModal={handleOpenVaultAddModal}
         onOpenMemories={handleOpenMemories}
+        onOpenMemoryAddModal={handleOpenMemoryAddModal}
         onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">
@@ -481,6 +490,15 @@ export function AppShell() {
         }}
         initialTag={vaultModalInitialTag}
         availableTags={availableVaultTags}
+      />
+
+      {/* Memory Add Modal */}
+      <MemoryAddModal
+        isOpen={isMemoryModalOpen}
+        onClose={() => setIsMemoryModalOpen(false)}
+        occasions={occasions}
+        onCreateOccasionAndMemory={handleCreateOccasionAndMemory}
+        onCreateMemory={handleCreateMemory}
       />
     </div>
   );

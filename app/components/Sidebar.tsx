@@ -26,6 +26,7 @@ interface SidebarProps {
   onOpenVault: () => void;
   onOpenVaultAddModal: (tag?: string) => void;
   onOpenMemories: () => void;
+  onOpenMemoryAddModal: () => void;
   notes: Note[];
 }
 
@@ -305,7 +306,7 @@ interface CreateMenuState {
   y: number;
 }
 
-export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onGoHome, onOpenVault, onOpenVaultAddModal, onOpenMemories, notes }: SidebarProps) {
+export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onGoHome, onOpenVault, onOpenVaultAddModal, onOpenMemories, onOpenMemoryAddModal, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -627,6 +628,18 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
           >
             <span>Memories</span>
           </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenMemoryAddModal();
+            }}
+            className="p-1 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.055)] rounded transition-all"
+            title="Add memory"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </button>
         </div>
 
         {/* DREAM JOURNAL Section */}

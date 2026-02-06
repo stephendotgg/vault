@@ -134,7 +134,7 @@ export function MemoriesView({
                     setIsEditingOccasionTitle(true);
                   }}
                 >
-                  {selectedOccasion.icon} {selectedOccasion.title}
+                  {selectedOccasion.title}
                 </h1>
               )}
               <div className="flex items-center gap-2">
@@ -146,19 +146,6 @@ export function MemoriesView({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                   Add Memory
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm("Delete this occasion and all its memories?")) {
-                      onDeleteOccasion(selectedOccasion.id);
-                      onSelectOccasion(null);
-                    }
-                  }}
-                  className="p-2 text-[#6b6b6b] hover:text-red-400 hover:bg-[#3f3f3f] rounded-md"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
                 </button>
               </div>
             </div>
@@ -275,7 +262,6 @@ export function MemoriesView({
                   className="p-6 bg-[#252525] rounded-lg border border-[#3f3f3f] hover:border-[#5f5f5f] cursor-pointer group"
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl">{occasion.icon}</span>
                     <h3 className="text-lg font-medium text-[#ebebeb] group-hover:text-white">{occasion.title}</h3>
                   </div>
                   <p className="text-sm text-[#6b6b6b]">
@@ -357,7 +343,7 @@ function AddMemoryModal({
             </label>
             {selectedOccasion ? (
               <div className="flex items-center justify-between bg-[#1a1a1a] px-3 py-2 rounded-md border border-[#3f3f3f]">
-                <span className="text-sm text-[#ebebeb]">{selectedOccasion.icon} {selectedOccasion.title}</span>
+                <span className="text-sm text-[#ebebeb]">{selectedOccasion.title}</span>
                 <button onClick={() => { setSelectedExistingOccasion(null); setOccasionInput(""); }} className="text-[#6b6b6b] hover:text-[#ebebeb]">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -383,7 +369,7 @@ function AddMemoryModal({
                         onClick={() => { setSelectedExistingOccasion(o.id); setOccasionInput(""); setShowSuggestions(false); }}
                         className="w-full text-left px-3 py-2 text-sm text-[#ebebeb] hover:bg-[#3f3f3f]"
                       >
-                        {o.icon} {o.title}
+                        {o.title}
                       </button>
                     ))}
                   </div>
