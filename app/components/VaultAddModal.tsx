@@ -99,16 +99,20 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
     }
   };
 
+  const handleClose = () => {
+    setKey("");
+    setValue("");
+    setTags("");
+    onClose();
+  };
+
   const handleSubmit = async () => {
     if (!key.trim() || isSubmitting) return;
     
     setIsSubmitting(true);
     try {
       await onAdd(key.trim(), value.trim(), tags.trim());
-      setKey("");
-      setValue("");
-      setTags("");
-      onClose();
+      handleClose();
     } finally {
       setIsSubmitting(false);
     }
@@ -119,7 +123,7 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
       e.preventDefault();
       handleSubmit();
     } else if (e.key === "Escape") {
-      onClose();
+      handleClose();
     }
   };
 
@@ -128,7 +132,7 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={onClose}
+      onClick={handleClose}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" />
@@ -142,7 +146,7 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#3f3f3f]">
           <h2 className="text-sm font-medium text-[#ebebeb]">Add to Vault</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1 text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f] rounded transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,13 +194,44 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
               onKeyDown={handleKeyDown}
               className="w-full bg-[#1a1a1a] text-[#ebebeb] text-sm px-3 py-2 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b]"
             />
+            {/* Quick tag buttons */}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {["music", "shows", "food", "youtube", "work"].map((tag) => {
+                const tagList = tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+                const isActive = tagList.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      if (isActive) {
+                        // Remove tag
+                        const newTags = tagList.filter((t) => t !== tag).join(", ");
+                        setTags(newTags);
+                      } else {
+                        // Add tag
+                        const newTags = tags.trim() ? `${tags.trim()}, ${tag}` : tag;
+                        setTags(newTags);
+                      }
+                    }}
+                    className={`px-2 py-0.5 text-xs rounded-full transition-colors ${
+                      isActive
+                        ? "bg-[#4f4f4f] text-[#ebebeb]"
+                        : "bg-[#2a2a2a] text-[#9b9b9b] hover:bg-[#3a3a3a] hover:text-[#ebebeb]"
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#3f3f3f]">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-3 py-1.5 text-sm text-[#9b9b9b] hover:text-[#ebebeb] rounded-md transition-colors"
           >
             Cancel
