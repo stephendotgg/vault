@@ -104,7 +104,9 @@ export function AppShell() {
   };
 
   // Open vault add modal
-  const handleOpenVaultAddModal = () => {
+  const [vaultModalInitialTag, setVaultModalInitialTag] = useState<string | undefined>(undefined);
+  const handleOpenVaultAddModal = (tag?: string) => {
+    setVaultModalInitialTag(tag);
     setIsVaultModalOpen(true);
   };
 
@@ -252,10 +254,11 @@ export function AppShell() {
       {/* Vault Add Modal */}
       <VaultAddModal
         isOpen={isVaultModalOpen}
-        onClose={() => setIsVaultModalOpen(false)}
+        onClose={() => { setIsVaultModalOpen(false); setVaultModalInitialTag(undefined); }}
         onAdd={async (key, value, tags) => {
           await handleCreateVaultItem(key, value, tags);
         }}
+        initialTag={vaultModalInitialTag}
       />
     </div>
   );

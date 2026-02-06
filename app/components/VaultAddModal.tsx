@@ -6,9 +6,10 @@ interface VaultAddModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (key: string, value: string, tags?: string) => Promise<void>;
+  initialTag?: string;
 }
 
-export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
+export function VaultAddModal({ isOpen, onClose, onAdd, initialTag }: VaultAddModalProps) {
   const [key, setKey] = useState("");
   const [value, setValue] = useState("");
   const [tags, setTags] = useState("");
@@ -17,10 +18,13 @@ export function VaultAddModal({ isOpen, onClose, onAdd }: VaultAddModalProps) {
   const keyInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen && keyInputRef.current) {
-      keyInputRef.current.focus();
+    if (isOpen) {
+      if (initialTag) {
+        setTags(initialTag);
+      }
+      keyInputRef.current?.focus();
     }
-  }, [isOpen]);
+  }, [isOpen, initialTag]);
 
   // Check if URL is a YouTube link
   const isYouTubeUrl = (url: string): boolean => {

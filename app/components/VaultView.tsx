@@ -6,7 +6,7 @@ import { VaultItem } from "@/types/models";
 interface VaultViewProps {
   vaultItems: VaultItem[];
   onDeleteVaultItem: (id: string) => void;
-  onOpenAddModal: () => void;
+  onOpenAddModal: (tag?: string) => void;
 }
 
 export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: VaultViewProps) {
@@ -80,7 +80,7 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-[#e3e3e3]">Vault</h1>
             <button
-              onClick={() => onOpenAddModal()}
+              onClick={() => onOpenAddModal(activeTag || undefined)}
               className="flex items-center gap-2 px-3 py-1.5 bg-[#2f2f2f] hover:bg-[#3f3f3f] text-[#ebebeb] text-sm rounded-md transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,7 +137,7 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
               </p>
               {!searchQuery && !activeTag && (
                 <button
-                  onClick={() => onOpenAddModal()}
+                  onClick={() => onOpenAddModal(activeTag || undefined)}
                   className="mt-4 text-sm text-[#9b9b9b] hover:text-[#ebebeb] transition-colors"
                 >
                   Add your first item →

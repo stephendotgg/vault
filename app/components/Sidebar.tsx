@@ -23,7 +23,7 @@ interface SidebarProps {
   onRenameNote: (id: string, newTitle: string) => void;
   onGoHome: () => void;
   onOpenVault: () => void;
-  onOpenVaultAddModal: () => void;
+  onOpenVaultAddModal: (tag?: string) => void;
   notes: Note[];
 }
 
