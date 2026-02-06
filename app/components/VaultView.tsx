@@ -54,6 +54,16 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Check if a value is a URL
+  const isUrl = (str: string): boolean => {
+    try {
+      const url = new URL(str);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
@@ -147,9 +157,21 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
                         <span className="font-medium text-[#ebebeb] truncate">{item.key}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-2">
-                        <code className="flex-1 text-sm text-[#9b9b9b] font-mono bg-[#1a1a1a] px-2 py-1 rounded truncate">
-                          {item.value || "(empty)"}
-                        </code>
+                        {isUrl(item.value) ? (
+                          <a
+                            href={item.value}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 text-sm text-[#6b9fff] hover:text-[#8bb4ff] font-mono bg-[#1a1a1a] px-2 py-1 rounded truncate hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {item.value}
+                          </a>
+                        ) : (
+                          <code className="flex-1 text-sm text-[#9b9b9b] font-mono bg-[#1a1a1a] px-2 py-1 rounded truncate">
+                            {item.value || "(empty)"}
+                          </code>
+                        )}
                       </div>
                       {item.tags && (
                         <div className="flex flex-wrap gap-1 mt-2">
