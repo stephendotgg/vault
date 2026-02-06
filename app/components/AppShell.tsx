@@ -281,20 +281,33 @@ export function AppShell() {
     setCurrentView("memories");
   };
 
-  // Create occasion
-  const handleCreateOccasion = async (title: string) => {
+  // Selected occasion state for memories view
+  const [selectedOccasionId, setSelectedOccasionId] = useState<string | null>(null);
+
+  // Create occasion and memory together
+  const handleCreateOccasionAndMemory = async (title: string, memoryContent: string) => {
     try {
-      const res = await fetch("/api/occasions", {
+      // First create the occasion
+      const occasionRes = await fetch("/api/occasions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title }),
       });
-      if (res.ok) {
-        const newOccasion = await res.json();
-        setOccasions((prev) => [...prev, newOccasion]);
+      if (occasionRes.ok) {
+        const newOccasion = await occasionRes.json();
+        // Then add the memory
+        const memoryRes = await fetch(`/api/occasions/${newOccasion.id}/memories`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: memoryContent }),
+        });
+        if (memoryRes.ok) {
+          const newMemory = await memoryRes.json();
+          setOccasions((prev) => [...prev, { ...newOccasion, memories: [newMemory] }]);
+        }
       }
     } catch (error) {
-      console.error("Failed to create occasion:", error);
+      console.error("Failed to create occasion and memory:", error);
     }
   };
 
@@ -425,10 +438,12 @@ export function AppShell() {
         ) : currentView === "memories" ? (
           <MemoriesView
             occasions={occasions}
-            onCreateOccasion={handleCreateOccasion}
+            selectedOccasionId={selectedOccasionId}
+            onSelectOccasion={setSelectedOccasionId}
+            onCreateOccasionAndMemory={handleCreateOccasionAndMemory}
+            onCreateMemory={handleCreateMemory}
             onUpdateOccasion={handleUpdateOccasion}
             onDeleteOccasion={handleDeleteOccasion}
-            onCreateMemory={handleCreateMemory}
             onUpdateMemory={handleUpdateMemory}
             onDeleteMemory={handleDeleteMemory}
           />
