@@ -59,10 +59,6 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
       {/* Top bar */}
       <div className="flex items-center h-11 px-3 border-b border-[#2f2f2f] shrink-0">
         <div className="flex items-center gap-2 text-sm text-[#9b9b9b]">
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
           <span>Vault</span>
         </div>
       </div>
@@ -126,14 +122,10 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
           {/* Vault items */}
           {filteredItems.length === 0 ? (
             <div className="text-center py-12">
-              <svg className="w-12 h-12 mx-auto text-[#3f3f3f] mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
               <p className="text-[#6b6b6b]">
-                {searchQuery ? "No items match your search" : "No items in the vault yet"}
+                {searchQuery || activeTag ? "No items match your search" : "No items in the vault yet"}
               </p>
-              {!searchQuery && (
+              {!searchQuery && !activeTag && (
                 <button
                   onClick={() => onOpenAddModal()}
                   className="mt-4 text-sm text-[#9b9b9b] hover:text-[#ebebeb] transition-colors"
@@ -152,10 +144,6 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <svg className="w-4 h-4 shrink-0 text-[#6b6b6b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
                         <span className="font-medium text-[#ebebeb] truncate">{item.key}</span>
                       </div>
                       <div className="flex items-center gap-2 mt-2">
