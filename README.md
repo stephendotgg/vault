@@ -46,24 +46,39 @@ This starts Next.js dev server and Electron together.
 ### 1. Build Next.js
 
 ```bash
+npm rebuild better-sqlite3
 npm run build
 ```
 
-### 2. Package with electron-packager
+### 2. Rebuild native modules for Electron
 
 ```bash
-npx electron-packager . Mothership --platform=win32 --arch=x64 --out=dist --overwrite --asar
+npx @electron/rebuild -f -w better-sqlite3
+```
+
+### 3. Package with electron-packager
+
+```bash
+npx electron-packager . Mothership --platform=win32 --arch=x64 --out=dist --overwrite --no-asar
 ```
 
 Output: `dist/Mothership-win32-x64/`
 
-### 3. Install to Programs folder (optional)
+### 4. Install to Programs folder (optional)
 
 ```powershell
 $dest = "$env:LOCALAPPDATA\Programs\Mothership"
 Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
 Copy-Item -Recurse "dist\Mothership-win32-x64" $dest
 ```
+
+### 5. After packaging, to return to dev mode
+
+```bash
+npm rebuild better-sqlite3
+```
+
+> **Note:** `better-sqlite3` is a native module that must be compiled for either your system's Node.js (dev) or Electron's Node.js (production). Always rebuild after switching.
 
 ## Data Storage
 
