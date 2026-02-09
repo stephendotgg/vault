@@ -57,8 +57,10 @@ function createWindow() {
 
   checkServer();
 
-  // Open DevTools for debugging (remove in final release)
-  mainWindow.webContents.openDevTools();
+  // Only open DevTools in development
+  if (isDev) {
+    mainWindow.webContents.openDevTools();
+  }
 
   mainWindow.on("closed", () => {
     mainWindow = null;

@@ -250,7 +250,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                editor?.commands.focus("start");
+                editor?.chain().focus().setTextSelection(0).run();
               }
             }}
             placeholder="Untitled"
