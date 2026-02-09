@@ -17,29 +17,47 @@ export function AppShell() {
   const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>("home");
+  const [selectedOccasionId, setSelectedOccasionId] = useState<string | null>(null);
   const [isVaultModalOpen, setIsVaultModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
 
-  // Load selected note from localStorage after hydration
+  // Load saved state from localStorage after hydration
   useEffect(() => {
-    const saved = localStorage.getItem("selected-note-id");
-    if (saved) {
-      setSelectedNoteId(saved);
+    const savedNoteId = localStorage.getItem("selected-note-id");
+    const savedView = localStorage.getItem("current-view") as ViewType | null;
+    const savedOccasionId = localStorage.getItem("selected-occasion-id");
+    
+    if (savedView) {
+      setCurrentView(savedView);
+    }
+    if (savedNoteId) {
+      setSelectedNoteId(savedNoteId);
+    }
+    if (savedOccasionId) {
+      setSelectedOccasionId(savedOccasionId);
     }
     setHydrated(true);
   }, []);
 
-  // Persist selected note to localStorage
+  // Persist state to localStorage
   useEffect(() => {
     if (hydrated) {
+      localStorage.setItem("current-view", currentView);
+      
       if (selectedNoteId) {
         localStorage.setItem("selected-note-id", selectedNoteId);
       } else {
         localStorage.removeItem("selected-note-id");
       }
+      
+      if (selectedOccasionId) {
+        localStorage.setItem("selected-occasion-id", selectedOccasionId);
+      } else {
+        localStorage.removeItem("selected-occasion-id");
+      }
     }
-  }, [selectedNoteId, hydrated]);
+  }, [currentView, selectedNoteId, selectedOccasionId, hydrated]);
 
   // Fetch all notes
   const fetchNotes = useCallback(async () => {
@@ -281,9 +299,6 @@ export function AppShell() {
     setSelectedNoteId(null);
     setCurrentView("memories");
   };
-
-  // Selected occasion state for memories view
-  const [selectedOccasionId, setSelectedOccasionId] = useState<string | null>(null);
 
   // Memory add modal state (global, like Vault)
   const [isMemoryModalOpen, setIsMemoryModalOpen] = useState(false);
