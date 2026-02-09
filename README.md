@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mothership
 
-## Getting Started
+A Notion-like desktop app built with Next.js and Electron. Features notes with drag-drop reordering, a vault (key-value store), and memories with voice recording and local Whisper transcription.
 
-First, run the development server:
+## Tech Stack
+
+- **Next.js 16** - App router with Turbopack
+- **Electron 29** - Desktop app wrapper
+- **Prisma** - SQLite database with better-sqlite3
+- **@xenova/transformers** - Local Whisper model for voice transcription
+
+## Development
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Generate Prisma client
+
+```bash
+npx prisma generate
+```
+
+### 3. Run in browser (Next.js dev mode)
 
 ```bash
 npm run dev
 # or
-yarn dev
-# or
-pnpm dev
-# or
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Opens at http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Run in Electron (dev mode)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run electron-dev
+```
 
-## Learn More
+This starts Next.js dev server and Electron together.
 
-To learn more about Next.js, take a look at the following resources:
+## Packaging for Distribution
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 1. Build Next.js
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run build
+```
 
-## Deploy on Vercel
+### 2. Package with electron-packager
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx electron-packager . Mothership --platform=win32 --arch=x64 --out=dist --overwrite --asar
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Output: `dist/Mothership-win32-x64/`
+
+### 3. Install to Programs folder (optional)
+
+```powershell
+$dest = "$env:LOCALAPPDATA\Programs\Mothership"
+Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
+Copy-Item -Recurse "dist\Mothership-win32-x64" $dest
+```
+
+## Data Storage
+
+In production, user data is stored in:
+- **Windows**: `%APPDATA%\Mothership\data\`
+- **macOS**: `~/Library/Application Support/Mothership/data/`
+- **Linux**: `~/.config/Mothership/data/`
+
+This folder contains:
+- `mothership.db` - SQLite database
+- `images/` - Uploaded occasion images
+
+Data persists across app updates since it's stored outside the app folder.
