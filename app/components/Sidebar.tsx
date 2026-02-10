@@ -227,7 +227,13 @@ function NoteItem({
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
-            <span className="truncate">{note.title || "Untitled"}</span>
+            <span 
+              className="truncate"
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                onStartRename(note.id);
+              }}
+            >{note.title || "Untitled"}</span>
           )}
         </div>
 
