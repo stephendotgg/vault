@@ -7,9 +7,10 @@ import { VaultView } from "./VaultView";
 import { VaultAddModal } from "./VaultAddModal";
 import { MemoriesView } from "./MemoriesView";
 import { MemoryAddModal } from "./MemoryAddModal";
+import { ArchiveView } from "./ArchiveView";
 import { Note, VaultItem, Occasion } from "@/types/models";
 
-type ViewType = "home" | "note" | "vault" | "memories";
+type ViewType = "home" | "note" | "vault" | "memories" | "archive";
 
 export function AppShell() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -59,10 +60,10 @@ export function AppShell() {
     }
   }, [currentView, selectedNoteId, selectedOccasionId, hydrated]);
 
-  // Fetch all notes
+  // Fetch all notes (including archived)
   const fetchNotes = useCallback(async () => {
     try {
-      const res = await fetch("/api/notes");
+      const res = await fetch("/api/notes?includeArchived=true");
       if (res.ok) {
         const data = await res.json();
         setNotes(data);
@@ -191,14 +192,55 @@ export function AppShell() {
       });
 
       if (res.ok) {
-        setNotes((prev) => prev.filter((n) => n.id !== id));
+        const updatedNote = await res.json();
+        setNotes((prev) => prev.map((n) => (n.id === id ? updatedNote : n)));
         if (selectedNoteId === id) {
           setSelectedNoteId(null);
+          setCurrentView("home");
         }
       }
     } catch (error) {
       console.error("Failed to archive note:", error);
     }
+  };
+
+  // Restore note from archive
+  const handleRestoreNote = async (id: string) => {
+    try {
+      const res = await fetch(`/api/notes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archived: false }),
+      });
+
+      if (res.ok) {
+        const updatedNote = await res.json();
+        setNotes((prev) => prev.map((n) => (n.id === id ? updatedNote : n)));
+      }
+    } catch (error) {
+      console.error("Failed to restore note:", error);
+    }
+  };
+
+  // Delete note permanently
+  const handleDeletePermanently = async (id: string) => {
+    try {
+      const res = await fetch(`/api/notes/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setNotes((prev) => prev.filter((n) => n.id !== id));
+      }
+    } catch (error) {
+      console.error("Failed to delete note:", error);
+    }
+  };
+
+  // Open archive view
+  const handleOpenArchive = () => {
+    setSelectedNoteId(null);
+    setCurrentView("archive");
   };
 
   // Rename note (optimistic update)
@@ -485,6 +527,7 @@ export function AppShell() {
         onOpenVaultAddModal={handleOpenVaultAddModal}
         onOpenMemories={handleOpenMemories}
         onOpenMemoryAddModal={handleOpenMemoryAddModal}
+        onOpenArchive={handleOpenArchive}
         onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">
@@ -516,6 +559,13 @@ export function AppShell() {
             onDeleteMemory={handleDeleteMemory}
             onUploadImages={handleUploadImages}
             onDeleteImage={handleDeleteImage}
+          />
+        ) : currentView === "archive" ? (
+          <ArchiveView
+            notes={notes}
+            onRestoreNote={handleRestoreNote}
+            onDeletePermanently={handleDeletePermanently}
+            onGoBack={() => setCurrentView("home")}
           />
         ) : (
           <div className="flex flex-col h-full">

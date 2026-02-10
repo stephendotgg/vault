@@ -27,6 +27,7 @@ interface SidebarProps {
   onOpenVaultAddModal: (tag?: string) => void;
   onOpenMemories: () => void;
   onOpenMemoryAddModal: () => void;
+  onOpenArchive: () => void;
   notes: Note[];
 }
 
@@ -306,7 +307,7 @@ interface CreateMenuState {
   y: number;
 }
 
-export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onGoHome, onOpenVault, onOpenVaultAddModal, onOpenMemories, onOpenMemoryAddModal, notes }: SidebarProps) {
+export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onGoHome, onOpenVault, onOpenVaultAddModal, onOpenMemories, onOpenMemoryAddModal, onOpenArchive, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -372,7 +373,9 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
     }
   }, [expandedNotes, hydrated]);
 
-  const noteTree = useMemo(() => buildNoteTree(notes), [notes]);
+  // Filter out archived notes before building tree
+  const activeNotes = useMemo(() => notes.filter(n => !n.archived), [notes]);
+  const noteTree = useMemo(() => buildNoteTree(activeNotes), [activeNotes]);
 
   const toggleSection = (section: SectionKey) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -692,12 +695,15 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
       {/* Bottom section */}
       <div className="px-2 pt-1 pb-2">
-        <div className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm">
+        <button
+          onClick={onOpenArchive}
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
+        >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
           </svg>
           <span>Archive</span>
-        </div>
+        </button>
         <button
           onClick={async () => {
             try {
