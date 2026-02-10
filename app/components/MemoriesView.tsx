@@ -120,16 +120,18 @@ export function MemoriesView({
     
     return (
       <div className="flex flex-col h-full">
-        <div className="flex items-center h-11 px-3 border-b border-[#2f2f2f] shrink-0">
-          <div className="flex items-center gap-2 text-sm text-[#9b9b9b]">
+        <div className="flex items-center h-11 px-4 border-b border-[#2f2f2f] shrink-0">
+          <div className="flex items-center gap-1 text-sm text-[#9b9b9b] overflow-hidden">
             <button
               onClick={() => onSelectOccasion(null)}
-              className="hover:bg-[#2f2f2f] px-1.5 py-0.5 rounded cursor-pointer hover:text-[#ebebeb]"
+              className="hover:text-[#e3e3e3] transition-colors cursor-pointer"
             >
               Memories
             </button>
-            <span>/</span>
-            <span className="text-[#ebebeb] px-1.5 py-0.5">{selectedOccasion.title}</span>
+            <svg className="w-3 h-3 text-[#6b6b6b] shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
+            <span className="truncate">{selectedOccasion.title}</span>
           </div>
         </div>
 
@@ -321,8 +323,8 @@ export function MemoriesView({
   // Occasions list view
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center h-11 px-3 border-b border-[#2f2f2f] shrink-0">
-        <span className="text-sm text-[#9b9b9b] px-1.5 py-0.5">Memories</span>
+      <div className="flex items-center h-11 px-4 border-b border-[#2f2f2f] shrink-0">
+        <span className="text-sm text-[#9b9b9b]">Memories</span>
       </div>
 
       <div className="flex-1 overflow-auto">

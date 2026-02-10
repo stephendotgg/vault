@@ -89,8 +89,8 @@ export function VaultView({ vaultItems, onDeleteVaultItem, onOpenAddModal }: Vau
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
-      <div className="flex items-center h-11 px-3 border-b border-[#2f2f2f] shrink-0">
-        <div className="flex items-center gap-2 text-sm text-[#9b9b9b]">
+      <div className="flex items-center h-11 px-4 border-b border-[#2f2f2f] shrink-0">
+        <div className="flex items-center gap-1 text-sm text-[#9b9b9b]">
           <span>Vault</span>
         </div>
       </div>
