@@ -8,9 +8,10 @@ import { VaultAddModal } from "./VaultAddModal";
 import { MemoriesView } from "./MemoriesView";
 import { MemoryAddModal } from "./MemoryAddModal";
 import { ArchiveView } from "./ArchiveView";
+import { FileCleanerView } from "./FileCleanerView";
 import { Note, VaultItem, Occasion } from "@/types/models";
 
-type ViewType = "home" | "note" | "vault" | "memories" | "archive";
+type ViewType = "home" | "note" | "vault" | "memories" | "archive" | "fileCleaner";
 
 export function AppShell() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -265,6 +266,12 @@ export function AppShell() {
     setSelectedNoteId(null);
     setSelectedArchivedNoteId(null);
     setCurrentView("archive");
+  };
+
+  // Open file cleaner view
+  const handleOpenFileCleaner = () => {
+    setSelectedNoteId(null);
+    setCurrentView("fileCleaner");
   };
 
   // Rename note (optimistic update)
@@ -552,6 +559,7 @@ export function AppShell() {
         onOpenMemories={handleOpenMemories}
         onOpenMemoryAddModal={handleOpenMemoryAddModal}
         onOpenArchive={handleOpenArchive}
+        onOpenFileCleaner={handleOpenFileCleaner}
         onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">
@@ -592,6 +600,10 @@ export function AppShell() {
             onUpdateNote={handleUpdateNote}
             onRestoreNote={handleRestoreNote}
             onDeletePermanently={handleDeletePermanently}
+          />
+        ) : currentView === "fileCleaner" ? (
+          <FileCleanerView
+            onBack={() => setCurrentView("home")}
           />
         ) : (
           <div className="flex flex-col h-full">
