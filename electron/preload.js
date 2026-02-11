@@ -10,5 +10,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Platform info
   platform: process.platform,
   
+  // File system dialogs
+  selectFolder: () => ipcRenderer.invoke("select-folder"),
+  
   // Add more IPC methods here as needed
 });

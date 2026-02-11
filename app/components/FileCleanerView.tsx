@@ -2,6 +2,15 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
+// Extend Window interface for Electron API
+declare global {
+  interface Window {
+    electronAPI?: {
+      selectFolder: () => Promise<string | null>;
+    };
+  }
+}
+
 interface FileInfo {
   name: string;
   path: string;
@@ -67,6 +76,19 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
       setIsLoading(false);
     }
   };
+
+  // Browse for folder using native dialog
+  const browseFolder = async () => {
+    if (window.electronAPI?.selectFolder) {
+      const selectedPath = await window.electronAPI.selectFolder();
+      if (selectedPath) {
+        setFolderPath(selectedPath);
+      }
+    }
+  };
+
+  // Check if we're in Electron
+  const isElectron = typeof window !== "undefined" && !!window.electronAPI?.selectFolder;
 
   // Load text preview when current file changes
   useEffect(() => {
@@ -244,14 +266,24 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs text-[#9b9b9b] mb-1.5">Folder Path</label>
-                  <input
-                    type="text"
-                    value={folderPath}
-                    onChange={(e) => setFolderPath(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && loadFolder()}
-                    placeholder="C:\Users\...\Downloads"
-                    className="w-full bg-[#2f2f2f] text-[#ebebeb] text-sm px-3 py-2.5 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b]"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={folderPath}
+                      onChange={(e) => setFolderPath(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && loadFolder()}
+                      placeholder={isElectron ? "Click Browse to select a folder" : "C:\\Users\\...\\Downloads"}
+                      className="flex-1 bg-[#2f2f2f] text-[#ebebeb] text-sm px-3 py-2.5 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b]"
+                    />
+                    {isElectron && (
+                      <button
+                        onClick={browseFolder}
+                        className="px-4 py-2.5 bg-[#3f3f3f] hover:bg-[#4f4f4f] text-[#ebebeb] text-sm rounded-md transition-colors cursor-pointer"
+                      >
+                        Browse
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 {error && (
@@ -261,7 +293,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
                 <button
                   onClick={loadFolder}
                   disabled={!folderPath.trim()}
-                  className="w-full py-2.5 bg-[#4f4f4f] hover:bg-[#5f5f5f] disabled:bg-[#3f3f3f] disabled:text-[#6b6b6b] text-[#ebebeb] text-sm rounded-md transition-colors"
+                  className="w-full py-2.5 bg-[#4f4f4f] hover:bg-[#5f5f5f] disabled:bg-[#3f3f3f] disabled:text-[#6b6b6b] text-[#ebebeb] text-sm rounded-md transition-colors cursor-pointer"
                 >
                   Start Cleaning
                 </button>
@@ -375,7 +407,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
 
             {/* Keyboard hints */}
             <p className="text-xs text-[#6b6b6b] mt-4">
-              Use <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">←</kbd> or <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">D</kbd> to delete, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">→</kbd> or <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">K</kbd> to keep
+              Use <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">←</kbd> to delete, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">→</kbd> to keep
             </p>
 
             {/* Stats */}
