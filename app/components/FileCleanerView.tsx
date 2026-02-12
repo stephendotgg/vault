@@ -183,6 +183,8 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
           <video
             src={previewUrl}
             controls
+            autoPlay
+            muted
             className="max-w-full max-h-full rounded-lg"
           />
         );
