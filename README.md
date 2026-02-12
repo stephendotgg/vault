@@ -43,28 +43,31 @@ This starts Next.js dev server and Electron together.
 
 ## Packaging for Distribution
 
-### 1. Build Next.js
+### Quick Install (one command)
 
 ```bash
-npm rebuild better-sqlite3
-npm run build
+npm run install:local
 ```
 
-### 2. Rebuild native modules for Electron
+This will:
+1. Kill any running Mothership instances
+2. Rebuild native modules for Node.js
+3. Build Next.js for production
+4. Rebuild native modules for Electron
+5. Package with electron-packager
+6. Install to `%LOCALAPPDATA%\Programs\Mothership`
+
+### Manual Steps (if needed)
+
+#### 1. Build and package
 
 ```bash
-npx @electron/rebuild -f -w better-sqlite3
-```
-
-### 3. Package with electron-packager
-
-```bash
-npx electron-packager . Mothership --platform=win32 --arch=x64 --out=dist --overwrite --no-asar
+npm run package
 ```
 
 Output: `dist/Mothership-win32-x64/`
 
-### 4. Install to Programs folder (optional)
+#### 2. Install to Programs folder
 
 ```powershell
 $dest = "$env:LOCALAPPDATA\Programs\Mothership"
@@ -72,7 +75,7 @@ Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
 Copy-Item -Recurse "dist\Mothership-win32-x64" $dest
 ```
 
-### 5. After packaging, to return to dev mode
+### After packaging, to return to dev mode
 
 ```bash
 npm rebuild better-sqlite3
