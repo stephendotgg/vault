@@ -152,13 +152,28 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
   // Handle rename
   const handleStartRename = useCallback(() => {
     if (!currentFile) return;
-    setRenameValue(currentFile.name);
+    // Set only the name without extension
+    const ext = currentFile.ext || "";
+    const baseName = ext ? currentFile.name.slice(0, -ext.length) : currentFile.name;
+    setRenameValue(baseName);
     setIsRenaming(true);
-    setTimeout(() => renameInputRef.current?.focus(), 0);
+    setTimeout(() => {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    }, 0);
   }, [currentFile]);
 
   const handleConfirmRename = async () => {
-    if (!currentFile || !renameValue.trim() || renameValue === currentFile.name) {
+    if (!currentFile || !renameValue.trim()) {
+      setIsRenaming(false);
+      return;
+    }
+
+    // Combine new name with original extension
+    const ext = currentFile.ext || "";
+    const newFullName = renameValue.trim() + ext;
+    
+    if (newFullName === currentFile.name) {
       setIsRenaming(false);
       return;
     }
@@ -167,7 +182,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
       const res = await fetch("/api/files", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ oldPath: currentFile.path, newName: renameValue.trim() }),
+        body: JSON.stringify({ oldPath: currentFile.path, newName: newFullName }),
       });
 
       if (res.ok) {
@@ -416,18 +431,23 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0 pr-4">
                     {isRenaming ? (
-                      <input
-                        ref={renameInputRef}
-                        type="text"
-                        value={renameValue}
-                        onChange={(e) => setRenameValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleConfirmRename();
-                          if (e.key === "Escape") setIsRenaming(false);
-                        }}
-                        onBlur={handleConfirmRename}
-                        className="w-full font-medium text-[#e3e3e3] bg-[#1a1a1a] border border-[#4f4f4f] rounded px-2 py-1 outline-none focus:border-[#6b6b6b]"
-                      />
+                      <div className="flex items-center gap-0">
+                        <input
+                          ref={renameInputRef}
+                          type="text"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleConfirmRename();
+                            if (e.key === "Escape") setIsRenaming(false);
+                          }}
+                          onBlur={handleConfirmRename}
+                          className="flex-1 min-w-0 font-medium text-[#e3e3e3] bg-[#1a1a1a] border border-[#4f4f4f] rounded-l px-2 py-1 outline-none focus:border-[#6b6b6b]"
+                        />
+                        <span className="font-medium text-[#6b6b6b] bg-[#1a1a1a] border border-l-0 border-[#4f4f4f] rounded-r px-2 py-1">
+                          {currentFile.ext}
+                        </span>
+                      </div>
                     ) : (
                       <h3 className="font-medium text-[#e3e3e3] truncate">{currentFile.name}</h3>
                     )}
