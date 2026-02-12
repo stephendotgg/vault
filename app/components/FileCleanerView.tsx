@@ -426,19 +426,11 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
       
       case "pdf":
         return (
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-32 h-40 bg-[#2f2f2f] rounded-lg flex items-center justify-center border-2 border-[#4f4f4f]">
-              <span className="text-2xl font-bold text-red-400">PDF</span>
-            </div>
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-[#6b9fff] hover:underline"
-            >
-              Open in new tab →
-            </a>
-          </div>
+          <iframe
+            src={previewUrl}
+            className="w-full h-full rounded-lg border-0"
+            title={currentFile.name}
+          />
         );
       
       default:
