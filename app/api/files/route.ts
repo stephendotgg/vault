@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import trash from "trash";
+import { getDataDir } from "@/lib/paths";
+
+// Centralized trash folder in app data
+function getTrashDir(): string {
+  const dataDir = getDataDir();
+  const trashDir = path.join(dataDir, "data", ".trash");
+  if (!fs.existsSync(trashDir)) {
+    fs.mkdirSync(trashDir, { recursive: true });
+  }
+  return trashDir;
+}
 
 // Get files in a directory
 export async function GET(request: NextRequest) {
@@ -78,9 +90,12 @@ export async function GET(request: NextRequest) {
 }
 
 // Delete a file
+// If isLastFile=true, send straight to Recycle Bin (no undo)
+// Otherwise, move to centralized trash for one-time undo
 export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const filePath = searchParams.get("path");
+  const isLastFile = searchParams.get("isLastFile") === "true";
 
   if (!filePath) {
     return NextResponse.json({ error: "Path is required" }, { status: 400 });
@@ -98,9 +113,37 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Path is not a file" }, { status: 400 });
     }
 
-    fs.unlinkSync(normalizedPath);
+    // If last file, send directly to Recycle Bin
+    if (isLastFile) {
+      await trash(normalizedPath);
+      return NextResponse.json({ 
+        success: true, 
+        deleted: normalizedPath,
+        trashPath: null // No undo available
+      });
+    }
+
+    // Get centralized trash dir
+    const trashDir = getTrashDir();
     
-    return NextResponse.json({ success: true, deleted: normalizedPath });
+    // Clear any existing file in trash (only keep one)
+    const existingTrash = fs.readdirSync(trashDir);
+    for (const file of existingTrash) {
+      const existingPath = path.join(trashDir, file);
+      // Send old trash to Recycle Bin
+      await trash(existingPath);
+    }
+
+    // Move new file to trash
+    const fileName = path.basename(normalizedPath);
+    const trashPath = path.join(trashDir, fileName);
+    fs.renameSync(normalizedPath, trashPath);
+    
+    return NextResponse.json({ 
+      success: true, 
+      deleted: normalizedPath,
+      trashPath: trashPath 
+    });
   } catch (error) {
     console.error("Error deleting file:", error);
     return NextResponse.json({ error: "Failed to delete file" }, { status: 500 });
