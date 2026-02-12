@@ -325,6 +325,16 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept keys when video/audio is focused (let native controls work)
+      const activeEl = document.activeElement;
+      if (activeEl?.tagName === "VIDEO" || activeEl?.tagName === "AUDIO") {
+        // Only handle Escape to quit
+        if (e.key === "Escape") {
+          handleQuit();
+        }
+        return;
+      }
+      
       // Allow undo even when complete
       if (e.key === "u" || e.key === "U") {
         if (!isRenaming) handleUndo();
