@@ -3,14 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Image, Video, Music, FileText, FileType, FolderArchive, File } from "lucide-react";
 
-// Extend Window interface for Electron API
-declare global {
-  interface Window {
-    electronAPI?: {
-      selectFolder: () => Promise<string | null>;
-    };
-  }
-}
+// Use type assertion for the extended electronAPI
+const getElectronAPI = () => window.electronAPI as (typeof window.electronAPI & { selectFolder?: () => Promise<string | null> }) | undefined;
 
 interface FileInfo {
   name: string;
@@ -20,6 +14,16 @@ interface FileInfo {
   modified: string;
   type: "image" | "video" | "audio" | "text" | "pdf" | "archive" | "unknown";
   ext: string;
+}
+
+type ActionType = "keep" | "delete" | "move";
+
+// Only track the last action for one-time undo
+interface LastAction {
+  type: ActionType;
+  file: FileInfo;
+  index: number;
+  movedFrom?: string; // For move actions, the destination folder
 }
 
 interface FileCleanerViewProps {
@@ -41,18 +45,20 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [textPreview, setTextPreview] = useState<string | null>(null);
-  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
   const [keptCount, setKeptCount] = useState(0);
   const [deletedCount, setDeletedCount] = useState(0);
   const [movedCount, setMovedCount] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
+  const [lastAction, setLastAction] = useState<LastAction | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const currentFile = files[currentIndex];
   const isComplete = currentIndex >= files.length && files.length > 0;
+  const isLastFile = currentIndex === files.length - 1;
 
   // Load files from folder
   const loadFolder = async () => {
@@ -65,6 +71,8 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
     setKeptCount(0);
     setDeletedCount(0);
     setMovedCount(0);
+    setLastAction(null);
+    setCanUndo(false);
 
     try {
       const res = await fetch(`/api/files?path=${encodeURIComponent(folderPath)}`);
@@ -86,8 +94,9 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
 
   // Browse for folder using native dialog
   const browseFolder = async () => {
-    if (window.electronAPI?.selectFolder) {
-      const selectedPath = await window.electronAPI.selectFolder();
+    const api = getElectronAPI();
+    if (api?.selectFolder) {
+      const selectedPath = await api.selectFolder();
       if (selectedPath) {
         setFolderPath(selectedPath);
       }
@@ -95,7 +104,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
   };
 
   // Check if we're in Electron
-  const isElectron = typeof window !== "undefined" && !!window.electronAPI?.selectFolder;
+  const isElectron = typeof window !== "undefined" && !!getElectronAPI()?.selectFolder;
 
   // Load text preview when current file changes
   useEffect(() => {
@@ -117,40 +126,41 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
   const handleKeep = useCallback(() => {
     if (isDeleting || !currentFile) return;
     
-    setSwipeDirection("right");
     setKeptCount(prev => prev + 1);
-    
-    setTimeout(() => {
-      setSwipeDirection(null);
-      setCurrentIndex(prev => prev + 1);
-    }, 300);
-  }, [currentFile, isDeleting]);
+    setLastAction({ type: "keep", file: currentFile, index: currentIndex });
+    setCanUndo(true);
+    setCurrentIndex(prev => prev + 1);
+  }, [currentFile, currentIndex, isDeleting]);
 
   // Handle delete action
   const handleDelete = useCallback(async () => {
     if (isDeleting || !currentFile) return;
     
     setIsDeleting(true);
-    setSwipeDirection("left");
     
     try {
-      const res = await fetch(`/api/files?path=${encodeURIComponent(currentFile.path)}`, {
-        method: "DELETE",
-      });
+      // If last file, send to recycle bin directly (no undo)
+      const url = `/api/files?path=${encodeURIComponent(currentFile.path)}${isLastFile ? "&isLastFile=true" : ""}`;
+      const res = await fetch(url, { method: "DELETE" });
       
       if (res.ok) {
         setDeletedCount(prev => prev + 1);
+        // Only allow undo if not last file
+        if (!isLastFile) {
+          setLastAction({ type: "delete", file: currentFile, index: currentIndex });
+          setCanUndo(true);
+        } else {
+          setLastAction(null);
+          setCanUndo(false);
+        }
       }
     } catch (err) {
       console.error("Failed to delete file:", err);
     }
     
-    setTimeout(() => {
-      setSwipeDirection(null);
-      setCurrentIndex(prev => prev + 1);
-      setIsDeleting(false);
-    }, 300);
-  }, [currentFile, isDeleting]);
+    setCurrentIndex(prev => prev + 1);
+    setIsDeleting(false);
+  }, [currentFile, currentIndex, isDeleting, isLastFile]);
 
   // Handle rename
   const handleStartRename = useCallback(() => {
@@ -206,9 +216,10 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
 
   // Handle move to different folder
   const handleMove = useCallback(async () => {
-    if (!currentFile || !window.electronAPI?.selectFolder) return;
+    const api = getElectronAPI();
+    if (!currentFile || !api?.selectFolder) return;
     
-    const destinationDir = await window.electronAPI.selectFolder();
+    const destinationDir = await api.selectFolder();
     if (!destinationDir) return; // User cancelled
 
     try {
@@ -220,12 +231,9 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
 
       if (res.ok) {
         setMovedCount(prev => prev + 1);
-        setSwipeDirection("right");
-        
-        setTimeout(() => {
-          setSwipeDirection(null);
-          setCurrentIndex(prev => prev + 1);
-        }, 300);
+        setLastAction({ type: "move", file: currentFile, index: currentIndex, movedFrom: destinationDir });
+        setCanUndo(true);
+        setCurrentIndex(prev => prev + 1);
       } else {
         const data = await res.json();
         console.error("Failed to move file:", data.error);
@@ -233,11 +241,99 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
     } catch (err) {
       console.error("Failed to move file:", err);
     }
-  }, [currentFile]);
+  }, [currentFile, currentIndex]);
+
+  // Handle quit - go back to folder selection
+  const handleQuit = useCallback(() => {
+    setFiles([]);
+    setCurrentIndex(0);
+    setKeptCount(0);
+    setDeletedCount(0);
+    setMovedCount(0);
+    setLastAction(null);
+    setCanUndo(false);
+    setFolderPath("");
+  }, []);
+
+  // Handle undo action (one-time only)
+  const handleUndo = useCallback(async () => {
+    if (!canUndo || !lastAction || isDeleting) return;
+    
+    // For "keep" actions, just go back
+    if (lastAction.type === "keep") {
+      setKeptCount(prev => prev - 1);
+      setCurrentIndex(lastAction.index);
+      setLastAction(null);
+      setCanUndo(false);
+      return;
+    }
+    
+    // For "delete" actions, restore from centralized trash
+    if (lastAction.type === "delete") {
+      try {
+        const res = await fetch("/api/files/restore", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ originalPath: lastAction.file.path }),
+        });
+
+        if (res.ok) {
+          setDeletedCount(prev => prev - 1);
+          setCurrentIndex(lastAction.index);
+          setLastAction(null);
+          setCanUndo(false);
+        }
+      } catch (err) {
+        console.error("Failed to restore file:", err);
+      }
+      return;
+    }
+    
+    // For "move" actions, move the file back
+    if (lastAction.type === "move" && lastAction.movedFrom) {
+      const movedFilePath = lastAction.movedFrom + "\\" + lastAction.file.name;
+      try {
+        const res = await fetch("/api/files/move", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            filePath: movedFilePath, 
+            destinationDir: folderPath 
+          }),
+        });
+
+        if (res.ok) {
+          setMovedCount(prev => prev - 1);
+          setCurrentIndex(lastAction.index);
+          // Update the file path in the files array
+          setFiles(prev => prev.map((f, i) => 
+            i === lastAction.index 
+              ? { ...f, path: folderPath + "\\" + f.name }
+              : f
+          ));
+          setLastAction(null);
+          setCanUndo(false);
+        }
+      } catch (err) {
+        console.error("Failed to undo move:", err);
+      }
+    }
+  }, [canUndo, lastAction, isDeleting, folderPath]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Allow undo even when complete
+      if (e.key === "u" || e.key === "U") {
+        if (!isRenaming) handleUndo();
+        return;
+      }
+      
+      if (e.key === "Escape") {
+        handleQuit();
+        return;
+      }
+      
       if (isComplete || !currentFile) return;
       if (isRenaming) return; // Don't handle shortcuts while renaming
       
@@ -254,7 +350,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeep, handleDelete, handleStartRename, handleMove, isComplete, currentFile, isRenaming]);
+  }, [handleKeep, handleDelete, handleStartRename, handleMove, handleUndo, handleQuit, isComplete, currentFile, isRenaming]);
 
   // Render file preview
   const renderPreview = () => {
@@ -275,11 +371,14 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
       case "video":
         return (
           <video
+            key={currentFile.path}
             src={previewUrl}
             controls
             autoPlay
             muted
             className="max-w-full max-h-full rounded-lg"
+            style={{ pointerEvents: "auto" }}
+            onClick={(e) => e.stopPropagation()}
           />
         );
       
@@ -357,7 +456,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
             <div className="w-full max-w-md px-4">
               <h1 className="text-2xl font-bold text-[#e3e3e3] mb-2 text-center">File Cleaner</h1>
               <p className="text-[#9b9b9b] text-sm mb-6 text-center">
-                Point to a folder and quickly decide what to keep or delete
+                Point to a folder and swipe to decide what to keep or delete
               </p>
               
               <div className="space-y-4">
@@ -426,6 +525,8 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
                   setKeptCount(0);
                   setDeletedCount(0);
                   setMovedCount(0);
+                  setLastAction(null);
+                  setCanUndo(false);
                 }}
                 className="px-4 py-2 bg-[#4f4f4f] hover:bg-[#5f5f5f] text-[#ebebeb] text-sm rounded-md transition-colors"
               >
@@ -441,23 +542,9 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
             {/* Card */}
             <div
               ref={cardRef}
-              className={`relative w-full max-w-lg bg-[#252525] rounded-xl border border-[#3f3f3f] shadow-2xl transition-all duration-300 overflow-hidden ${
-                swipeDirection === "left" 
-                  ? "-translate-x-full rotate-[-20deg] opacity-0" 
-                  : swipeDirection === "right"
-                  ? "translate-x-full rotate-[20deg] opacity-0"
-                  : ""
-              }`}
+              className="relative w-full max-w-lg bg-[#252525] rounded-xl border border-[#3f3f3f] shadow-2xl overflow-hidden"
               style={{ height: "min(70vh, 500px)" }}
             >
-              {/* Swipe indicators */}
-              <div className={`absolute top-4 left-4 px-3 py-1 rounded-full border-2 border-red-500 text-red-500 font-bold text-sm z-10 transition-opacity ${swipeDirection === "left" ? "opacity-100" : "opacity-0"}`}>
-                DELETE
-              </div>
-              <div className={`absolute top-4 right-4 px-3 py-1 rounded-full border-2 border-green-500 text-green-500 font-bold text-sm z-10 transition-opacity ${swipeDirection === "right" ? "opacity-100" : "opacity-0"}`}>
-                KEEP
-              </div>
-
               {/* Preview area */}
               <div className="h-[calc(100%-80px)] flex items-center justify-center p-4 overflow-hidden">
                 {renderPreview()}
@@ -526,6 +613,18 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
 
             {/* Action buttons */}
             <div className="flex items-center gap-8 mt-6">
+              {/* Undo button */}
+              <button
+                onClick={handleUndo}
+                disabled={isDeleting || !canUndo}
+                className="w-12 h-12 rounded-full bg-[#2f2f2f] hover:bg-yellow-500/20 border-2 border-[#4f4f4f] hover:border-yellow-500 text-[#9b9b9b] hover:text-yellow-400 transition-all flex items-center justify-center disabled:opacity-30 cursor-pointer"
+                title="Undo (U) - one time only"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                </svg>
+              </button>
+
               {/* Delete button */}
               <button
                 onClick={handleDelete}
@@ -553,23 +652,13 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
 
             {/* Keyboard hints */}
             <p className="text-xs text-[#6b6b6b] mt-4">
-              <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">←</kbd> delete, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">→</kbd> keep, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">R</kbd> rename, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">M</kbd> move
+              <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">←</kbd> delete, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">→</kbd> keep, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">R</kbd> rename, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">M</kbd> move, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">U</kbd> undo, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">Esc</kbd> quit
             </p>
 
             {/* Stats */}
             <div className="flex items-center gap-6 mt-4 text-sm">
-              <div className="flex items-center gap-2 text-red-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                <span>{deletedCount} deleted</span>
-              </div>
-              <div className="flex items-center gap-2 text-green-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>{keptCount} kept</span>
-              </div>
+              <span className="text-red-400">{deletedCount} deleted</span>
+              <span className="text-green-400">{keptCount} kept</span>
             </div>
           </div>
         )}
