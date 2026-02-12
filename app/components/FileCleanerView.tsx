@@ -44,6 +44,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
   const [keptCount, setKeptCount] = useState(0);
   const [deletedCount, setDeletedCount] = useState(0);
+  const [movedCount, setMovedCount] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
@@ -63,6 +64,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
     setCurrentIndex(0);
     setKeptCount(0);
     setDeletedCount(0);
+    setMovedCount(0);
 
     try {
       const res = await fetch(`/api/files?path=${encodeURIComponent(folderPath)}`);
@@ -202,6 +204,37 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
     setIsRenaming(false);
   };
 
+  // Handle move to different folder
+  const handleMove = useCallback(async () => {
+    if (!currentFile || !window.electronAPI?.selectFolder) return;
+    
+    const destinationDir = await window.electronAPI.selectFolder();
+    if (!destinationDir) return; // User cancelled
+
+    try {
+      const res = await fetch("/api/files/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filePath: currentFile.path, destinationDir }),
+      });
+
+      if (res.ok) {
+        setMovedCount(prev => prev + 1);
+        setSwipeDirection("right");
+        
+        setTimeout(() => {
+          setSwipeDirection(null);
+          setCurrentIndex(prev => prev + 1);
+        }, 300);
+      } else {
+        const data = await res.json();
+        console.error("Failed to move file:", data.error);
+      }
+    } catch (err) {
+      console.error("Failed to move file:", err);
+    }
+  }, [currentFile]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -214,12 +247,14 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
         handleKeep();
       } else if (e.key === "r" || e.key === "R") {
         handleStartRename();
+      } else if (e.key === "m" || e.key === "M") {
+        handleMove();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeep, handleDelete, handleStartRename, isComplete, currentFile, isRenaming]);
+  }, [handleKeep, handleDelete, handleStartRename, handleMove, isComplete, currentFile, isRenaming]);
 
   // Render file preview
   const renderPreview = () => {
@@ -382,7 +417,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
               </div>
               <h2 className="text-xl font-bold text-[#e3e3e3] mb-2">All done!</h2>
               <p className="text-[#9b9b9b] mb-4">
-                Kept {keptCount} • Deleted {deletedCount}
+                Deleted {deletedCount} • Kept {keptCount}{movedCount > 0 ? ` • Moved ${movedCount}` : ""}
               </p>
               <button
                 onClick={() => {
@@ -390,6 +425,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
                   setCurrentIndex(0);
                   setKeptCount(0);
                   setDeletedCount(0);
+                  setMovedCount(0);
                 }}
                 className="px-4 py-2 bg-[#4f4f4f] hover:bg-[#5f5f5f] text-[#ebebeb] text-sm rounded-md transition-colors"
               >
@@ -517,7 +553,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
 
             {/* Keyboard hints */}
             <p className="text-xs text-[#6b6b6b] mt-4">
-              <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">←</kbd> delete, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">→</kbd> keep, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">R</kbd> rename
+              <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">←</kbd> delete, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">→</kbd> keep, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">R</kbd> rename, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">M</kbd> move
             </p>
 
             {/* Stats */}
