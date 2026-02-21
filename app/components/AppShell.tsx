@@ -9,9 +9,10 @@ import { MemoriesView } from "./MemoriesView";
 import { MemoryAddModal } from "./MemoryAddModal";
 import { ArchiveView } from "./ArchiveView";
 import { FileCleanerView } from "./FileCleanerView";
+import { AIView } from "./AIView";
 import { Note, VaultItem, Occasion } from "@/types/models";
 
-type ViewType = "home" | "note" | "vault" | "memories" | "archive" | "fileCleaner";
+type ViewType = "home" | "note" | "vault" | "memories" | "archive" | "fileCleaner" | "ai";
 
 export function AppShell() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -272,6 +273,12 @@ export function AppShell() {
   const handleOpenFileCleaner = () => {
     setSelectedNoteId(null);
     setCurrentView("fileCleaner");
+  };
+
+  // Open AI chat view
+  const handleOpenAI = () => {
+    setSelectedNoteId(null);
+    setCurrentView("ai");
   };
 
   // Rename note (optimistic update)
@@ -560,6 +567,7 @@ export function AppShell() {
         onOpenMemoryAddModal={handleOpenMemoryAddModal}
         onOpenArchive={handleOpenArchive}
         onOpenFileCleaner={handleOpenFileCleaner}
+        onOpenAI={handleOpenAI}
         onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">
@@ -603,6 +611,10 @@ export function AppShell() {
           />
         ) : currentView === "fileCleaner" ? (
           <FileCleanerView
+            onBack={() => setCurrentView("home")}
+          />
+        ) : currentView === "ai" ? (
+          <AIView
             onBack={() => setCurrentView("home")}
           />
         ) : (
