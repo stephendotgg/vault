@@ -301,8 +301,9 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                       : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
                   }`}
                 >
-                  <span className="text-sm truncate flex-1">{session.title}</span>
+                  <span className="text-sm truncate">{session.title}</span>
                   <span className="text-xs text-[#6b6b6b] shrink-0">{formatRelativeTime(session.updatedAt)}</span>
+                  <span className="flex-1" />
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
