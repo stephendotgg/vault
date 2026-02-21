@@ -316,10 +316,10 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   }, [createNewSession]);
 
   return (
-    <div className="flex h-full">
+    <div className="flex flex-row-reverse h-full">
       {/* Sidebar */}
       {showSidebar && (
-        <div className="w-64 border-r border-[#2f2f2f] flex flex-col shrink-0">
+        <div className="w-64 border-l border-[#2f2f2f] flex flex-col shrink-0">
           {/* Sidebar header */}
           <div className="h-11 px-3 flex items-center justify-between border-b border-[#2f2f2f]">
             <span className="text-xs text-[#9b9b9b] font-medium">Chat History</span>
