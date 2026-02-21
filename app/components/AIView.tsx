@@ -410,25 +410,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         {/* Messages area */}
         <div className="flex-1 overflow-auto p-4">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="w-16 h-16 mb-4 rounded-full bg-[#2f2f2f] flex items-center justify-center">
-                <svg className="w-8 h-8 text-[#6b6b6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold text-[#e3e3e3] mb-2">AI Assistant</h2>
-              <p className="text-[#6b6b6b] text-sm max-w-md mb-4">
-                Ask me anything! I can help you with your notes, vault items, and memories.
-              </p>
-              {!getApiKey() && (
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="text-sm text-blue-400 hover:text-blue-300"
-                >
-                  Set up API key to get started →
-                </button>
-              )}
-            </div>
+            <div />
           ) : (
             <div className="max-w-3xl mx-auto space-y-4">
               {messages.map((message) => (
@@ -475,7 +457,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                 value={input}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
+                placeholder="Ask anything..."
                 rows={1}
                 className="flex-1 bg-transparent text-[#e3e3e3] placeholder-[#6b6b6b] resize-none outline-none text-sm px-2 py-1"
                 style={{ maxHeight: "200px" }}
@@ -486,12 +468,12 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                 className="p-2 rounded-md bg-[#4f4f4f] hover:bg-[#5f5f5f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <svg className="w-4 h-4 text-[#e3e3e3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
                 </svg>
               </button>
             </div>
             <p className="text-xs text-[#6b6b6b] mt-2 text-center">
-              Press Enter to send, Shift+Enter for new line
+              <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">Enter</kbd> send, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">Shift+Enter</kbd> new line
             </p>
           </div>
         </div>
