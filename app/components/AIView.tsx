@@ -381,15 +381,6 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         {/* Top bar */}
         <div className="flex items-center justify-between h-11 px-4 border-b border-[#2f2f2f] shrink-0">
           <div className="flex items-center gap-2 text-sm text-[#9b9b9b]">
-            <button
-              onClick={() => setShowSidebar(!showSidebar)}
-              className="p-1 text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f] rounded transition-colors"
-              title={showSidebar ? "Hide sidebar" : "Show sidebar"}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
             <span>{currentSession?.title || "AI Chat"}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -402,6 +393,15 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               Settings
+            </button>
+            <button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="p-1 text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f] rounded transition-colors"
+              title={showSidebar ? "Hide sidebar" : "Show sidebar"}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
             </button>
           </div>
         </div>
