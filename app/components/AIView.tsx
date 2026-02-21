@@ -34,6 +34,22 @@ function generateTitle(content: string): string {
   return cleaned.length < content.length ? cleaned + "..." : cleaned;
 }
 
+// Format relative time
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSecs < 60) return "now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 export function AIView({ onBack: _onBack }: AIViewProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -285,14 +301,9 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                       : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
                   }`}
                 >
-                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm truncate">{session.title}</div>
-                    <div className="text-xs text-[#6b6b6b] truncate">
-                      {session.updatedAt.toLocaleDateString()}
-                    </div>
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <span className="text-sm truncate flex-1">{session.title}</span>
+                    <span className="text-xs text-[#6b6b6b] shrink-0">{formatRelativeTime(session.updatedAt)}</span>
                   </div>
                   <button
                     onClick={(e) => {
