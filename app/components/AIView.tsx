@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { AISettingsModal } from "./AISettingsModal";
 
 interface Message {
   id: string;
@@ -23,26 +24,12 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [apiKey, setApiKey] = useState("");
-  const [provider, setProvider] = useState<"openai" | "anthropic">("openai");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load settings from localStorage
-  useEffect(() => {
-    const savedKey = localStorage.getItem(API_KEY_STORAGE_KEY) || "";
-    const savedProvider = localStorage.getItem(AI_PROVIDER_STORAGE_KEY) as "openai" | "anthropic" || "openai";
-    setApiKey(savedKey);
-    setProvider(savedProvider);
-  }, []);
-
-  // Save settings to localStorage
-  const saveSettings = () => {
-    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
-    localStorage.setItem(AI_PROVIDER_STORAGE_KEY, provider);
-    setShowSettings(false);
-    setError(null);
-  };
+  // Get API key from localStorage
+  const getApiKey = () => localStorage.getItem(API_KEY_STORAGE_KEY) || "";
+  const getProvider = () => localStorage.getItem(AI_PROVIDER_STORAGE_KEY) as "openai" | "anthropic" || "openai";
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -65,6 +52,8 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
     if (!input.trim() || isLoading) return;
 
     // Check for API key
+    const apiKey = getApiKey();
+    const provider = getProvider();
     if (!apiKey) {
       setError("Please set your API key in settings to use AI Chat.");
       setShowSettings(true);
@@ -160,48 +149,11 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         </div>
       </div>
 
-      {/* Settings panel */}
-      {showSettings && (
-        <div className="border-b border-[#2f2f2f] bg-[#1a1a1a] p-4">
-          <div className="max-w-md mx-auto space-y-4">
-            <div>
-              <label className="block text-xs text-[#9b9b9b] mb-1">AI Provider</label>
-              <select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value as "openai" | "anthropic")}
-                className="w-full bg-[#252525] border border-[#3f3f3f] rounded-md px-3 py-2 text-sm text-[#e3e3e3] outline-none focus:border-[#5f5f5f]"
-              >
-                <option value="openai">OpenAI (GPT-4o-mini)</option>
-                <option value="anthropic">Anthropic (Claude Sonnet)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-[#9b9b9b] mb-1">API Key</label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder={provider === "openai" ? "sk-..." : "sk-ant-..."}
-                className="w-full bg-[#252525] border border-[#3f3f3f] rounded-md px-3 py-2 text-sm text-[#e3e3e3] outline-none focus:border-[#5f5f5f]"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={saveSettings}
-                className="px-3 py-1.5 bg-[#4f4f4f] hover:bg-[#5f5f5f] rounded-md text-sm text-[#e3e3e3]"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="px-3 py-1.5 text-sm text-[#6b6b6b] hover:text-[#9b9b9b]"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Settings Modal */}
+      <AISettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
 
       {/* Error message */}
       {error && (
@@ -223,7 +175,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
             <p className="text-[#6b6b6b] text-sm max-w-md mb-4">
               Ask me anything! I can help you with your notes, vault items, and memories.
             </p>
-            {!apiKey && (
+            {!getApiKey() && (
               <button
                 onClick={() => setShowSettings(true)}
                 className="text-sm text-blue-400 hover:text-blue-300"
