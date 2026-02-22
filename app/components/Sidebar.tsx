@@ -571,17 +571,21 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
   return (
     <aside className="flex flex-col w-60 h-full bg-[#202020] border-r border-[#2f2f2f] shrink-0 select-none">
-      {/* Search and quick actions */}
+      {/* Workspace header */}
       <div className="px-2 py-2">
         <div 
-          className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
+          className="flex items-center gap-2 px-2 py-1.5 hover:bg-[rgba(255,255,255,0.055)] rounded-[6px] cursor-pointer"
           onClick={onGoHome}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-          </svg>
-          <span>Home</span>
+          <div className="w-5 h-5 rounded bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-xs font-medium text-white shrink-0">
+            M
+          </div>
+          <span className="text-sm font-medium text-[#7eb8f7] truncate">Mothership</span>
         </div>
+      </div>
+
+      {/* Search and quick actions */}
+      <div className="px-2 py-1">
         <div 
           className="flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
           onClick={onOpenSearch}

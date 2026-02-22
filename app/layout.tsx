@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} antialiased bg-[#191919]`}>
+      <body className={`${inter.variable} antialiased`}>
         <div className="flex flex-col h-screen w-screen overflow-hidden">
           <TitleBar />
           <AppShell />
