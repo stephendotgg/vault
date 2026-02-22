@@ -87,7 +87,7 @@ async function getRelevantContext(query: string, limit: number = 5): Promise<str
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { messages, apiKey, model = "openai/gpt-4o-mini" } = body;
+    const { messages, apiKey, model = "openai/gpt-4o-mini", instructions = [] } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 });
@@ -107,6 +107,11 @@ export async function POST(request: NextRequest) {
     // Get relevant context from notes/vault/memories
     const relevantContext = await getRelevantContext(contextQuery);
 
+    // Build user instructions string
+    const userInstructions = Array.isArray(instructions) && instructions.length > 0 
+      ? instructions.join(" ") 
+      : "Be concise and direct. Use British English spelling.";
+
     // Build system prompt with context
     const systemPrompt = `You are a helpful AI assistant integrated into Mothership, a personal notes and memories app. You have access to the user's notes, vault items, and memories to help answer their questions.
 
@@ -116,7 +121,7 @@ ${relevantContext.join("\n\n")}
 
 Use this context to provide helpful, accurate responses. If referencing their notes or memories, mention where the information comes from.` : "No specific relevant context found for this query. Answer based on the conversation."}
 
-Be helpful, concise, and friendly. Use British English spelling.`;
+${userInstructions}`;
 
     // Call OpenRouter API (OpenAI-compatible format)
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {

@@ -74,6 +74,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [cachedInstructions, setCachedInstructions] = useState<string[]>([]);
   const [blurTitles, setBlurTitles] = useState<boolean>(() =>
     typeof window !== "undefined" ? localStorage.getItem("mothership-blur-titles") === "true" : false
   );
@@ -90,6 +91,17 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
 
   // Get API key from localStorage
   const getApiKey = () => localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || "";
+
+  // Fetch AI instructions from API
+  const fetchInstructions = async () => {
+    try {
+      const res = await fetch("/api/ai/settings");
+      const data = await res.json();
+      setCachedInstructions(data.instructions || []);
+    } catch (err) {
+      console.error("Failed to fetch AI instructions:", err);
+    }
+  };
 
   // Get currently selected model
   const selectedModel = ALL_MODELS.find(m => m.id === selectedModelId) || ALL_MODELS[0];
@@ -116,6 +128,11 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [showModelSelector]);
+
+  // Fetch instructions on mount
+  useEffect(() => {
+    fetchInstructions();
+  }, []);
 
   // Load sessions from database
   const loadSessions = useCallback(async () => {
@@ -307,6 +324,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
           messages: apiMessages,
           apiKey,
           model: selectedModel.id,
+          instructions: cachedInstructions,
         }),
       });
 
@@ -409,7 +427,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
       const aiResponse = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, apiKey, model: selectedModel.id }),
+        body: JSON.stringify({ messages: apiMessages, apiKey, model: selectedModel.id, instructions: cachedInstructions }),
       });
 
       const aiData = await aiResponse.json();
@@ -548,7 +566,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
       {/* Main chat area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <div className="flex items-center justify-between h-11 px-3 border-b border-[#2f2f2f] shrink-0">
+        <div className="flex items-center justify-between h-11 px-4 border-b border-[#2f2f2f] shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-sm text-[#9b9b9b]">
               {currentSession?.title || "AI Chat"}
@@ -606,7 +624,10 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         {/* Settings Modal */}
         <AISettingsModal
           isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
+          onClose={() => {
+            setShowSettings(false);
+            fetchInstructions(); // Refresh instructions after settings change
+          }}
         />
 
         {/* Error message */}
@@ -638,7 +659,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                     </div>
                   ) : (
                     <div>
-                      <div className="prose prose-invert prose-sm max-w-none text-[#e3e3e3] leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_code]:bg-[#2a2a2a] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[#7eb8f7] [&_pre]:bg-[#2a2a2a] [&_pre]:p-3 [&_pre]:rounded-lg [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:text-[#fff] [&_a]:text-[#7eb8f7]">
+                      <div className="prose prose-invert prose-base max-w-none text-[#e3e3e3] leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_code]:bg-[#2a2a2a] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[#7eb8f7] [&_pre]:bg-[#2a2a2a] [&_pre]:p-3 [&_pre]:rounded-lg [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:text-[#fff] [&_a]:text-[#7eb8f7]">
                         <ReactMarkdown>{message.content}</ReactMarkdown>
                       </div>
                       {isLastAssistantMessage && (
