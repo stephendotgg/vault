@@ -22,6 +22,10 @@
     overflow: hidden;
   }
 
+  button {
+    cursor: pointer;
+  }
+
   /* Custom Scrollbars - Notion style */
   * {
     scrollbar-width: thin;
