@@ -294,6 +294,8 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
     }
     // Reset input so same file can be selected again
     e.target.value = "";
+    // Focus back on text input
+    inputRef.current?.focus();
   };
 
   // Remove pending image
@@ -947,7 +949,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                     <img
                       src={img}
                       alt={`Upload ${index + 1}`}
-                      className="h-16 w-16 object-cover rounded-md border border-[#3f3f3f]"
+                      className="h-16 w-auto object-contain rounded-md border border-[#3f3f3f]"
                     />
                     <button
                       onClick={() => removePendingImage(index)}

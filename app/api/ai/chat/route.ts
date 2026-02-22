@@ -87,7 +87,7 @@ async function getRelevantContext(query: string, limit: number = 5): Promise<str
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { messages, apiKey, model = "openai/gpt-4o-mini", instructions = [] } = body;
+    const { messages, apiKey, model = "openai/gpt-4o-mini", instructions = [], noteContext } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 });
@@ -114,8 +114,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get relevant context from notes/vault/memories
-    const relevantContext = await getRelevantContext(contextQuery);
+    // If noteContext is provided, use it directly; otherwise search for relevant context
+    let contextSection = "";
+    if (noteContext) {
+      // Direct note context mode (from in-note AI chat)
+      contextSection = `You are helping the user with their note titled "${noteContext.title}".
+
+Here is the full content of the note:
+
+${noteContext.content}
+
+Answer questions about this note, help expand on ideas, suggest improvements, or assist with whatever the user needs regarding this content.`;
+    } else {
+      // Standard mode - search for relevant context
+      const relevantContext = await getRelevantContext(contextQuery);
+      contextSection = relevantContext.length > 0 
+        ? `Here is relevant context from the user's data:\n\n${relevantContext.join("\n\n")}\n\nUse this context to provide helpful, accurate responses. If referencing their notes or memories, mention where the information comes from.`
+        : "No specific relevant context found for this query. Answer based on the conversation.";
+    }
 
     // Build user instructions string
     const userInstructions = Array.isArray(instructions) && instructions.length > 0 
@@ -125,11 +141,7 @@ export async function POST(request: NextRequest) {
     // Build system prompt with context
     const systemPrompt = `You are a helpful AI assistant integrated into Mothership, a personal notes and memories app. You have access to the user's notes, vault items, and memories to help answer their questions.
 
-${relevantContext.length > 0 ? `Here is relevant context from the user's data:
-
-${relevantContext.join("\n\n")}
-
-Use this context to provide helpful, accurate responses. If referencing their notes or memories, mention where the information comes from.` : "No specific relevant context found for this query. Answer based on the conversation."}
+${contextSection}
 
 ${userInstructions}`;
 
