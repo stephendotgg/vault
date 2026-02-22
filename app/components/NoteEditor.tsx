@@ -374,62 +374,62 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Top bar */}
-      <div className="flex items-center justify-between h-11 px-4 border-b border-[#2f2f2f] shrink-0">
-        <div className="flex items-center gap-1 text-sm text-[#9b9b9b] overflow-hidden">
-          {breadcrumbs.map((crumb, index) => (
-            <div key={crumb.id} className="flex items-center gap-1 min-w-0">
-              {index > 0 && (
-                <svg className="w-3 h-3 text-[#6b6b6b] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-              )}
-              {index === breadcrumbs.length - 1 ? (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
-                  <span className="truncate">{crumb.id === note.id ? (title || "Untitled") : (crumb.title || "Untitled")}</span>
-                </div>
-              ) : (
-                <button
-                  onClick={() => onSelectNote(crumb.id)}
-                  className="flex items-center gap-1.5 hover:text-[#e3e3e3] transition-colors min-w-0 cursor-pointer"
-                >
-                  <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
-                  <span className="truncate max-w-[120px]">{crumb.title || "Untitled"}</span>
-                </button>
-              )}
-            </div>
-          ))}
+    <div className="flex h-full">
+      {/* Left side - Editor with header */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
+        <div className="flex items-center justify-between h-11 px-4 border-b border-[#2f2f2f] shrink-0">
+          <div className="flex items-center gap-1 text-sm text-[#9b9b9b] overflow-hidden">
+            {breadcrumbs.map((crumb, index) => (
+              <div key={crumb.id} className="flex items-center gap-1 min-w-0">
+                {index > 0 && (
+                  <svg className="w-3 h-3 text-[#6b6b6b] shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                )}
+                {index === breadcrumbs.length - 1 ? (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
+                    <span className="truncate">{crumb.id === note.id ? (title || "Untitled") : (crumb.title || "Untitled")}</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => onSelectNote(crumb.id)}
+                    className="flex items-center gap-1.5 hover:text-[#e3e3e3] transition-colors min-w-0 cursor-pointer"
+                  >
+                    <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
+                    <span className="truncate max-w-[120px]">{crumb.title || "Untitled"}</span>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-3">
+            {isSaving && (
+              <span className="text-xs text-[#6b6b6b]">Saving...</span>
+            )}
+            {!isSaving && lastSaved && (
+              <span className="text-xs text-[#6b6b6b]">Saved</span>
+            )}
+            <button
+              onClick={() => {
+                setShowAIChat(!showAIChat);
+                if (!showAIChat) {
+                  setTimeout(() => chatInputRef.current?.focus(), 100);
+                }
+              }}
+              className={`p-1.5 rounded transition-colors ${showAIChat ? "bg-[#3f3f3f] text-[#e3e3e3]" : "text-[#6b6b6b] hover:text-[#e3e3e3] hover:bg-[#3f3f3f]"}`}
+              title="AI Chat"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {isSaving && (
-            <span className="text-xs text-[#6b6b6b]">Saving...</span>
-          )}
-          {!isSaving && lastSaved && (
-            <span className="text-xs text-[#6b6b6b]">Saved</span>
-          )}
-          <button
-            onClick={() => {
-              setShowAIChat(!showAIChat);
-              if (!showAIChat) {
-                setTimeout(() => chatInputRef.current?.focus(), 100);
-              }
-            }}
-            className={`p-1.5 rounded transition-colors ${showAIChat ? "bg-[#3f3f3f] text-[#e3e3e3]" : "text-[#6b6b6b] hover:text-[#e3e3e3] hover:bg-[#3f3f3f]"}`}
-            title="AI Chat"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-          </button>
-        </div>
-      </div>
 
-      {/* Main content area with optional chat panel */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Editor area */}
-        <div className={`flex-1 overflow-auto ${showAIChat ? "border-r border-[#2f2f2f]" : ""}`}>
+        {/* Editor content */}
+        <div className="flex-1 overflow-auto">
           <div className="max-w-3xl mx-auto px-16 py-12">
             {/* Title */}
             <input
@@ -468,109 +468,92 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
             <EditorContent editor={editor} />
           </div>
         </div>
+      </div>
 
-        {/* AI Chat Panel */}
-        {showAIChat && (
-          <div className="w-96 flex flex-col bg-[#1a1a1a]">
-            {/* Chat header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-[#2f2f2f]">
-              <span className="text-sm font-medium text-[#9b9b9b]">AI Chat</span>
-              <div className="flex items-center gap-1">
-                {chatMessages.length > 0 && (
-                  <button
-                    onClick={handleClearChat}
-                    className="p-1 text-[#6b6b6b] hover:text-[#e3e3e3] hover:bg-[#3f3f3f] rounded transition-colors"
-                    title="Clear chat"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowAIChat(false)}
-                  className="p-1 text-[#6b6b6b] hover:text-[#e3e3e3] hover:bg-[#3f3f3f] rounded transition-colors"
-                  title="Close"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+      {/* Right side - AI Chat Panel (full height) */}
+      {showAIChat && (
+        <div className="w-80 border-l border-[#2f2f2f] flex flex-col shrink-0">
+          {/* Chat header - same level as top bar */}
+          <div className="h-11 px-3 flex items-center justify-between border-b border-[#2f2f2f] shrink-0">
+            <span className="text-xs text-[#9b9b9b] font-medium">Note AI Chat</span>
+            {chatMessages.length > 0 && (
+              <button
+                onClick={handleClearChat}
+                className="p-1 text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f] rounded transition-colors"
+                title="Clear chat"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* Chat messages */}
+          <div className="flex-1 overflow-auto p-3 space-y-4">
+            {chatMessages.length === 0 && !chatError && (
+              <div className="text-center text-[#6b6b6b] text-xs py-6">
+                <p>Ask anything about this note.</p>
               </div>
-            </div>
-
-            {/* Chat messages */}
-            <div className="flex-1 overflow-auto p-3 space-y-3">
-              {chatMessages.length === 0 && !chatError && (
-                <div className="text-center text-[#6b6b6b] text-sm py-8">
-                  <p>Ask anything about this note.</p>
-                  <p className="mt-1 text-xs">The AI has full context of &quot;{title || "Untitled"}&quot;</p>
-                </div>
-              )}
-              {chatError && (
-                <div className="bg-red-500/10 text-red-400 text-sm px-3 py-2 rounded-lg">
-                  {chatError}
-                </div>
-              )}
-              {chatMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] px-3 py-2 rounded-lg text-sm ${
-                      msg.role === "user"
-                        ? "bg-[#3b82f6] text-white"
-                        : "bg-[#2a2a2a] text-[#e3e3e3]"
-                    }`}
-                  >
-                    {msg.role === "assistant" ? (
-                      <div className="prose prose-invert prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                        <ReactMarkdown>{msg.content || "..."}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
-                    )}
+            )}
+            {chatError && (
+              <div className="bg-red-500/10 text-red-400 text-xs px-3 py-2 rounded-lg">
+                {chatError}
+              </div>
+            )}
+            {chatMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={msg.role === "user" ? "flex justify-end" : ""}
+              >
+                {msg.role === "user" ? (
+                  <div className="max-w-[85%] rounded-2xl px-3 py-2 bg-[#3f3f3f] text-[#e3e3e3] text-sm break-words">
+                    <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                   </div>
-                </div>
-              ))}
-              <div ref={chatMessagesEndRef} />
-            </div>
-
-            {/* Chat input */}
-            <div className="p-3 border-t border-[#2f2f2f]">
-              <div className="flex gap-2">
-                <textarea
-                  ref={chatInputRef}
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={handleChatKeyDown}
-                  placeholder="Ask about this note..."
-                  className="flex-1 bg-[#252525] border border-[#3f3f3f] rounded-lg px-3 py-2 text-sm text-[#e3e3e3] placeholder-[#6b6b6b] resize-none focus:outline-none focus:border-[#4f4f4f]"
-                  rows={2}
-                  disabled={isChatLoading}
-                />
-                <button
-                  onClick={handleSendChat}
-                  disabled={!chatInput.trim() || isChatLoading}
-                  className="self-end p-2 bg-[#3b82f6] text-white rounded-lg hover:bg-[#2563eb] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isChatLoading ? (
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                  )}
-                </button>
+                ) : (
+                  <div className="prose prose-invert prose-sm max-w-none text-[#e3e3e3] leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-0.5 [&_code]:bg-[#2a2a2a] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[#7eb8f7] [&_pre]:bg-[#2a2a2a] [&_pre]:p-2 [&_pre]:rounded-lg [&_pre_code]:bg-transparent [&_pre_code]:p-0">
+                    <ReactMarkdown>{msg.content || "..."}</ReactMarkdown>
+                  </div>
+                )}
               </div>
+            ))}
+            <div ref={chatMessagesEndRef} />
+          </div>
+
+          {/* Chat input */}
+          <div className="px-3 py-3 shrink-0">
+            <div className="flex gap-2 items-end bg-[#252525] rounded-lg border border-[#3f3f3f] p-2">
+              <textarea
+                ref={chatInputRef}
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={handleChatKeyDown}
+                placeholder="Ask about this note..."
+                className="flex-1 bg-transparent text-[#e3e3e3] placeholder-[#6b6b6b] resize-none outline-none text-sm px-1"
+                rows={1}
+                style={{ maxHeight: "100px" }}
+                disabled={isChatLoading}
+              />
+              <button
+                onClick={handleSendChat}
+                disabled={!chatInput.trim() || isChatLoading}
+                className="p-2 rounded-md bg-[#4f4f4f] hover:bg-[#5f5f5f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isChatLoading ? (
+                  <svg className="w-4 h-4 text-[#e3e3e3] animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-[#e3e3e3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
