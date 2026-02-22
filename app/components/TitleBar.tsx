@@ -26,10 +26,15 @@ export function TitleBar() {
     return null;
   }
 
-  // Minimal title bar - just draggable area and window controls, no text
+  // Minimal title bar with app name and window controls
   return (
-    <div className="h-8 bg-[#191919] flex items-center justify-end select-none shrink-0"
+    <div className="h-8 bg-[#191919] flex items-center justify-between select-none shrink-0"
          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}>
+      {/* App title */}
+      <div className="px-3 text-xs text-[#7eb8f7] font-medium">
+        Mothership
+      </div>
+      
       {/* Window controls - Windows style */}
       <div className="flex h-full" style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
         <button
