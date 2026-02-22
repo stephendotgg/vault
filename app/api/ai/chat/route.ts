@@ -124,7 +124,7 @@ Here is the full content of the note:
 
 ${noteContext.content}
 
-Answer questions about this note, help expand on ideas, suggest improvements, or assist with whatever the user needs regarding this content.`;
+Answer questions about this note, help expand on ideas, suggest improvements, or assist with whatever the user needs regarding this content. Be concise and direct. Use British English spelling.`;
     } else {
       // Standard mode - search for relevant context
       const relevantContext = await getRelevantContext(contextQuery);
