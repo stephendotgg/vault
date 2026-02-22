@@ -586,6 +586,7 @@ export function AppShell() {
         onOpenFileCleaner={handleOpenFileCleaner}
         onOpenAI={handleOpenAI}
         onOpenSearch={handleOpenSearch}
+        onUpdateNote={handleUpdateNote}
         onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">

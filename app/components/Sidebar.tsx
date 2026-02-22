@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Note } from "@/types/models";
+import { IconPicker } from "./IconPicker";
 
 type SectionKey = "notes" | "vault" | "memories" | "dreamJournal" | "voiceLog";
 
@@ -31,6 +32,7 @@ interface SidebarProps {
   onOpenFileCleaner: () => void;
   onOpenAI: () => void;
   onOpenSearch: () => void;
+  onUpdateNote: (note: Note) => void;
   notes: Note[];
 }
 
@@ -338,7 +340,7 @@ interface CreateMenuState {
   y: number;
 }
 
-export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onGoHome, onOpenVault, onOpenVaultAddModal, onOpenMemories, onOpenMemoryAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, notes }: SidebarProps) {
+export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onGoHome, onOpenVault, onOpenVaultAddModal, onOpenMemories, onOpenMemoryAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onUpdateNote, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -352,6 +354,8 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
   const [createMenu, setCreateMenu] = useState<CreateMenuState | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [iconPickerNoteId, setIconPickerNoteId] = useState<string | null>(null);
+  const [iconPickerPosition, setIconPickerPosition] = useState<{ x: number; y: number } | null>(null);
   
   // Drag and drop state
   const [dragState, setDragState] = useState<DragState>({
@@ -819,6 +823,19 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
           <button
             className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
             onClick={() => {
+              setIconPickerNoteId(contextMenu.noteId);
+              setIconPickerPosition({ x: contextMenu.x, y: contextMenu.y });
+              setContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Change Icon
+          </button>
+          <button
+            className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
+            onClick={() => {
               onArchiveNote(contextMenu.noteId);
               setContextMenu(null);
             }}
@@ -902,6 +919,29 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
             </svg>
             Voice Log
           </button>
+        </div>
+      )}
+
+      {/* Icon Picker */}
+      {iconPickerNoteId && iconPickerPosition && (
+        <div
+          className="fixed z-50"
+          style={{ left: iconPickerPosition.x, top: iconPickerPosition.y }}
+        >
+          <IconPicker
+            currentIcon={notes.find(n => n.id === iconPickerNoteId)?.icon || "📄"}
+            noteId={iconPickerNoteId}
+            onIconChange={(newIcon) => {
+              const note = notes.find(n => n.id === iconPickerNoteId);
+              if (note) {
+                onUpdateNote({ ...note, icon: newIcon });
+              }
+            }}
+            onClose={() => {
+              setIconPickerNoteId(null);
+              setIconPickerPosition(null);
+            }}
+          />
         </div>
       )}
     </aside>

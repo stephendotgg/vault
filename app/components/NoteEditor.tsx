@@ -10,18 +10,13 @@ import TaskItem from "@tiptap/extension-task-item";
 import Link from "@tiptap/extension-link";
 import { AutoCorrect } from "@/app/extensions/AutoCorrect";
 import { Note } from "@/types/models";
-import { IconPicker } from "./IconPicker";
 
 // Note icon - can be emoji, custom image, or default document icon
-function NoteIcon({ icon, hasContent, className = "", size = "small" }: { 
+function NoteIcon({ icon, hasContent, className = "" }: { 
   icon: string; 
   hasContent: boolean; 
   className?: string;
-  size?: "small" | "large";
 }) {
-  const sizeClasses = size === "large" ? "w-16 h-16" : "w-4 h-4";
-  const textSize = size === "large" ? "text-5xl" : "text-sm";
-  
   // Custom image icon (stored as "icon:filename.ext")
   if (icon.startsWith("icon:")) {
     const filename = icon.substring(5);
@@ -29,7 +24,7 @@ function NoteIcon({ icon, hasContent, className = "", size = "small" }: {
       <img 
         src={`/api/icons/${filename}`} 
         alt="" 
-        className={`${sizeClasses} shrink-0 rounded object-cover ${className}`}
+        className={`w-4 h-4 shrink-0 rounded-sm object-cover ${className}`}
       />
     );
   }
@@ -37,7 +32,7 @@ function NoteIcon({ icon, hasContent, className = "", size = "small" }: {
   // Emoji icon (any non-default value that's not an image)
   if (icon && icon !== "📄") {
     return (
-      <span className={`${sizeClasses} shrink-0 ${textSize} leading-none flex items-center justify-center ${className}`}>
+      <span className={`w-4 h-4 shrink-0 text-sm leading-none flex items-center justify-center ${className}`}>
         {icon}
       </span>
     );
@@ -46,7 +41,7 @@ function NoteIcon({ icon, hasContent, className = "", size = "small" }: {
   // Default document icon
   if (hasContent) {
     return (
-      <svg className={`${sizeClasses} shrink-0 text-[#9b9b9b] ${className}`} viewBox="0 0 24 24" fill="currentColor">
+      <svg className={`w-4 h-4 shrink-0 text-[#9b9b9b] ${className}`} viewBox="0 0 24 24" fill="currentColor">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
         <path d="M14 2v6h6" fill="none" stroke="currentColor" strokeWidth="1"/>
         <line x1="8" y1="13" x2="16" y2="13" stroke="#202020" strokeWidth="1.5"/>
@@ -55,7 +50,7 @@ function NoteIcon({ icon, hasContent, className = "", size = "small" }: {
     );
   }
   return (
-    <svg className={`${sizeClasses} shrink-0 text-[#6b6b6b] ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg className={`w-4 h-4 shrink-0 text-[#6b6b6b] ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
       <polyline points="14,2 14,8 20,8"/>
     </svg>
@@ -72,18 +67,14 @@ interface NoteEditorProps {
 
 export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
-  const [icon, setIcon] = useState(note.icon);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [showIconPicker, setShowIconPicker] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const iconButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Sync title and icon when note changes externally
+  // Sync title when note changes externally (e.g., renamed from sidebar)
   useEffect(() => {
     setTitle(note.title);
-    setIcon(note.icon);
-  }, [note.title, note.icon]);
+  }, [note.title]);
 
   // Build breadcrumb trail from current note to root
   const breadcrumbs = useMemo(() => {
@@ -260,7 +251,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
               )}
               {index === breadcrumbs.length - 1 ? (
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <NoteIcon icon={crumb.id === note.id ? icon : crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
+                  <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
                   <span className="truncate">{crumb.id === note.id ? (title || "Untitled") : (crumb.title || "Untitled")}</span>
                 </div>
               ) : (
@@ -288,35 +279,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
       {/* Editor area */}
       <div className="flex-1 overflow-auto">
         <div className="max-w-3xl mx-auto px-16 py-12">
-          {/* Icon */}
-          <div className="relative mb-3">
-            <button
-              ref={iconButtonRef}
-              onClick={() => setShowIconPicker(true)}
-              className="hover:bg-[#2f2f2f] rounded-lg p-1 -ml-1 transition-colors"
-              title="Change icon"
-            >
-              <NoteIcon 
-                icon={icon} 
-                hasContent={note.content.length > 0 && note.content !== "<p></p>"} 
-                size="large"
-              />
-            </button>
-            {showIconPicker && (
-              <div className="absolute top-full left-0 mt-1">
-                <IconPicker
-                  currentIcon={icon}
-                  noteId={note.id}
-                  onIconChange={(newIcon) => {
-                    setIcon(newIcon);
-                    onUpdate({ ...note, icon: newIcon });
-                  }}
-                  onClose={() => setShowIconPicker(false)}
-                />
-              </div>
-            )}
-          </div>
-
           {/* Title */}
           <input
             type="text"
