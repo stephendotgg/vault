@@ -27,7 +27,7 @@ export function TitleBar() {
   }
 
   return (
-    <div className="h-8 bg-[#202020] flex items-center justify-between select-none shrink-0 border-b border-[#2f2f2f]"
+    <div className="h-8 bg-[#202020] flex items-center justify-between select-none shrink-0"
          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}>
       {/* App title */}
       <div className="px-3 text-xs text-[#7eb8f7] font-medium">
