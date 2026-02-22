@@ -57,7 +57,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
-      onClose();
+      handleSave();
     }
   };
 
@@ -85,7 +85,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={onClose}
+      onClick={handleSave}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" />
@@ -99,7 +99,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#3f3f3f]">
           <h2 className="text-sm font-medium text-[#ebebeb]">AI Settings</h2>
           <button
-            onClick={onClose}
+            onClick={handleSave}
             className="p-1 text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f] rounded transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
