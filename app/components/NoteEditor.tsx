@@ -545,7 +545,15 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }:
                   </div>
                 ) : (
                   <div className="prose prose-invert prose-sm max-w-none text-[#e3e3e3] leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-0.5 [&_code]:bg-[#2a2a2a] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[#7eb8f7] [&_pre]:bg-[#2a2a2a] [&_pre]:p-2 [&_pre]:rounded-lg [&_pre_code]:bg-transparent [&_pre_code]:p-0">
-                    <ReactMarkdown>{msg.content || "..."}</ReactMarkdown>
+                    {msg.content ? (
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    ) : (
+                      <div className="flex gap-1.5 py-1">
+                        <span className="w-1.5 h-1.5 bg-[#6b6b6b] rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                        <span className="w-1.5 h-1.5 bg-[#6b6b6b] rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                        <span className="w-1.5 h-1.5 bg-[#6b6b6b] rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
