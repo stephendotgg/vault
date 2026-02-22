@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Sidebar } from "./Sidebar";
-import { NoteEditor } from "./NoteEditor";
+import { NoteEditor, ChatMessage } from "./NoteEditor";
 import { VaultView } from "./VaultView";
 import { VaultAddModal } from "./VaultAddModal";
 import { MemoriesView } from "./MemoriesView";
@@ -27,6 +27,10 @@ export function AppShell() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
+
+  // AI Chat state - persisted across note switches
+  const [chatOpenStates, setChatOpenStates] = useState<Map<string, boolean>>(new Map());
+  const [allChatMessages, setAllChatMessages] = useState<Map<string, ChatMessage[]>>(new Map());
 
   // Load saved state from localStorage after hydration
   useEffect(() => {
@@ -598,6 +602,10 @@ export function AppShell() {
             onUpdate={handleUpdateNote}
             onDelete={handleDeleteNote}
             onSelectNote={handleSelectNote}
+            chatOpenStates={chatOpenStates}
+            setChatOpenStates={setChatOpenStates}
+            allChatMessages={allChatMessages}
+            setAllChatMessages={setAllChatMessages}
           />
         ) : currentView === "vault" ? (
           <VaultView

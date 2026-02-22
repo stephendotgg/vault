@@ -20,13 +20,6 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-// Chat message type
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-}
-
 // Note icon - can be emoji, custom image, or default document icon
 function NoteIcon({ icon, hasContent, className = "" }: { 
   icon: string; 
@@ -73,23 +66,32 @@ function NoteIcon({ icon, hasContent, className = "" }: {
   );
 }
 
+// Chat message type
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+}
+
 interface NoteEditorProps {
   note: Note;
   allNotes: Note[];
   onUpdate: (note: Note) => void;
   onDelete: (id: string) => void;
   onSelectNote: (id: string) => void;
+  chatOpenStates: Map<string, boolean>;
+  setChatOpenStates: React.Dispatch<React.SetStateAction<Map<string, boolean>>>;
+  allChatMessages: Map<string, ChatMessage[]>;
+  setAllChatMessages: React.Dispatch<React.SetStateAction<Map<string, ChatMessage[]>>>;
 }
 
-export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote }: NoteEditorProps) {
+export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // AI Chat state - persisted per note
-  const [chatOpenStates, setChatOpenStates] = useState<Map<string, boolean>>(new Map());
-  const [allChatMessages, setAllChatMessages] = useState<Map<string, ChatMessage[]>>(new Map());
+  // AI Chat state - local per-render state
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
