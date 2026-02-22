@@ -5,7 +5,7 @@ const path = require("path");
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
-const port = parseInt(process.env.PORT || "3000", 10);
+const port = parseInt(process.env.PORT || (dev ? "3000" : "51333"), 10);
 
 // In production, set the directory to the app resources
 const dir = dev ? process.cwd() : path.join(__dirname, "..");

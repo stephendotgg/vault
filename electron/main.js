@@ -5,7 +5,7 @@ let mainWindow;
 let server;
 
 const isDev = !app.isPackaged;
-const PORT = 3000;
+const PORT = isDev ? 3000 : 51333;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
