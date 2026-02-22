@@ -316,7 +316,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         content: m.content,
       }));
 
-      // Call AI API
+      // Call AI API with streaming
       const aiResponse = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -328,23 +328,75 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         }),
       });
 
-      const aiData = await aiResponse.json();
-
       if (!aiResponse.ok) {
+        const aiData = await aiResponse.json();
         throw new Error(aiData.message || aiData.error || "Failed to get response");
       }
 
-      // Add assistant message to database
+      // Create a temporary message for streaming
+      const tempAssistantId = `temp-${Date.now()}`;
+      let streamedContent = "";
+
+      // Add empty assistant message to UI
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === targetSessionId
+            ? {
+                ...s,
+                messages: [...s.messages, {
+                  id: tempAssistantId,
+                  role: "assistant" as const,
+                  content: "",
+                  sessionId: targetSessionId,
+                  createdAt: new Date(),
+                }],
+                updatedAt: new Date(),
+              }
+            : s
+        )
+      );
+
+      // Read the stream
+      const reader = aiResponse.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          streamedContent += chunk;
+
+          // Update UI with streamed content
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.id === targetSessionId
+                ? {
+                    ...s,
+                    messages: s.messages.map((m) =>
+                      m.id === tempAssistantId
+                        ? { ...m, content: streamedContent }
+                        : m
+                    ),
+                  }
+                : s
+            )
+          );
+        }
+      }
+
+      // Save final assistant message to database
       const assistantMsgResponse = await fetch(`/api/ai/sessions/${targetSessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "assistant", content: aiData.message }),
+        body: JSON.stringify({ role: "assistant", content: streamedContent }),
       });
       
       if (!assistantMsgResponse.ok) throw new Error("Failed to save assistant message");
       const assistantMessage = await assistantMsgResponse.json();
 
-      // Update local state with assistant message
+      // Replace temp message with real one
       const assistantMsg: Message = {
         ...assistantMessage,
         createdAt: new Date(assistantMessage.createdAt),
@@ -353,7 +405,13 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
       setSessions((prev) =>
         prev.map((s) =>
           s.id === targetSessionId
-            ? { ...s, messages: [...s.messages, assistantMsg], updatedAt: new Date() }
+            ? {
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === tempAssistantId ? assistantMsg : m
+                ),
+                updatedAt: new Date(),
+              }
             : s
         )
       );
@@ -430,16 +488,68 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         body: JSON.stringify({ messages: apiMessages, apiKey, model: selectedModel.id, instructions: cachedInstructions }),
       });
 
-      const aiData = await aiResponse.json();
       if (!aiResponse.ok) {
+        const aiData = await aiResponse.json();
         throw new Error(aiData.message || aiData.error || "Failed to get response");
       }
 
-      // Add new assistant message
+      // Create a temporary message for streaming
+      const tempAssistantId = `temp-${Date.now()}`;
+      let streamedContent = "";
+
+      // Add empty assistant message to UI
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === currentSessionId
+            ? {
+                ...s,
+                messages: [...messagesBeforeRedo, {
+                  id: tempAssistantId,
+                  role: "assistant" as const,
+                  content: "",
+                  sessionId: currentSessionId,
+                  createdAt: new Date(),
+                }],
+              }
+            : s
+        )
+      );
+
+      // Read the stream
+      const reader = aiResponse.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          streamedContent += chunk;
+
+          // Update UI with streamed content
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.id === currentSessionId
+                ? {
+                    ...s,
+                    messages: s.messages.map((m) =>
+                      m.id === tempAssistantId
+                        ? { ...m, content: streamedContent }
+                        : m
+                    ),
+                  }
+                : s
+            )
+          );
+        }
+      }
+
+      // Add new assistant message to DB
       const assistantMsgResponse = await fetch(`/api/ai/sessions/${currentSessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "assistant", content: aiData.message }),
+        body: JSON.stringify({ role: "assistant", content: streamedContent }),
       });
 
       if (!assistantMsgResponse.ok) throw new Error("Failed to save message");
@@ -450,10 +560,16 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         createdAt: new Date(assistantMessage.createdAt),
       };
 
+      // Replace temp message with real one
       setSessions(prev =>
         prev.map(s =>
           s.id === currentSessionId
-            ? { ...s, messages: [...messagesBeforeRedo, newMsg] }
+            ? {
+                ...s,
+                messages: s.messages.map((m) =>
+                  m.id === tempAssistantId ? newMsg : m
+                ),
+              }
             : s
         )
       );
@@ -642,7 +758,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
           {messages.length === 0 ? (
             <div />
           ) : (
-            <div className="max-w-3xl mx-auto px-6 py-4 space-y-6">
+            <div className="max-w-3xl mx-auto px-6 py-9 space-y-6">
               {messages.map((message, index) => {
                 // Check if this is the last assistant message
                 const isLastAssistantMessage = message.role === "assistant" && 
@@ -700,7 +816,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                   )}
                 </div>
               );})}
-              {isLoading && (
+              {isLoading && !messages.some(m => m.id.startsWith("temp-")) && (
                 <div className="flex gap-1.5 py-2">
                   <span className="w-2 h-2 bg-[#6b6b6b] rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
                   <span className="w-2 h-2 bg-[#6b6b6b] rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
@@ -713,8 +829,8 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         </div>
 
         {/* Input area */}
-        <div className="border-t border-[#2f2f2f]">
-          <div className="max-w-3xl mx-auto px-4 py-4">
+        <div>
+          <div className="max-w-3xl mx-auto px-4 py-9">
             <div className="flex gap-2 items-end bg-[#252525] rounded-lg border border-[#3f3f3f] p-2">
               <textarea
                 ref={inputRef}
@@ -736,7 +852,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                 </svg>
               </button>
             </div>
-            <p className="text-xs text-[#6b6b6b] mt-2 text-center">
+            <p className="text-xs text-[#6b6b6b] mt-4 text-center">
               <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">Enter</kbd> send, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">Shift+Enter</kbd> new line, <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">Ctrl+N</kbd> new chat
             </p>
           </div>

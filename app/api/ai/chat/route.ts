@@ -123,7 +123,7 @@ Use this context to provide helpful, accurate responses. If referencing their no
 
 ${userInstructions}`;
 
-    // Call OpenRouter API (OpenAI-compatible format)
+    // Call OpenRouter API (OpenAI-compatible format) with streaming
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -139,6 +139,7 @@ ${userInstructions}`;
           ...messages,
         ],
         max_tokens: 1024,
+        stream: true,
       }),
     });
 
@@ -151,12 +152,55 @@ ${userInstructions}`;
       }, { status: response.status });
     }
 
-    const data = await response.json();
-    const assistantMessage = data.choices?.[0]?.message?.content || "No response";
+    // Create a TransformStream to process SSE chunks
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
 
-    return NextResponse.json({
-      message: assistantMessage,
-      contextUsed: relevantContext.length,
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = response.body?.getReader();
+        if (!reader) {
+          controller.close();
+          return;
+        }
+
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            controller.close();
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed === "data: [DONE]") continue;
+            if (!trimmed.startsWith("data: ")) continue;
+
+            try {
+              const json = JSON.parse(trimmed.slice(6));
+              const content = json.choices?.[0]?.delta?.content;
+              if (content) {
+                controller.enqueue(encoder.encode(content));
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+      },
     });
   } catch (error) {
     console.error("AI chat error:", error);
