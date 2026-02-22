@@ -1,10 +1,27 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 
+// Set NODE_ENV early to prevent TypeScript installation attempts
+const isDev = !app.isPackaged;
+if (!isDev) {
+  process.env.NODE_ENV = "production";
+}
+
+// Hide console window on Windows in production
+if (!isDev && process.platform === "win32") {
+  // This prevents child processes from showing console windows
+  require("child_process").spawn = ((originalSpawn) => {
+    return function spawn(command, args, options) {
+      options = options || {};
+      options.windowsHide = true;
+      return originalSpawn.call(this, command, args, options);
+    };
+  })(require("child_process").spawn);
+}
+
 let mainWindow;
 let server;
 
-const isDev = !app.isPackaged;
 const PORT = isDev ? 3000 : 51333;
 
 function createWindow() {
@@ -16,12 +33,18 @@ function createWindow() {
     backgroundColor: "#191919",
     titleBarStyle: "hiddenInset",
     frame: false,
+    show: false, // Don't show until content is loaded
     icon: path.join(__dirname, "../public/icon.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
     },
+  });
+
+  // Show window when ready to avoid flash
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
   });
 
   // Handle window control IPC events
@@ -90,7 +113,6 @@ async function startNextServer() {
 
   // In production, start the embedded server
   console.log("Starting production Next.js server...");
-  process.env.NODE_ENV = "production";
   process.env.PORT = PORT.toString();
   
   const { startServer } = require("./server.js");
