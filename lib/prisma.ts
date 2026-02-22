@@ -76,6 +76,12 @@ function initializeDatabase() {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (sessionId) REFERENCES ChatSession(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS AISettings (
+      id TEXT PRIMARY KEY DEFAULT 'singleton',
+      instructions TEXT DEFAULT '[]',
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
   
   db.close();

@@ -85,3 +85,10 @@ model ChatMessage {
   session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   createdAt DateTime    @default(now())
 }
+
+// AI Settings (singleton - only one row)
+model AISettings {
+  id           String   @id @default("singleton")
+  instructions String   @default("[]") // JSON array of instruction strings
+  updatedAt    DateTime @updatedAt
+}
