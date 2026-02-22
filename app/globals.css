@@ -240,6 +240,21 @@ a {
   margin: 1em 0;
 }
 
+.tiptap img.mothership-note-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1em 0;
+  cursor: ew-resize;
+  user-select: none;
+}
+
+.tiptap img.mothership-note-image.ProseMirror-selectednode {
+  outline: 2px solid #5b9bd5;
+  outline-offset: 2px;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

@@ -2,12 +2,15 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { NodeSelection, TextSelection } from "@tiptap/pm/state";
+import { EditorView } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
 import ReactMarkdown from "react-markdown";
 import { AutoCorrect } from "@/app/extensions/AutoCorrect";
 import { Note } from "@/types/models";
@@ -19,6 +22,73 @@ const OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
+
+function isImageUrl(value: string): boolean {
+  if (!/^https?:\/\//i.test(value)) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value);
+    return /\.(jpg|jpeg|png|gif|webp|svg|bmp|avif)$/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function parseImageWidth(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const width = parseInt(value, 10);
+    return Number.isFinite(width) ? width : null;
+  }
+
+  return null;
+}
+
+const NoteImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        parseHTML: (element: HTMLElement) => {
+          const dataWidth = element.getAttribute("data-width");
+          if (dataWidth) {
+            const parsed = parseInt(dataWidth, 10);
+            if (Number.isFinite(parsed)) {
+              return parsed;
+            }
+          }
+
+          const styleWidth = element.style.width;
+          if (styleWidth?.endsWith("px")) {
+            const parsed = parseInt(styleWidth.replace("px", ""), 10);
+            if (Number.isFinite(parsed)) {
+              return parsed;
+            }
+          }
+
+          return null;
+        },
+        renderHTML: (attributes: { width?: unknown }) => {
+          const width = parseImageWidth(attributes.width);
+          if (!width) {
+            return {};
+          }
+
+          return {
+            "data-width": String(width),
+            style: `width:${width}px;height:auto;`,
+          };
+        },
+      },
+    };
+  },
+});
 
 // Note icon - can be emoji, custom image, or default document icon
 function NoteIcon({ icon, hasContent, className = "" }: { 
@@ -91,6 +161,8 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const saveNoteRef = useRef<(newTitle: string, newContent: string) => Promise<void>>(async () => {});
+  const uploadNoteImageRef = useRef<(file: File) => Promise<string | null>>(async () => null);
 
   // AI Chat state - local per-render state
   const [chatInput, setChatInput] = useState("");
@@ -166,6 +238,64 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
       .sort((a, b) => a.order - b.order);
   }, [note.id, allNotes]);
 
+  const uploadNoteImage = useCallback(async (file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const res = await fetch(`/api/notes/${note.id}/images`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = await res.json();
+      return data.url || null;
+    } catch (error) {
+      console.error("Failed to upload note image:", error);
+      return null;
+    }
+  }, [note.id]);
+
+  useEffect(() => {
+    uploadNoteImageRef.current = uploadNoteImage;
+  }, [uploadNoteImage]);
+
+  const insertImageWithParagraph = useCallback((view: EditorView, src: string, alt?: string, atPos?: number) => {
+    const imageType = view.state.schema.nodes.image;
+    const paragraphType = view.state.schema.nodes.paragraph;
+    if (!imageType) {
+      return;
+    }
+
+    const editorContentEl = view.dom.closest(".max-w-3xl") as HTMLElement | null;
+    const contentWidth = editorContentEl?.clientWidth ?? 700;
+    const initialWidth = Math.max(240, Math.min(900, Math.floor(contentWidth * 0.85)));
+
+    let tr = view.state.tr;
+
+    if (typeof atPos === "number") {
+      tr = tr.setSelection(TextSelection.create(tr.doc, atPos));
+    }
+
+    const imageNode = imageType.create({ src, alt, width: initialWidth });
+    tr = tr.replaceSelectionWith(imageNode);
+
+    const insertPos = tr.selection.from;
+
+    if (paragraphType) {
+      const paragraphNode = paragraphType.create();
+      tr = tr.insert(insertPos, paragraphNode);
+      tr = tr.setSelection(TextSelection.create(tr.doc, insertPos + 1));
+    }
+
+    view.dispatch(tr.scrollIntoView());
+    view.focus();
+  }, []);
+
   // Auto-save function
   const saveNote = useCallback(async (newTitle: string, newContent: string) => {
     setIsSaving(true);
@@ -187,6 +317,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
       setIsSaving(false);
     }
   }, [note.id, onUpdate]);
+
+  useEffect(() => {
+    saveNoteRef.current = saveNote;
+  }, [saveNote]);
 
   // TipTap editor
   const editor = useEditor({
@@ -223,12 +357,147 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
           class: "text-blue-400 underline cursor-pointer",
         },
       }),
+      NoteImage.configure({
+        inline: false,
+        HTMLAttributes: {
+          class: "mothership-note-image",
+        },
+      }),
       AutoCorrect,
     ],
     content: note.content,
     editorProps: {
       attributes: {
         class: "prose prose-invert max-w-none focus:outline-none min-h-[calc(100vh-250px)] text-[#e3e3e3] text-base leading-relaxed",
+      },
+      handlePaste: (view, event) => {
+        const clipboard = event.clipboardData;
+        if (!clipboard) {
+          return false;
+        }
+
+        const imageFiles = Array.from(clipboard.files).filter(file => file.type.startsWith("image/"));
+        if (imageFiles.length > 0) {
+          event.preventDefault();
+
+          void (async () => {
+            for (const file of imageFiles) {
+              const imageUrl = await uploadNoteImageRef.current(file);
+              if (imageUrl) {
+                insertImageWithParagraph(view, imageUrl, file.name || "Pasted image");
+              }
+            }
+          })();
+
+          return true;
+        }
+
+        const plainText = clipboard.getData("text/plain").trim();
+        if (isImageUrl(plainText)) {
+          event.preventDefault();
+          insertImageWithParagraph(view, plainText);
+
+          return true;
+        }
+
+        return false;
+      },
+      handleDrop: (view, event) => {
+        const dataTransfer = event.dataTransfer;
+        if (!dataTransfer) {
+          return false;
+        }
+
+        const imageFiles = Array.from(dataTransfer.files).filter(file => file.type.startsWith("image/"));
+        if (imageFiles.length === 0) {
+          return false;
+        }
+
+        event.preventDefault();
+
+        const dropPosition = view.posAtCoords({ left: event.clientX, top: event.clientY });
+
+        void (async () => {
+          let insertPosition = dropPosition?.pos ?? view.state.selection.from;
+
+          for (const file of imageFiles) {
+            const imageUrl = await uploadNoteImageRef.current(file);
+            if (imageUrl) {
+              insertImageWithParagraph(view, imageUrl, file.name || "Dropped image", insertPosition);
+              insertPosition = view.state.selection.from;
+            }
+          }
+        })();
+
+        return true;
+      },
+      handleDOMEvents: {
+        mousedown: (view, event) => {
+          if (!(event instanceof MouseEvent) || event.button !== 0) {
+            return false;
+          }
+
+          const target = event.target as HTMLElement | null;
+          if (!(target instanceof HTMLImageElement) || !target.classList.contains("mothership-note-image")) {
+            return false;
+          }
+
+          event.preventDefault();
+
+          const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
+          if (!coords) {
+            return false;
+          }
+
+          const resolved = view.state.doc.resolve(coords.pos);
+          const nodeAfter = resolved.nodeAfter;
+          const nodeBefore = resolved.nodeBefore;
+
+          let imagePos: number | null = null;
+          if (nodeAfter?.type.name === "image") {
+            imagePos = coords.pos;
+          } else if (nodeBefore?.type.name === "image") {
+            imagePos = coords.pos - nodeBefore.nodeSize;
+          }
+
+          if (imagePos === null) {
+            return false;
+          }
+
+          view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, imagePos)));
+          view.focus();
+
+          const startX = event.clientX;
+          const selectedNode = view.state.doc.nodeAt(imagePos);
+          const startWidth = parseImageWidth(selectedNode?.attrs.width) ?? target.clientWidth;
+
+          const onMouseMove = (moveEvent: MouseEvent) => {
+            const currentNode = view.state.doc.nodeAt(imagePos!);
+            if (!currentNode || currentNode.type.name !== "image") {
+              return;
+            }
+
+            const deltaX = moveEvent.clientX - startX;
+            const nextWidth = Math.max(140, Math.min(1800, Math.round(startWidth + deltaX)));
+
+            view.dispatch(
+              view.state.tr.setNodeMarkup(imagePos!, undefined, {
+                ...currentNode.attrs,
+                width: nextWidth,
+              })
+            );
+          };
+
+          const onMouseUp = () => {
+            window.removeEventListener("mousemove", onMouseMove);
+            window.removeEventListener("mouseup", onMouseUp);
+          };
+
+          window.addEventListener("mousemove", onMouseMove);
+          window.addEventListener("mouseup", onMouseUp);
+
+          return true;
+        },
       },
     },
     onUpdate: ({ editor }) => {
@@ -241,10 +510,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
 
       // Set new timeout for auto-save (500ms debounce)
       saveTimeoutRef.current = setTimeout(() => {
-        saveNote(title, html);
+        void saveNoteRef.current(titleRef.current, html);
       }, 500);
     },
-  });
+  }, [insertImageWithParagraph, note.id]);
 
   // Update editor content when note changes
   useEffect(() => {
