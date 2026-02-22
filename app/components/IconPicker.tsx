@@ -21,6 +21,7 @@ const EMOJI_OPTIONS = [
   "☕", "🍵", "🥤", "🍷", "🍸", "🍹", "🥂", "🧃", "🧊", "🍶",
   "🚀", "✈️", "🚗", "🚕", "🚌", "🚂", "🛸", "🚁", "⛵", "🚲",
   "💻", "🖥️", "📱", "⌨️", "🖱️", "💾", "📀", "🔌", "💡", "🔋",
+  "🇬🇧", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "🇺🇸", "🇨🇦", "🇦🇺", "🇳🇿", "🇮🇪", "🇪🇺", "🇩🇪", "🇫🇷",
 ];
 
 export function IconPicker({ currentIcon, noteId, onIconChange, onClose }: IconPickerProps) {
