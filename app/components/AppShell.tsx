@@ -136,6 +136,16 @@ export function AppShell() {
     }
   };
 
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.onGlobalNewNote?.(() => {
+      void handleCreateNote();
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [handleCreateNote]);
+
   // Select note
   const handleSelectNote = (id: string) => {
     setSelectedNoteId(id);

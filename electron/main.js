@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut } = require("electron");
 const path = require("path");
 
 // Set NODE_ENV early to prevent TypeScript installation attempts
@@ -151,6 +151,27 @@ app.whenReady().then(async () => {
   await startNextServer();
   createWindow();
 
+  const registered = globalShortcut.register("CommandOrControl+N", () => {
+    if (!mainWindow) {
+      return;
+    }
+
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+
+    if (!mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+
+    mainWindow.focus();
+    mainWindow.webContents.send("global-create-note");
+  });
+
+  if (!registered) {
+    console.error("Failed to register global shortcut: CommandOrControl+N");
+  }
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -168,6 +189,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
+  globalShortcut.unregisterAll();
   if (server) {
     server.close();
   }

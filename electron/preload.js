@@ -12,6 +12,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
   
   // File system dialogs
   selectFolder: () => ipcRenderer.invoke("select-folder"),
+
+  // Global shortcuts
+  onGlobalNewNote: (callback) => {
+    if (typeof callback !== "function") {
+      return () => {};
+    }
+
+    const listener = () => callback();
+    ipcRenderer.on("global-create-note", listener);
+
+    return () => {
+      ipcRenderer.removeListener("global-create-note", listener);
+    };
+  },
   
   // Add more IPC methods here as needed
 });
