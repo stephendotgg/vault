@@ -117,7 +117,7 @@ export function AppShell() {
   }, [fetchNotes, fetchVaultItems, fetchOccasions]);
 
   // Create new note (optionally as a child)
-  const handleCreateNote = async (parentId?: string) => {
+  const handleCreateNote = useCallback(async (parentId?: string) => {
     try {
       const res = await fetch("/api/notes", {
         method: "POST",
@@ -134,7 +134,7 @@ export function AppShell() {
     } catch (error) {
       console.error("Failed to create note:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = window.electronAPI?.onGlobalNewNote?.(() => {
