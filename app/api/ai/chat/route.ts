@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getImagesDir } from "@/lib/paths";
+import { readFile } from "fs/promises";
+import path from "path";
 
 // Strip HTML tags from notes
 function stripHtml(html: string): string {
@@ -84,6 +87,81 @@ async function getRelevantContext(query: string, limit: number = 5): Promise<str
   return context;
 }
 
+function getImageMimeType(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+    ".bmp": "image/bmp",
+    ".avif": "image/avif",
+  };
+  return mimeTypes[ext] || "application/octet-stream";
+}
+
+async function resolveImageUrlForProvider(imageUrl: string): Promise<string> {
+  if (imageUrl.startsWith("data:") || /^https?:\/\//i.test(imageUrl)) {
+    try {
+      const parsed = new URL(imageUrl);
+      const localHostnames = new Set(["localhost", "127.0.0.1", "::1"]);
+      if (!localHostnames.has(parsed.hostname) || !parsed.pathname.startsWith("/api/images/")) {
+        return imageUrl;
+      }
+      imageUrl = parsed.pathname;
+    } catch {
+      return imageUrl;
+    }
+  }
+
+  if (!imageUrl.startsWith("/api/images/")) {
+    return imageUrl;
+  }
+
+  const filename = path.basename(imageUrl.replace("/api/images/", ""));
+  const imagePath = path.join(getImagesDir(), filename);
+  const buffer = await readFile(imagePath);
+  const mimeType = getImageMimeType(filename);
+  const base64 = buffer.toString("base64");
+  return `data:${mimeType};base64,${base64}`;
+}
+
+async function normaliseMessagesForProvider(messages: Array<{ role: string; content: unknown }>) {
+  const normalised = [];
+
+  for (const message of messages) {
+    if (!Array.isArray(message.content)) {
+      normalised.push(message);
+      continue;
+    }
+
+    const parts = [];
+    for (const part of message.content as Array<{ type?: string; image_url?: { url?: string } }>) {
+      if (part?.type === "image_url" && part.image_url?.url) {
+        const resolvedUrl = await resolveImageUrlForProvider(part.image_url.url);
+        parts.push({
+          ...part,
+          image_url: {
+            ...part.image_url,
+            url: resolvedUrl,
+          },
+        });
+      } else {
+        parts.push(part);
+      }
+    }
+
+    normalised.push({
+      ...message,
+      content: parts,
+    });
+  }
+
+  return normalised;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -138,6 +216,8 @@ Answer questions about this note, help expand on ideas, suggest improvements, or
       ? instructions.join(" ") 
       : "Be concise and direct. Use British English spelling.";
 
+    const providerMessages = await normaliseMessagesForProvider(messages);
+
     // Build system prompt with context
     const systemPrompt = `You are a helpful AI assistant integrated into Mothership, a personal notes and memories app. You have access to the user's notes, vault items, and memories to help answer their questions.
 
@@ -158,7 +238,7 @@ ${userInstructions}`;
         model,
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages,
+          ...providerMessages,
         ],
         max_tokens: 1024,
         stream: true,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deleteImageFileIfUnused, extractImageFilenames } from "@/lib/imageReferences";
 
 // DELETE /api/ai/sessions/[id]/messages/[messageId] - Delete a message
 export async function DELETE(
@@ -18,10 +19,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Message not found" }, { status: 404 });
     }
 
+    const imagesToCheck = [...extractImageFilenames(message.content)];
+
     // Delete the message
     await prisma.chatMessage.delete({
       where: { id: messageId },
     });
+
+    await Promise.all(imagesToCheck.map((filename) => deleteImageFileIfUnused(filename)));
 
     return NextResponse.json({ success: true });
   } catch (error) {

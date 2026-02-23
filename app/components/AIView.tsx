@@ -4,12 +4,17 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import { AISettingsModal, getEnabledModelIds } from "./AISettingsModal";
 
+interface PendingImage {
+  file: File;
+  previewUrl: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   createdAt: Date;
-  images?: string[]; // Base64 images (client-side only, not persisted)
+  images?: string[];
 }
 
 interface ChatSession {
@@ -28,6 +33,7 @@ interface AIViewProps {
 const OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
 const SELECTED_MODEL_STORAGE_KEY = "mothership-ai-model";
 const CURRENT_SESSION_STORAGE_KEY = "mothership-ai-current-session";
+const IMAGE_MARKDOWN_REGEX = /!\[[^\]]*\]\((\/api\/images\/[^)\s]+)\)/g;
 
 // Model info from OpenRouter
 interface ModelInfo {
@@ -53,11 +59,53 @@ function formatRelativeTime(date: Date): string {
   return date.toLocaleDateString();
 }
 
+function parseImagesFromContent(content: string): { imageUrls: string[]; textContent: string } {
+  const imageUrls: string[] = [];
+  const extractor = new RegExp(IMAGE_MARKDOWN_REGEX);
+  let match: RegExpExecArray | null;
+
+  while ((match = extractor.exec(content)) !== null) {
+    imageUrls.push(match[1]);
+  }
+
+  const remover = new RegExp(IMAGE_MARKDOWN_REGEX);
+  const textContent = content.replace(remover, "").replace(/\n{3,}/g, "\n\n").trim();
+  return { imageUrls, textContent };
+}
+
+function composeMessageContent(text: string, imageUrls: string[]): string {
+  const imageLines = imageUrls.map((url, index) => `![Attachment ${index + 1}](${url})`);
+  const textPart = text.trim();
+
+  if (imageLines.length === 0) return textPart;
+  if (!textPart) return imageLines.join("\n");
+
+  return `${imageLines.join("\n")}\n\n${textPart}`;
+}
+
+function buildUploadFilename(file: Blob & { name?: string }, prefix: string): string {
+  const rawName = typeof file.name === "string" ? file.name.trim() : "";
+  if (rawName.length > 0) {
+    return rawName;
+  }
+
+  const mime = typeof file.type === "string" ? file.type.toLowerCase() : "";
+  let ext = "png";
+  if (mime === "image/jpeg") ext = "jpg";
+  else if (mime === "image/gif") ext = "gif";
+  else if (mime === "image/webp") ext = "webp";
+  else if (mime === "image/svg+xml") ext = "svg";
+  else if (mime === "image/bmp") ext = "bmp";
+  else if (mime === "image/avif") ext = "avif";
+
+  return `${prefix}-${Date.now()}.${ext}`;
+}
+
 export function AIView({ onBack: _onBack }: AIViewProps) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const [pendingImages, setPendingImages] = useState<string[]>([]); // Base64 encoded images
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +124,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const modelSelectorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingImagesRef = useRef<PendingImage[]>([]);
 
   // Get current session
   const currentSession = sessions.find((s) => s.id === currentSessionId);
@@ -161,10 +210,15 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         ...s,
         createdAt: new Date(s.createdAt),
         updatedAt: new Date(s.updatedAt),
-        messages: s.messages.map((m) => ({
-          ...m,
-          createdAt: new Date(m.createdAt),
-        })),
+        messages: s.messages.map((m) => {
+          const parsed = parseImagesFromContent(m.content);
+          return {
+            ...m,
+            content: parsed.textContent,
+            images: parsed.imageUrls.length > 0 ? parsed.imageUrls : undefined,
+            createdAt: new Date(m.createdAt),
+          };
+        }),
       }));
       
       setSessions(restored);
@@ -253,15 +307,54 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
     e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
   };
 
-  // Handle file to base64 conversion
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
+  const addPendingImage = useCallback((file: File) => {
+    const previewUrl = URL.createObjectURL(file);
+    setPendingImages(prev => [...prev, { file, previewUrl }]);
+  }, []);
+
+  const uploadChatImage = useCallback(async (sessionId: string, file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      const uploadFilename = buildUploadFilename(file, "chat-image");
+      formData.append("image", file, uploadFilename);
+
+      console.log("[ai:image-upload][client] upload:start", {
+        sessionId,
+        originalName: file.name,
+        uploadFilename,
+        type: file.type,
+        size: file.size,
+      });
+
+      const response = await fetch(`/api/ai/sessions/${sessionId}/images`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const responseText = await response.text().catch(() => "<failed to read response body>");
+        console.error("[ai:image-upload][client] upload:failed", {
+          sessionId,
+          status: response.status,
+          statusText: response.statusText,
+          responseText,
+        });
+        return null;
+      }
+
+      const data = await response.json();
+      console.log("[ai:image-upload][client] upload:success", {
+        sessionId,
+        url: data.url,
+        filename: data.filename,
+        requestId: data.requestId,
+      });
+      return data.url || null;
+    } catch (error) {
+      console.error("Failed to upload chat image:", error);
+      return null;
+    }
+  }, []);
 
   // Handle paste event for images
   const handlePaste = async (e: React.ClipboardEvent) => {
@@ -273,8 +366,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          const base64 = await fileToBase64(file);
-          setPendingImages(prev => [...prev, base64]);
+          addPendingImage(file);
         }
         break;
       }
@@ -288,8 +380,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
 
     for (const file of files) {
       if (file.type.startsWith("image/")) {
-        const base64 = await fileToBase64(file);
-        setPendingImages(prev => [...prev, base64]);
+        addPendingImage(file);
       }
     }
     // Reset input so same file can be selected again
@@ -300,8 +391,26 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
 
   // Remove pending image
   const removePendingImage = (index: number) => {
-    setPendingImages(prev => prev.filter((_, i) => i !== index));
+    setPendingImages(prev => {
+      const image = prev[index];
+      if (image) {
+        URL.revokeObjectURL(image.previewUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
+
+  useEffect(() => {
+    pendingImagesRef.current = pendingImages;
+  }, [pendingImages]);
+
+  useEffect(() => {
+    return () => {
+      for (const pending of pendingImagesRef.current) {
+        URL.revokeObjectURL(pending.previewUrl);
+      }
+    };
+  }, []);
 
   const handleSend = async () => {
     if ((!input.trim() && pendingImages.length === 0) || isLoading) return;
@@ -351,25 +460,40 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
     }
 
     try {
+      // Upload pending images and build persisted content
+      const pendingToSend = [...pendingImages];
+      setPendingImages([]);
+
+      const uploadedImageUrls: string[] = [];
+      for (const pending of pendingToSend) {
+        const uploadedUrl = await uploadChatImage(targetSessionId, pending.file);
+        URL.revokeObjectURL(pending.previewUrl);
+        if (uploadedUrl) {
+          uploadedImageUrls.push(uploadedUrl);
+        }
+      }
+
+      const persistedContent = composeMessageContent(userContent, uploadedImageUrls);
+      if (!persistedContent) {
+        throw new Error("Failed to upload images");
+      }
+
       // Add user message to database
       const userMsgResponse = await fetch(`/api/ai/sessions/${targetSessionId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "user", content: userContent }),
+        body: JSON.stringify({ role: "user", content: persistedContent }),
       });
       
       if (!userMsgResponse.ok) throw new Error("Failed to save message");
       const userMessage = await userMsgResponse.json();
 
-      // Capture images before clearing
-      const imagesToSend = [...pendingImages];
-      setPendingImages([]); // Clear pending images after capturing them
-
       // Update local state with user message (include images for display)
       const userMsg: Message = {
         ...userMessage,
+        content: userContent,
         createdAt: new Date(userMessage.createdAt),
-        images: imagesToSend.length > 0 ? imagesToSend : undefined,
+        images: uploadedImageUrls.length > 0 ? uploadedImageUrls : undefined,
       };
       
       setSessions((prev) =>
@@ -390,10 +514,10 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
           const content: Array<{type: string; text?: string; image_url?: {url: string}}> = [];
           
           // Add images first
-          for (const imgBase64 of m.images) {
+          for (const imageUrl of m.images) {
             content.push({
               type: "image_url",
-              image_url: { url: imgBase64 }
+              image_url: { url: imageUrl }
             });
           }
           
@@ -568,10 +692,29 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
       );
 
       // Call AI API with the conversation up to this point
-      const apiMessages = messagesBeforeRedo.map(m => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const apiMessages = messagesBeforeRedo.map((m) => {
+        if (m.role === "user" && m.images && m.images.length > 0) {
+          const content: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+
+          for (const imageUrl of m.images) {
+            content.push({
+              type: "image_url",
+              image_url: { url: imageUrl },
+            });
+          }
+
+          if (m.content) {
+            content.push({ type: "text", text: m.content });
+          }
+
+          return { role: m.role, content };
+        }
+
+        return {
+          role: m.role,
+          content: m.content,
+        };
+      });
 
       const aiResponse = await fetch("/api/ai/chat", {
         method: "POST",
@@ -874,7 +1017,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                           ))}
                         </div>
                       )}
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                      {message.content && <p className="whitespace-pre-wrap">{message.content}</p>}
                     </div>
                   ) : (
                     <div>
@@ -947,7 +1090,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                 {pendingImages.map((img, index) => (
                   <div key={index} className="relative group">
                     <img
-                      src={img}
+                      src={img.previewUrl}
                       alt={`Upload ${index + 1}`}
                       className="h-16 w-auto object-contain rounded-md border border-[#3f3f3f]"
                     />

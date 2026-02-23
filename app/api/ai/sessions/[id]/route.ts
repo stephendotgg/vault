@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deleteImageFileIfUnused, extractImageFilenames } from "@/lib/imageReferences";
 
 // GET /api/ai/sessions/[id] - Get a specific session with messages
 export async function GET(
@@ -62,9 +63,32 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+
+    const session = await prisma.chatSession.findUnique({
+      where: { id },
+      include: {
+        messages: {
+          select: { content: true },
+        },
+      },
+    });
+
+    if (!session) {
+      return NextResponse.json({ success: true });
+    }
+
+    const imagesToCheck = new Set<string>();
+    for (const message of session.messages) {
+      for (const filename of extractImageFilenames(message.content)) {
+        imagesToCheck.add(filename);
+      }
+    }
+
     await prisma.chatSession.delete({
       where: { id },
     });
+
+    await Promise.all([...imagesToCheck].map((filename) => deleteImageFileIfUnused(filename)));
 
     return NextResponse.json({ success: true });
   } catch (error) {
