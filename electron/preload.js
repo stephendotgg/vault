@@ -67,6 +67,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.removeListener("quick-ai-stream", listener);
     };
   },
+  onQuickAiSessionsChanged: (callback) => {
+    if (typeof callback !== "function") {
+      return () => {};
+    }
+
+    const listener = () => callback();
+    ipcRenderer.on("quick-ai-sessions-changed", listener);
+
+    return () => {
+      ipcRenderer.removeListener("quick-ai-sessions-changed", listener);
+    };
+  },
   
   // Add more IPC methods here as needed
 });

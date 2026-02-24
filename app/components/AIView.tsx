@@ -241,6 +241,16 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
     loadSessions();
   }, [loadSessions]);
 
+  useEffect(() => {
+    const unsubscribe = window.electronAPI?.onQuickAiSessionsChanged?.(() => {
+      void loadSessions();
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [loadSessions]);
+
   // Save current session id to localStorage (just for remembering selection)
   useEffect(() => {
     if (currentSessionId) {

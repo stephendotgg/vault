@@ -199,8 +199,8 @@ export function IconPicker({ currentIcon, noteId, onIconChange, onClose }: IconP
                 <button
                   key={index}
                   onClick={() => handleEmojiSelect(emoji)}
-                  className={`w-7 h-7 flex items-center justify-center text-lg text-[#ebebeb] opacity-100 hover:bg-[#3f3f3f] rounded transition-colors ${
-                    currentIcon === emoji ? "bg-[#4f4f4f]" : ""
+                  className={`w-7 h-7 flex items-center justify-center text-[20px] [filter:brightness(1)] opacity-100 hover:bg-[#3f3f3f] rounded transition-colors ${
+                    currentIcon === emoji ? "ring-1 ring-[#7eb8f7]" : ""
                   }`}
                 >
                   {emoji}

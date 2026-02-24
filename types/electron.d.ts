@@ -20,6 +20,7 @@ export interface ElectronAPI {
   quickAiTrash: (sessionId?: string) => void;
   closeQuickAi: () => void;
   onQuickAiStream: (callback: (payload: { requestId: string; type: "chunk" | "end" | "error"; chunk?: string; content?: string; message?: string }) => void) => () => void;
+  onQuickAiSessionsChanged: (callback: () => void) => () => void;
 }
 
 declare global {

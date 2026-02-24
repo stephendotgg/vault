@@ -36,6 +36,12 @@ function notifyQuickNotesChanged() {
     mainWindow.webContents.send("quick-notes-changed");
   }
 }
+
+function notifyQuickAiSessionsChanged() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("quick-ai-sessions-changed");
+  }
+}
 let server;
 
 const PORT = isDev ? 3000 : 51333;
@@ -257,6 +263,18 @@ async function getSelectedModelFromMainWindow() {
     return typeof model === "string" && model.trim() ? model : "openai/gpt-4o-mini";
   } catch {
     return "openai/gpt-4o-mini";
+  }
+}
+
+async function getAiInstructions() {
+  try {
+    const settings = await apiRequest("/api/ai/settings", {
+      method: "GET",
+    });
+
+    return Array.isArray(settings?.instructions) ? settings.instructions : [];
+  } catch {
+    return [];
   }
 }
 
@@ -491,6 +509,7 @@ ipcMain.handle("quick-ai-chat", async (_event, payload) => {
   }
 
   const model = await getSelectedModelFromMainWindow();
+  const instructions = await getAiInstructions();
 
   const response = await fetch(`http://localhost:${PORT}/api/ai/chat`, {
     method: "POST",
@@ -501,7 +520,7 @@ ipcMain.handle("quick-ai-chat", async (_event, payload) => {
       messages,
       apiKey,
       model,
-      instructions: [],
+      instructions,
     }),
   });
 
@@ -550,6 +569,7 @@ ipcMain.on("quick-ai-chat-stream", async (event, payload) => {
     }
 
     const model = await getSelectedModelFromMainWindow();
+    const instructions = await getAiInstructions();
     const response = await fetch(`http://localhost:${PORT}/api/ai/chat`, {
       method: "POST",
       headers: {
@@ -559,7 +579,7 @@ ipcMain.on("quick-ai-chat-stream", async (event, payload) => {
         messages,
         apiKey,
         model,
-        instructions: [],
+        instructions,
       }),
     });
 
@@ -645,6 +665,8 @@ ipcMain.handle("quick-ai-save", async (_event, payload) => {
     }
   }
 
+  notifyQuickAiSessionsChanged();
+
   return { saved: true, sessionId };
 });
 
@@ -654,7 +676,9 @@ ipcMain.on("quick-ai-trash", (event, payload) => {
   if (sessionId) {
     void apiRequest(`/api/ai/sessions/${sessionId}`, {
       method: "DELETE",
-    }).catch(() => {});
+    })
+      .then(() => notifyQuickAiSessionsChanged())
+      .catch(() => {});
   }
 
   const window = BrowserWindow.fromWebContents(event.sender);
