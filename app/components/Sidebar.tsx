@@ -481,6 +481,13 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
   const handleContextMenu = (e: React.MouseEvent, noteId: string) => {
     e.preventDefault();
+
+    const note = notes.find((item) => item.id === noteId);
+    const isQuickNotesRoot = note?.parentId === null && note?.title === "Quick Notes";
+    if (isQuickNotesRoot) {
+      return;
+    }
+
     setContextMenu({ x: e.clientX, y: e.clientY, noteId });
   };
 
