@@ -1,7 +1,6 @@
 "use client";
 
 import { Note } from "@/types/models";
-import { NoteEditor } from "./NoteEditor";
 
 interface ArchiveViewProps {
   notes: Note[];
@@ -54,7 +53,7 @@ function NoteIcon({ icon, hasContent }: { icon: string; hasContent: boolean }) {
   );
 }
 
-export function ArchiveView({ notes, selectedNoteId, onSelectNote, onUpdateNote, onRestoreNote, onDeletePermanently }: ArchiveViewProps) {
+export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote, onDeletePermanently }: ArchiveViewProps) {
   const archivedNotes = notes.filter((n) => n.archived);
   const selectedNote = selectedNoteId ? notes.find((n) => n.id === selectedNoteId) : null;
 
@@ -94,10 +93,8 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onUpdateNote,
             </button>
             <button
               onClick={() => {
-                if (confirm("Delete this note permanently? This cannot be undone.")) {
-                  onDeletePermanently(selectedNote.id);
-                  onSelectNote(null);
-                }
+                onDeletePermanently(selectedNote.id);
+                onSelectNote(null);
               }}
               className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-[#2f2f2f] rounded transition-colors cursor-pointer"
             >
@@ -166,9 +163,7 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onUpdateNote,
                     {/* Delete button */}
                     <button
                       onClick={() => {
-                        if (confirm("Delete this note permanently? This cannot be undone.")) {
-                          onDeletePermanently(note.id);
-                        }
+                        onDeletePermanently(note.id);
                       }}
                       className="p-0.5 text-[#6b6b6b] hover:text-red-400 hover:bg-[rgba(255,255,255,0.1)] rounded transition-all cursor-pointer"
                       title="Delete permanently"

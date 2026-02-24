@@ -590,7 +590,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
   };
 
   return (
-    <aside className="flex flex-col w-60 h-full bg-[#202020] border-r border-[#2f2f2f] shrink-0 select-none">
+    <aside className="flex flex-col w-64 h-full bg-[#202020] border-r border-[#2f2f2f] shrink-0 select-none">
       {/* Search and quick actions */}
       <div className="px-2 pt-2 pb-2">
         <div 
