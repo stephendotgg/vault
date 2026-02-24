@@ -28,6 +28,13 @@ if (!isDev && process.platform === "win32") {
 
 let mainWindow;
 const quickNoteWindows = new Set();
+let quickNotesCategoryIdPromise = null;
+
+function notifyQuickNotesChanged() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("quick-notes-changed");
+  }
+}
 let server;
 
 const PORT = isDev ? 3000 : 51333;
@@ -160,6 +167,11 @@ async function apiRequest(pathname, options = {}) {
 }
 
 async function ensureQuickNotesCategory() {
+  if (quickNotesCategoryIdPromise) {
+    return quickNotesCategoryIdPromise;
+  }
+
+  quickNotesCategoryIdPromise = (async () => {
   const notes = await apiRequest("/api/notes?includeArchived=true", {
     method: "GET",
   });
@@ -169,6 +181,13 @@ async function ensureQuickNotesCategory() {
     : null;
 
   if (existing?.id) {
+    if (existing.icon !== "🗂️") {
+      await apiRequest(`/api/notes/${existing.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ icon: "🗂️" }),
+      });
+      notifyQuickNotesChanged();
+    }
     return existing.id;
   }
 
@@ -181,12 +200,20 @@ async function ensureQuickNotesCategory() {
     method: "PATCH",
     body: JSON.stringify({
       title: "Quick Notes",
-      icon: "🗒️",
+      icon: "🗂️",
       order: -100000,
     }),
   });
 
   return updated.id;
+  })();
+
+  try {
+    return await quickNotesCategoryIdPromise;
+  } catch (error) {
+    quickNotesCategoryIdPromise = null;
+    throw error;
+  }
 }
 
 async function getOpenRouterApiKeyFromMainWindow() {
@@ -243,6 +270,8 @@ async function generateQuickNoteTitle(noteId, text) {
     method: "PATCH",
     body: JSON.stringify({ title }),
   });
+
+  notifyQuickNotesChanged();
 }
 
 async function createQuickNoteWindow() {
@@ -252,10 +281,10 @@ async function createQuickNoteWindow() {
     minWidth: 320,
     minHeight: 260,
     backgroundColor: "#202020",
-    title: "Mothership Quick Note",
+    title: "Quick Note",
     autoHideMenuBar: true,
     alwaysOnTop: true,
-    icon: undefined,
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -275,8 +304,9 @@ async function createQuickNoteWindow() {
 
 ipcMain.handle("quick-note-create", async (_event, payload) => {
   const text = typeof payload?.text === "string" ? payload.text : "";
+  const force = Boolean(payload?.force);
 
-  if (!text.trim()) {
+  if (!force && !text.trim()) {
     throw new Error("Cannot create empty quick note");
   }
 
@@ -293,8 +323,11 @@ ipcMain.handle("quick-note-create", async (_event, payload) => {
     body: JSON.stringify({
       title: toNoteTitle(text),
       content: toNoteHtml(text),
+      order: -Date.now(),
     }),
   });
+
+  notifyQuickNotesChanged();
 
   return updated;
 });
@@ -307,13 +340,17 @@ ipcMain.handle("quick-note-update", async (_event, payload) => {
     throw new Error("Missing note id");
   }
 
-  return apiRequest(`/api/notes/${noteId}`, {
+  const updated = await apiRequest(`/api/notes/${noteId}`, {
     method: "PATCH",
     body: JSON.stringify({
       title: toNoteTitle(text),
       content: toNoteHtml(text),
     }),
   });
+
+  notifyQuickNotesChanged();
+
+  return updated;
 });
 
 ipcMain.on("quick-note-finalize", (_event, payload) => {
@@ -327,12 +364,24 @@ ipcMain.on("quick-note-finalize", (_event, payload) => {
   void generateQuickNoteTitle(noteId, text);
 });
 
-ipcMain.on("quick-note-close", (event) => {
+ipcMain.on("quick-note-close", (event, payload) => {
+  const noteId = typeof payload?.noteId === "string" ? payload.noteId : "";
+  const text = typeof payload?.text === "string" ? payload.text : "";
+
+  if (noteId && !text.trim()) {
+    void apiRequest(`/api/notes/${noteId}`, {
+      method: "DELETE",
+    })
+      .then(() => notifyQuickNotesChanged())
+      .catch(() => {});
+  }
+
   const window = BrowserWindow.fromWebContents(event.sender);
   window?.close();
 });
 
 ipcMain.on("quick-note-open", () => {
+  void ensureQuickNotesCategory();
   void createQuickNoteWindow();
 });
 

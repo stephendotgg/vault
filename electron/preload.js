@@ -29,10 +29,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Quick note window
   openQuickNote: () => ipcRenderer.send("quick-note-open"),
-  quickNoteCreate: (text) => ipcRenderer.invoke("quick-note-create", { text }),
+  quickNoteCreate: (text, force = false) => ipcRenderer.invoke("quick-note-create", { text, force }),
   quickNoteUpdate: (noteId, text) => ipcRenderer.invoke("quick-note-update", { noteId, text }),
   quickNoteFinalize: (noteId, text) => ipcRenderer.send("quick-note-finalize", { noteId, text }),
-  closeQuickNote: () => ipcRenderer.send("quick-note-close"),
+  closeQuickNote: (noteId, text) => ipcRenderer.send("quick-note-close", { noteId, text }),
+  onQuickNotesChanged: (callback) => {
+    if (typeof callback !== "function") {
+      return () => {};
+    }
+
+    const listener = () => callback();
+    ipcRenderer.on("quick-notes-changed", listener);
+
+    return () => {
+      ipcRenderer.removeListener("quick-notes-changed", listener);
+    };
+  },
   
   // Add more IPC methods here as needed
 });

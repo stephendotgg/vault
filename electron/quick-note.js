@@ -1,4 +1,5 @@
 const input = document.getElementById("quickInput");
+const closeBtn = document.getElementById("closeBtn");
 
 let noteId = null;
 let createInFlight = false;
@@ -17,6 +18,23 @@ async function ensureNoteExists(text) {
     noteId = note.id;
   } catch (error) {
     console.error("[quick-note] create failed", error);
+  } finally {
+    createInFlight = false;
+  }
+}
+
+async function preCreateNote() {
+  if (noteId || createInFlight) {
+    return;
+  }
+
+  createInFlight = true;
+
+  try {
+    const note = await window.electronAPI.quickNoteCreate("", true);
+    noteId = note.id;
+  } catch (error) {
+    console.error("[quick-note] precreate failed", error);
   } finally {
     createInFlight = false;
   }
@@ -62,9 +80,18 @@ input.addEventListener("keydown", (event) => {
     if (noteId && input.value.trim()) {
       window.electronAPI.quickNoteFinalize(noteId, input.value);
     }
-    window.electronAPI.closeQuickNote();
+    window.electronAPI.closeQuickNote(noteId, input.value);
   }
 });
+
+if (closeBtn) {
+  closeBtn.addEventListener("click", () => {
+    if (noteId && input.value.trim()) {
+      window.electronAPI.quickNoteFinalize(noteId, input.value);
+    }
+    window.electronAPI.closeQuickNote(noteId, input.value);
+  });
+}
 
 window.addEventListener("beforeunload", () => {
   if (saveTimer) {
@@ -77,3 +104,4 @@ window.addEventListener("beforeunload", () => {
 });
 
 input.focus();
+void preCreateNote();

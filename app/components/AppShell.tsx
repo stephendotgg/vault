@@ -147,6 +147,16 @@ export function AppShell() {
   }, [handleCreateNote]);
 
   useEffect(() => {
+    const unsubscribe = window.electronAPI?.onQuickNotesChanged?.(() => {
+      void fetchNotes();
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [fetchNotes]);
+
+  useEffect(() => {
     if (window.electronAPI) {
       return;
     }
