@@ -28,6 +28,7 @@ if (!isDev && process.platform === "win32") {
 
 let mainWindow;
 const quickNoteWindows = new Set();
+const quickAiWindows = new Set();
 let quickNotesCategoryIdPromise = null;
 
 function notifyQuickNotesChanged() {
@@ -233,6 +234,23 @@ async function getOpenRouterApiKeyFromMainWindow() {
   }
 }
 
+async function getSelectedModelFromMainWindow() {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return "openai/gpt-4o-mini";
+    }
+
+    const model = await mainWindow.webContents.executeJavaScript(
+      "localStorage.getItem('mothership-ai-model') || 'openai/gpt-4o-mini'",
+      true
+    );
+
+    return typeof model === "string" && model.trim() ? model : "openai/gpt-4o-mini";
+  } catch {
+    return "openai/gpt-4o-mini";
+  }
+}
+
 async function generateQuickNoteTitle(noteId, text) {
   const apiKey = await getOpenRouterApiKeyFromMainWindow();
   if (!apiKey) {
@@ -302,16 +320,35 @@ async function createQuickNoteWindow() {
   });
 }
 
-ipcMain.handle("quick-note-create", async (_event, payload) => {
-  const text = typeof payload?.text === "string" ? payload.text : "";
-  const force = Boolean(payload?.force);
+async function createQuickAiWindow() {
+  const window = new BrowserWindow({
+    width: 560,
+    height: 640,
+    minWidth: 420,
+    minHeight: 420,
+    backgroundColor: "#191919",
+    title: "Quick AI Chat",
+    autoHideMenuBar: true,
+    alwaysOnTop: true,
+    frame: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+      spellcheck: false,
+    },
+  });
 
-  if (!force && !text.trim()) {
-    throw new Error("Cannot create empty quick note");
-  }
+  quickAiWindows.add(window);
+  window.loadFile(path.join(__dirname, "quick-ai.html"));
 
+  window.on("closed", () => {
+    quickAiWindows.delete(window);
+  });
+}
+
+async function createOrUpdateQuickNote(text, options = {}) {
   const quickNotesParentId = await ensureQuickNotesCategory();
-
   const created = await apiRequest("/api/notes", {
     method: "POST",
     body: JSON.stringify({ parentId: quickNotesParentId }),
@@ -324,12 +361,28 @@ ipcMain.handle("quick-note-create", async (_event, payload) => {
       title: toNoteTitle(text),
       content: toNoteHtml(text),
       order: -Date.now(),
+      archived: Boolean(options.archived),
     }),
   });
 
-  notifyQuickNotesChanged();
+  if (options.generateTitle) {
+    await generateQuickNoteTitle(noteId, text);
+  } else {
+    notifyQuickNotesChanged();
+  }
 
   return updated;
+}
+
+ipcMain.handle("quick-note-create", async (_event, payload) => {
+  const text = typeof payload?.text === "string" ? payload.text : "";
+  const force = Boolean(payload?.force);
+
+  if (!force && !text.trim()) {
+    throw new Error("Cannot create empty quick note");
+  }
+
+  return createOrUpdateQuickNote(text, { archived: false, generateTitle: false });
 });
 
 ipcMain.handle("quick-note-update", async (_event, payload) => {
@@ -383,6 +436,128 @@ ipcMain.on("quick-note-close", (event, payload) => {
 ipcMain.on("quick-note-open", () => {
   void ensureQuickNotesCategory();
   void createQuickNoteWindow();
+});
+
+ipcMain.handle("quick-note-save", async (_event, payload) => {
+  const text = typeof payload?.text === "string" ? payload.text : "";
+  if (!text.trim()) {
+    return { saved: false };
+  }
+
+  const note = await createOrUpdateQuickNote(text, { archived: false, generateTitle: true });
+  return { saved: true, noteId: note.id };
+});
+
+ipcMain.handle("quick-note-archive", async (_event, payload) => {
+  const text = typeof payload?.text === "string" ? payload.text : "";
+  if (!text.trim()) {
+    return { archived: false };
+  }
+
+  const note = await createOrUpdateQuickNote(text, { archived: true, generateTitle: false });
+  return { archived: true, noteId: note.id };
+});
+
+ipcMain.on("quick-ai-open", () => {
+  void createQuickAiWindow();
+});
+
+ipcMain.handle("quick-ai-chat", async (_event, payload) => {
+  const incomingMessages = Array.isArray(payload?.messages) ? payload.messages : [];
+  const messages = incomingMessages
+    .map((message) => ({
+      role: message?.role === "assistant" ? "assistant" : "user",
+      content: typeof message?.content === "string" ? message.content : "",
+    }))
+    .filter((message) => message.content.trim().length > 0);
+
+  if (messages.length === 0) {
+    throw new Error("No messages provided");
+  }
+
+  const apiKey = await getOpenRouterApiKeyFromMainWindow();
+  if (!apiKey) {
+    throw new Error("Please set your OpenRouter API key in AI Settings.");
+  }
+
+  const model = await getSelectedModelFromMainWindow();
+
+  const response = await fetch(`http://localhost:${PORT}/api/ai/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messages,
+      apiKey,
+      model,
+      instructions: [],
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(body || `AI request failed (${response.status})`);
+  }
+
+  const content = await response.text();
+  return { content: content.trim() };
+});
+
+ipcMain.handle("quick-ai-save", async (_event, payload) => {
+  const incomingMessages = Array.isArray(payload?.messages) ? payload.messages : [];
+  const messages = incomingMessages
+    .map((message) => ({
+      role: message?.role === "assistant" ? "assistant" : "user",
+      content: typeof message?.content === "string" ? message.content : "",
+    }))
+    .filter((message) => message.content.trim().length > 0);
+
+  if (messages.length === 0) {
+    return { saved: false };
+  }
+
+  const session = await apiRequest("/api/ai/sessions", { method: "POST" });
+  const sessionId = session.id;
+
+  for (const message of messages) {
+    await apiRequest(`/api/ai/sessions/${sessionId}/messages`, {
+      method: "POST",
+      body: JSON.stringify(message),
+    });
+  }
+
+  const apiKey = await getOpenRouterApiKeyFromMainWindow();
+  if (apiKey) {
+    try {
+      await apiRequest(`/api/ai/sessions/${sessionId}/generate-title`, {
+        method: "POST",
+        body: JSON.stringify({ apiKey }),
+      });
+    } catch {
+      // Leave default title if generation fails
+    }
+  }
+
+  return { saved: true, sessionId };
+});
+
+ipcMain.on("quick-ai-trash", (event, payload) => {
+  const sessionId = typeof payload?.sessionId === "string" ? payload.sessionId : "";
+
+  if (sessionId) {
+    void apiRequest(`/api/ai/sessions/${sessionId}`, {
+      method: "DELETE",
+    }).catch(() => {});
+  }
+
+  const window = BrowserWindow.fromWebContents(event.sender);
+  window?.close();
+});
+
+ipcMain.on("quick-ai-close", (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  window?.close();
 });
 
 function createWindow() {
@@ -512,6 +687,14 @@ app.whenReady().then(async () => {
 
   if (!registered) {
     console.error("Failed to register global shortcut: CommandOrControl+Q");
+  }
+
+  const quickAiRegistered = globalShortcut.register("CommandOrControl+Space", () => {
+    void createQuickAiWindow();
+  });
+
+  if (!quickAiRegistered) {
+    console.error("Failed to register global shortcut: CommandOrControl+Space");
   }
 
   app.on("activate", () => {

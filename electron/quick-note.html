@@ -45,21 +45,28 @@
       }
 
       .close-btn {
-        width: 22px;
-        height: 22px;
+        width: 24px;
+        height: 24px;
         border: 0;
         background: transparent;
         color: #9b9b9b;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 14px;
-        line-height: 1;
         -webkit-app-region: no-drag;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .close-btn:hover {
         background: #353535;
         color: #e3e3e3;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
 
       textarea {
@@ -87,7 +94,21 @@
     <div class="container">
       <div class="titlebar">
         <div class="title">Quick Note</div>
-        <button id="closeBtn" class="close-btn" aria-label="Close">✕</button>
+        <div class="actions">
+          <button id="archiveBtn" class="close-btn" aria-label="Archive" title="Archive">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 8h14"/>
+              <path d="M5 8a2 2 0 1 1 0-4h14a2 2 0 1 1 0 4"/>
+              <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/>
+              <path d="M10 12h4"/>
+            </svg>
+          </button>
+          <button id="saveBtn" class="close-btn" aria-label="Save" title="Save">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </div>
       </div>
       <textarea id="quickInput" placeholder="Start typing…" spellcheck="false" autocorrect="off" autocomplete="off" autocapitalize="off"></textarea>
     </div>

@@ -1,107 +1,74 @@
 const input = document.getElementById("quickInput");
-const closeBtn = document.getElementById("closeBtn");
+const archiveBtn = document.getElementById("archiveBtn");
+const saveBtn = document.getElementById("saveBtn");
 
-let noteId = null;
-let createInFlight = false;
-let saveTimer = null;
-let saveSeq = 0;
+let actionInFlight = false;
 
-async function ensureNoteExists(text) {
-  if (noteId || createInFlight || !text.trim()) {
-    return;
-  }
-
-  createInFlight = true;
-
-  try {
-    const note = await window.electronAPI.quickNoteCreate(text);
-    noteId = note.id;
-  } catch (error) {
-    console.error("[quick-note] create failed", error);
-  } finally {
-    createInFlight = false;
-  }
+function setBusyState(busy) {
+  actionInFlight = busy;
+  if (archiveBtn) archiveBtn.disabled = busy;
+  if (saveBtn) saveBtn.disabled = busy;
 }
 
-async function preCreateNote() {
-  if (noteId || createInFlight) {
-    return;
-  }
+async function handleSave() {
+  if (actionInFlight) return;
 
-  createInFlight = true;
-
-  try {
-    const note = await window.electronAPI.quickNoteCreate("", true);
-    noteId = note.id;
-  } catch (error) {
-    console.error("[quick-note] precreate failed", error);
-  } finally {
-    createInFlight = false;
-  }
-}
-
-async function flushSave() {
   const text = input.value;
-  const mySeq = ++saveSeq;
-
   if (!text.trim()) {
+    window.electronAPI.closeQuickNote();
     return;
   }
 
-  await ensureNoteExists(text);
-  if (!noteId) {
-    return;
-  }
-
+  setBusyState(true);
   try {
-    await window.electronAPI.quickNoteUpdate(noteId, text);
-    void mySeq;
+    await window.electronAPI.quickNoteSave(text);
+    window.electronAPI.closeQuickNote();
   } catch (error) {
-    console.error("[quick-note] update failed", error);
+    console.error("[quick-note] save failed", error);
+    setBusyState(false);
   }
 }
 
-function scheduleSave() {
-  if (saveTimer) {
-    clearTimeout(saveTimer);
+async function handleArchive() {
+  if (actionInFlight) return;
+
+  const text = input.value;
+  if (!text.trim()) {
+    window.electronAPI.closeQuickNote();
+    return;
   }
 
-  saveTimer = setTimeout(() => {
-    void flushSave();
-  }, 180);
+  setBusyState(true);
+  try {
+    await window.electronAPI.quickNoteArchive(text);
+    window.electronAPI.closeQuickNote();
+  } catch (error) {
+    console.error("[quick-note] archive failed", error);
+    setBusyState(false);
+  }
 }
-
-input.addEventListener("input", () => {
-  scheduleSave();
-});
 
 input.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
-    if (noteId && input.value.trim()) {
-      window.electronAPI.quickNoteFinalize(noteId, input.value);
-    }
-    window.electronAPI.closeQuickNote(noteId, input.value);
+    window.electronAPI.closeQuickNote();
+  }
+
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+    event.preventDefault();
+    void handleSave();
   }
 });
 
-if (closeBtn) {
-  closeBtn.addEventListener("click", () => {
-    if (noteId && input.value.trim()) {
-      window.electronAPI.quickNoteFinalize(noteId, input.value);
-    }
-    window.electronAPI.closeQuickNote(noteId, input.value);
-  });
-}
+archiveBtn?.addEventListener("click", () => {
+  void handleArchive();
+});
+
+saveBtn?.addEventListener("click", () => {
+  void handleSave();
+});
 
 window.addEventListener("beforeunload", () => {
-  if (saveTimer) {
-    clearTimeout(saveTimer);
-  }
-
-  if (noteId && input.value.trim()) {
-    window.electronAPI.quickNoteFinalize(noteId, input.value);
-  }
+  // Intentionally no autosave.
 });
 
 input.focus();
-void preCreateNote();
