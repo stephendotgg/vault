@@ -909,6 +909,20 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
           <button
             className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
             onClick={() => {
+              window.electronAPI?.openQuickNote?.();
+              setCreateMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/>
+              <path d="M8 9h8"/>
+              <path d="M8 13h5"/>
+            </svg>
+            Quick Note
+          </button>
+          <button
+            className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
+            onClick={() => {
               onOpenVaultAddModal();
               setCreateMenu(null);
             }}
