@@ -1051,7 +1051,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
           </div>
 
           {/* Chat input */}
-          <div className="px-4 py-3 shrink-0">
+          <div className="p-4 shrink-0">
             <div className="flex gap-2 items-end bg-[#252525] rounded-lg border border-[#3f3f3f] p-2">
               <textarea
                 ref={chatInputRef}
