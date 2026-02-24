@@ -150,6 +150,16 @@ function toNoteTitle(text) {
   return (cleaned || firstLine).slice(0, 120);
 }
 
+function toSentenceCaseTitle(value) {
+  const trimmed = value.trim().replace(/\s+/g, " ");
+  if (!trimmed) {
+    return "";
+  }
+
+  const lower = trimmed.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
 async function apiRequest(pathname, options = {}) {
   const response = await fetch(`http://localhost:${PORT}${pathname}`, {
     ...options,
@@ -257,7 +267,7 @@ async function generateQuickNoteTitle(noteId, text) {
     return;
   }
 
-  const prompt = `You are generating a title for a quick note captured in a personal notes app.\n\nRules:\n- 3 to 6 words\n- describe what the note says\n- do not guess missing context\n- no quotes, no trailing punctuation\n\nQuick note content:\n${text.slice(0, 2500)}`;
+  const prompt = `You are generating a title for a quick note captured in a personal notes app.\n\nRules:\n- 3 to 6 words\n- describe what the note says\n- do not guess missing context\n- use sentence case only (only the first letter uppercase, not title case)\n- no quotes, no trailing punctuation\n\nQuick note content:\n${text.slice(0, 2500)}`;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -279,7 +289,8 @@ async function generateQuickNoteTitle(noteId, text) {
   }
 
   const data = await response.json();
-  const title = data?.choices?.[0]?.message?.content?.trim()?.replace(/^['\"]|['\"]$/g, "")?.slice(0, 60);
+  const rawTitle = data?.choices?.[0]?.message?.content?.trim()?.replace(/^['\"]|['\"]$/g, "")?.slice(0, 60) || "";
+  const title = toSentenceCaseTitle(rawTitle);
   if (!title) {
     return;
   }
@@ -365,10 +376,10 @@ async function createOrUpdateQuickNote(text, options = {}) {
     }),
   });
 
+  notifyQuickNotesChanged();
+
   if (options.generateTitle) {
-    await generateQuickNoteTitle(noteId, text);
-  } else {
-    notifyQuickNotesChanged();
+    void generateQuickNoteTitle(noteId, text);
   }
 
   return updated;

@@ -197,6 +197,12 @@ inputEl.addEventListener("input", () => {
 });
 
 inputEl.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+    event.preventDefault();
+    void saveConversation();
+    return;
+  }
+
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
     void sendMessage();
