@@ -850,7 +850,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
       {showAIChat && (
         <div className="w-80 border-l border-[#2f2f2f] flex flex-col shrink-0">
           {/* Chat header - same level as top bar */}
-          <div className="h-11 px-3 flex items-center justify-between border-b border-[#2f2f2f] shrink-0">
+          <div className="h-11 px-4 flex items-center justify-between border-b border-[#2f2f2f] shrink-0">
             <span className="text-xs text-[#9b9b9b] font-medium">Note AI Chat</span>
             {chatMessages.length > 0 && (
               <button
@@ -866,7 +866,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
           </div>
 
           {/* Chat messages */}
-          <div className="flex-1 overflow-auto p-3 space-y-4">
+          <div className="flex-1 overflow-auto p-4 space-y-4">
             {chatError && (
               <div className="bg-red-500/10 text-red-400 text-xs px-3 py-2 rounded-lg">
                 {chatError}
@@ -900,7 +900,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
           </div>
 
           {/* Chat input */}
-          <div className="px-3 py-3 shrink-0">
+          <div className="px-4 py-3 shrink-0">
             <div className="flex gap-2 items-end bg-[#252525] rounded-lg border border-[#3f3f3f] p-2">
               <textarea
                 ref={chatInputRef}
