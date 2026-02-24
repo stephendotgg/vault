@@ -390,6 +390,14 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
     saveNoteRef.current = saveNote;
   }, [saveNote]);
 
+  const saveNow = () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    void saveNoteRef.current(titleRef.current, editor?.getHTML() || note.content);
+  };
+
   // TipTap editor
   const editor = useEditor({
     immediatelyRender: false,
@@ -500,6 +508,15 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
         return true;
       },
       handleDOMEvents: {
+        keydown: (_view, event) => {
+          if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+            event.preventDefault();
+            saveNow();
+            return true;
+          }
+
+          return false;
+        },
         mousedown: (view, event) => {
           if (!(event instanceof MouseEvent) || event.button !== 0) {
             return false;
@@ -581,7 +598,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
         void saveNoteRef.current(titleRef.current, html);
       }, 500);
     },
-  }, [insertImageWithParagraph, note.id]);
+  }, [insertImageWithParagraph, note.id, saveNow]);
 
   // Update editor content when note changes
   useEffect(() => {
@@ -898,6 +915,12 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
               value={title}
               onChange={handleTitleChange}
               onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  saveNow();
+                  return;
+                }
+
                 if (e.key === "Enter") {
                   e.preventDefault();
                   editor?.chain().focus().setTextSelection(0).run();

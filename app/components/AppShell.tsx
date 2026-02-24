@@ -637,7 +637,6 @@ export function AppShell() {
         onOpenAI={handleOpenAI}
         onOpenSearch={handleOpenSearch}
         onUpdateNote={handleUpdateNote}
-        onGoHome={() => { setSelectedNoteId(null); setCurrentView("home"); }}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">
         {currentView === "note" && selectedNoteId && notes.find(n => n.id === selectedNoteId) ? (

@@ -25,6 +25,7 @@ const EMOJI_OPTIONS = [
 
 export function IconPicker({ currentIcon, noteId, onIconChange, onClose }: IconPickerProps) {
   const [activeTab, setActiveTab] = useState<"emoji" | "custom">("emoji");
+  const [emojiInput, setEmojiInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [existingIcons, setExistingIcons] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -172,18 +173,40 @@ export function IconPicker({ currentIcon, noteId, onIconChange, onClose }: IconP
       {/* Content */}
       <div className="p-3">
         {activeTab === "emoji" ? (
-          <div className="grid grid-cols-10 gap-1">
-            {EMOJI_OPTIONS.map((emoji, index) => (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={emojiInput}
+                onChange={(e) => setEmojiInput(e.target.value)}
+                placeholder="Any emoji (paste or Win+.)"
+                className="flex-1 bg-[#1a1a1a] border border-[#3f3f3f] rounded px-2 py-1.5 text-sm text-[#ebebeb] outline-none"
+              />
               <button
-                key={index}
-                onClick={() => handleEmojiSelect(emoji)}
-                className={`w-7 h-7 flex items-center justify-center text-lg hover:bg-[#3f3f3f] rounded transition-colors ${
-                  currentIcon === emoji ? "bg-[#4f4f4f]" : ""
-                }`}
+                onClick={() => {
+                  const value = emojiInput.trim();
+                  if (value) {
+                    void handleEmojiSelect(value);
+                  }
+                }}
+                className="px-2 py-1.5 text-xs bg-[#3f3f3f] hover:bg-[#4f4f4f] text-[#ebebeb] rounded transition-colors"
               >
-                {emoji}
+                Use
               </button>
-            ))}
+            </div>
+            <div className="grid grid-cols-10 gap-1">
+              {EMOJI_OPTIONS.map((emoji, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleEmojiSelect(emoji)}
+                  className={`w-7 h-7 flex items-center justify-center text-lg hover:bg-[#3f3f3f] rounded transition-colors ${
+                    currentIcon === emoji ? "bg-[#4f4f4f]" : ""
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
