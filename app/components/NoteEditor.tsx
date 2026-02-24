@@ -1009,7 +1009,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
                       )}
                     </div>
                     {isLastAssistantMessage && msg.content && (
-                      <div className="flex gap-3 mt-2">
+                      <div className="flex gap-3 mt-2.5">
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(msg.content);
