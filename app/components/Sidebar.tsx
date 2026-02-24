@@ -375,7 +375,12 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
   useEffect(() => {
     const savedSections = localStorage.getItem("sidebar-sections");
     if (savedSections) {
-      setOpenSections(JSON.parse(savedSections));
+      const parsed = JSON.parse(savedSections) as Record<SectionKey, boolean>;
+      setOpenSections({
+        ...parsed,
+        dreamJournal: true,
+        voiceLog: true,
+      });
     }
     const savedExpanded = localStorage.getItem("expanded-notes");
     if (savedExpanded) {
@@ -734,47 +739,27 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
         {/* DREAM JOURNAL Section */}
         <div
-          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-5"
-          onClick={() => toggleSection("dreamJournal")}
+          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider rounded transition-colors mt-5"
         >
-          <svg
-            className={`w-3 h-3 transition-transform duration-150 ${openSections.dreamJournal ? "rotate-90" : ""}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
           <span>Dream Journal</span>
         </div>
-        {openSections.dreamJournal && (
-          <div className="ml-1 mt-0.5 flex flex-col gap-[1px]">
-            <div className="px-2 py-2 text-[#6b6b6b] text-sm italic">
-              No dreams yet
-            </div>
+        <div className="ml-1 mt-0.5 flex flex-col gap-[1px]">
+          <div className="px-2 py-2 text-[#6b6b6b] text-sm italic">
+            No dreams yet
           </div>
-        )}
+        </div>
 
         {/* VOICE LOG Section */}
         <div
-          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors mt-5"
-          onClick={() => toggleSection("voiceLog")}
+          className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider rounded transition-colors mt-5"
         >
-          <svg
-            className={`w-3 h-3 transition-transform duration-150 ${openSections.voiceLog ? "rotate-90" : ""}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
           <span>Voice Log</span>
         </div>
-        {openSections.voiceLog && (
-          <div className="ml-1 mt-0.5 flex flex-col gap-[1px]">
-            <div className="px-2 py-2 text-[#6b6b6b] text-sm italic">
-              No recordings yet
-            </div>
+        <div className="ml-1 mt-0.5 flex flex-col gap-[1px]">
+          <div className="px-2 py-2 text-[#6b6b6b] text-sm italic">
+            No recordings yet
           </div>
-        )}
+        </div>
       </div>
 
       {/* Divider */}
