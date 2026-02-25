@@ -3,10 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
     <title>Quick Note</title>
     <style>
       :root {
         color-scheme: dark;
+        background: #191919;
       }
 
       * {
@@ -16,8 +18,14 @@
       }
 
       *::-webkit-scrollbar {
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
+      }
+
+      *::-webkit-scrollbar-button {
+        width: 16px;
+        height: 16px;
+        background: transparent;
       }
 
       *::-webkit-scrollbar-track {
@@ -26,14 +34,14 @@
 
       *::-webkit-scrollbar-thumb {
         background: #474747;
-        border-radius: 10px;
-        border: 2px solid transparent;
+        border-radius: 999px;
+        border: 3px solid transparent;
         background-clip: padding-box;
       }
 
       *::-webkit-scrollbar-thumb:hover {
         background: #5a5a5a;
-        border: 2px solid transparent;
+        border: 3px solid transparent;
         background-clip: padding-box;
       }
 

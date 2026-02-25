@@ -354,7 +354,7 @@ interface CreateMenuState {
   y: number;
 }
 
-export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onOpenVault, onOpenVaultAddModal, onOpenMemories, onOpenMemoryAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onUpdateNote, notes }: SidebarProps) {
+export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onOpenVault, onOpenVaultAddModal, onOpenMemories: _onOpenMemories, onOpenMemoryAddModal: _onOpenMemoryAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onUpdateNote, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     vault: true,
@@ -717,7 +717,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
           </button>
         </div>
 
-        {/* MEMORIES Section */}
+        {/* MEMORIES Section
         <div className="flex items-center justify-between mt-5">
           <div
             className="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors"
@@ -738,6 +738,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
             </svg>
           </button>
         </div>
+        */}
 
         {/* DREAM JOURNAL Section */}
         <div className="flex items-center justify-between mt-5">
@@ -813,7 +814,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
               a.href = url;
-              a.download = response.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "mothership-backup.zip";
+              a.download = response.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "vault-backup.zip";
               document.body.appendChild(a);
               a.click();
               document.body.removeChild(a);

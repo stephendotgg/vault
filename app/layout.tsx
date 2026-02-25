@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Mothership",
+  title: "Vault",
   description: "A Notion-like workspace",
 };
 

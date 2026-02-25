@@ -732,7 +732,7 @@ export function AppShell() {
             {/* Welcome content */}
             <div className="flex-1 overflow-auto">
               <div className="max-w-3xl mx-auto px-24 py-20">
-                <h1 className="text-4xl font-bold text-[#e3e3e3] mb-4">Welcome to <span className="text-[#7eb8f7]">Mothership</span></h1>
+                <h1 className="text-4xl font-bold text-[#e3e3e3] mb-4">Welcome to <span className="text-[#7eb8f7]">Vault</span></h1>
                 <p className="text-[#9b9b9b] text-lg">
                   {isLoading ? "Loading..." : notes.length === 0 
                     ? "Create your first note using the + button in the sidebar."

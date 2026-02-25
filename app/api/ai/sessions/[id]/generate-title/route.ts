@@ -44,8 +44,8 @@ ${conversationSnippet}`;
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://mothership.app",
-        "X-Title": "Mothership",
+        "HTTP-Referer": "https://vault.app",
+        "X-Title": "Vault",
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",

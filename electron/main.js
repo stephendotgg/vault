@@ -7,7 +7,7 @@ const fs = require("fs");
 const isDev = !app.isPackaged;
 if (!isDev) {
   process.env.NODE_ENV = "production";
-  process.env.MOTHERSHIP_DATA_DIR = path.join(app.getPath("appData"), "Mothership");
+  process.env.MOTHERSHIP_DATA_DIR = path.join(app.getPath("appData"), "Vault");
   // Prevent Next.js from trying to compile TypeScript config
   process.env.NEXT_PRIVATE_STANDALONE = "1";
   // Disable telemetry
@@ -60,7 +60,7 @@ function ensureDebugLogFile() {
     return debugLogFilePath;
   }
 
-  const baseDir = process.env.MOTHERSHIP_DATA_DIR || path.join(app.getPath("appData"), "Mothership");
+  const baseDir = process.env.MOTHERSHIP_DATA_DIR || path.join(app.getPath("appData"), "Vault");
   fs.mkdirSync(baseDir, { recursive: true });
   debugLogFilePath = path.join(baseDir, "calls-debug.log");
   return debugLogFilePath;
@@ -720,7 +720,7 @@ async function getOpenRouterApiKeyFromMainWindow() {
     }
 
     const key = await mainWindow.webContents.executeJavaScript(
-      "localStorage.getItem('mothership-openrouter-api-key') || ''",
+      "localStorage.getItem('vault-openrouter-api-key') || localStorage.getItem('mothership-openrouter-api-key') || ''",
       true
     );
 
@@ -737,7 +737,7 @@ async function getSelectedModelFromMainWindow() {
     }
 
     const model = await mainWindow.webContents.executeJavaScript(
-      "localStorage.getItem('mothership-ai-model') || 'openai/gpt-4o-mini'",
+      "localStorage.getItem('vault-ai-model') || localStorage.getItem('mothership-ai-model') || 'openai/gpt-4o-mini'",
       true
     );
 
@@ -772,8 +772,8 @@ async function generateQuickNoteTitle(noteId, text) {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": "https://mothership.app",
-      "X-Title": "Mothership",
+      "HTTP-Referer": "https://vault.app",
+      "X-Title": "Vault",
     },
     body: JSON.stringify({
       model: "openai/gpt-4o-mini",
@@ -836,7 +836,7 @@ function buildQuickNoteWindow() {
     height: 420,
     minWidth: 320,
     minHeight: 260,
-    backgroundColor: "#202020",
+    backgroundColor: "#191919",
     title: "Quick Note",
     autoHideMenuBar: true,
     alwaysOnTop: true,
@@ -851,6 +851,7 @@ function buildQuickNoteWindow() {
   });
 
   quickNoteWindows.add(window);
+  window.setBackgroundColor("#191919");
 
   window.on("closed", () => {
     quickNoteWindows.delete(window);
@@ -883,6 +884,7 @@ function buildQuickAiWindow() {
   });
 
   quickAiWindows.add(window);
+  window.setBackgroundColor("#191919");
 
   window.on("closed", () => {
     quickAiWindows.delete(window);
@@ -1257,16 +1259,8 @@ ipcMain.on("quick-ai-chat-stream", async (event, payload) => {
   }
 });
 
-ipcMain.handle("quick-ai-save", async (_event, payload) => {
-  const incomingMessages = Array.isArray(payload?.messages) ? payload.messages : [];
-  const messages = incomingMessages
-    .map((message) => ({
-      role: message?.role === "assistant" ? "assistant" : "user",
-      content: typeof message?.content === "string" ? message.content : "",
-    }))
-    .filter((message) => message.content.trim().length > 0);
-
-  if (messages.length === 0) {
+async function saveQuickAiConversation(messages) {
+  if (!Array.isArray(messages) || messages.length === 0) {
     return { saved: false };
   }
 
@@ -1293,8 +1287,42 @@ ipcMain.handle("quick-ai-save", async (_event, payload) => {
   }
 
   notifyQuickAiSessionsChanged();
-
   return { saved: true, sessionId };
+}
+
+ipcMain.handle("quick-ai-save", async (_event, payload) => {
+  const incomingMessages = Array.isArray(payload?.messages) ? payload.messages : [];
+  const messages = incomingMessages
+    .map((message) => ({
+      role: message?.role === "assistant" ? "assistant" : "user",
+      content: typeof message?.content === "string" ? message.content : "",
+    }))
+    .filter((message) => message.content.trim().length > 0);
+
+  if (messages.length === 0) {
+    return { saved: false };
+  }
+
+  return saveQuickAiConversation(messages);
+});
+
+ipcMain.on("quick-ai-save-and-close", (event, payload) => {
+  const incomingMessages = Array.isArray(payload?.messages) ? payload.messages : [];
+  const messages = incomingMessages
+    .map((message) => ({
+      role: message?.role === "assistant" ? "assistant" : "user",
+      content: typeof message?.content === "string" ? message.content : "",
+    }))
+    .filter((message) => message.content.trim().length > 0);
+
+  const window = BrowserWindow.fromWebContents(event.sender);
+  window?.close();
+
+  if (messages.length === 0) {
+    return;
+  }
+
+  void saveQuickAiConversation(messages).catch(() => {});
 });
 
 ipcMain.on("quick-ai-trash", (event, payload) => {

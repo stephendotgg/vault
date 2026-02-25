@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   quickAiChat: (messages) => ipcRenderer.invoke("quick-ai-chat", { messages }),
   quickAiChatStream: (requestId, messages) => ipcRenderer.send("quick-ai-chat-stream", { requestId, messages }),
   quickAiSave: (messages) => ipcRenderer.invoke("quick-ai-save", { messages }),
+  quickAiSaveAndClose: (messages) => ipcRenderer.send("quick-ai-save-and-close", { messages }),
   quickAiTrash: (sessionId) => ipcRenderer.send("quick-ai-trash", { sessionId }),
   closeQuickAi: () => ipcRenderer.send("quick-ai-close"),
   onQuickAiStream: (callback) => {

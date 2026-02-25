@@ -18,15 +18,15 @@ export function getDataDir(): string {
   
   if (isPackaged) {
     // Use a persistent folder in user's app data
-    // On Windows: C:\Users\<user>\AppData\Roaming\Mothership
-    // On macOS: ~/Library/Application Support/Mothership
-    // On Linux: ~/.config/Mothership
+    // On Windows: C:\Users\<user>\AppData\Roaming\Vault
+    // On macOS: ~/Library/Application Support/Vault
+    // On Linux: ~/.config/Vault
     const appData = process.env.APPDATA || 
       (process.platform === "darwin" 
         ? path.join(process.env.HOME || "", "Library", "Application Support")
         : path.join(process.env.HOME || "", ".config"));
     
-    const dataDir = path.join(appData, "Mothership");
+    const dataDir = path.join(appData, "Vault");
     
     // Ensure the directory exists
     if (!existsSync(dataDir)) {

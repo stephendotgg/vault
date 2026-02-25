@@ -30,9 +30,14 @@ interface AIViewProps {
 }
 
 // Storage keys
-const OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
-const SELECTED_MODEL_STORAGE_KEY = "mothership-ai-model";
-const CURRENT_SESSION_STORAGE_KEY = "mothership-ai-current-session";
+const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
+const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
+const SELECTED_MODEL_STORAGE_KEY = "vault-ai-model";
+const LEGACY_SELECTED_MODEL_STORAGE_KEY = "mothership-ai-model";
+const CURRENT_SESSION_STORAGE_KEY = "vault-ai-current-session";
+const LEGACY_CURRENT_SESSION_STORAGE_KEY = "mothership-ai-current-session";
+const BLUR_TITLES_STORAGE_KEY = "vault-blur-titles";
+const LEGACY_BLUR_TITLES_STORAGE_KEY = "mothership-blur-titles";
 const IMAGE_MARKDOWN_REGEX = /!\[[^\]]*\]\((\/api\/images\/[^)\s]+)\)/g;
 
 // Model info from OpenRouter
@@ -114,10 +119,14 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [cachedInstructions, setCachedInstructions] = useState<string[]>([]);
   const [blurTitles, setBlurTitles] = useState<boolean>(() =>
-    typeof window !== "undefined" ? localStorage.getItem("mothership-blur-titles") === "true" : false
+    typeof window !== "undefined"
+      ? (localStorage.getItem(BLUR_TITLES_STORAGE_KEY) || localStorage.getItem(LEGACY_BLUR_TITLES_STORAGE_KEY)) === "true"
+      : false
   );
   const [selectedModelId, setSelectedModelId] = useState<string>(() => 
-    typeof window !== "undefined" ? localStorage.getItem(SELECTED_MODEL_STORAGE_KEY) || "openai/gpt-4o-mini" : "openai/gpt-4o-mini"
+    typeof window !== "undefined"
+      ? localStorage.getItem(SELECTED_MODEL_STORAGE_KEY) || localStorage.getItem(LEGACY_SELECTED_MODEL_STORAGE_KEY) || "openai/gpt-4o-mini"
+      : "openai/gpt-4o-mini"
   );
   const [enabledModels, setEnabledModels] = useState<ModelInfo[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -131,7 +140,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   const messages = useMemo(() => currentSession?.messages || [], [currentSession?.messages]);
 
   // Get API key from localStorage
-  const getApiKey = () => localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || "";
+  const getApiKey = () => localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY) || "";
 
   // Fetch enabled models from API
   const fetchEnabledModels = useCallback(async () => {
@@ -224,7 +233,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
       setSessions(restored);
       
       // Restore last selected session from localStorage
-      const savedCurrentId = localStorage.getItem(CURRENT_SESSION_STORAGE_KEY);
+      const savedCurrentId = localStorage.getItem(CURRENT_SESSION_STORAGE_KEY) || localStorage.getItem(LEGACY_CURRENT_SESSION_STORAGE_KEY);
       if (savedCurrentId && restored.some((s) => s.id === savedCurrentId)) {
         setCurrentSessionId(savedCurrentId);
       } else if (restored.length > 0) {
@@ -849,7 +858,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                 onClick={() => {
                   const newValue = !blurTitles;
                   setBlurTitles(newValue);
-                  localStorage.setItem("mothership-blur-titles", String(newValue));
+                  localStorage.setItem(BLUR_TITLES_STORAGE_KEY, String(newValue));
                 }}
                 className={`p-1 rounded transition-colors ${blurTitles ? "text-[#7eb8f7] bg-[#3f3f3f]" : "text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f]"}`}
                 title={blurTitles ? "Show titles" : "Hide titles"}

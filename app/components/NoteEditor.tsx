@@ -16,7 +16,8 @@ import { AutoCorrect } from "@/app/extensions/AutoCorrect";
 import { Note } from "@/types/models";
 
 // Storage keys
-const OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
+const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
+const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
 
 // Strip HTML for plain text
 function stripHtml(html: string): string {
@@ -675,7 +676,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
   const handleSendChat = async () => {
     if (!chatInput.trim() || isChatLoading) return;
 
-    const apiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY);
+    const apiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY);
     if (!apiKey) {
       setChatError("Please set your OpenRouter API key in AI Settings.");
       return;
@@ -786,7 +787,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onDelete, onSelectNote, c
   const handleRedoChat = async (messageId: string) => {
     if (isChatLoading) return;
 
-    const apiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY);
+    const apiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY);
     if (!apiKey) {
       setChatError("Please set your OpenRouter API key in AI Settings.");
       return;

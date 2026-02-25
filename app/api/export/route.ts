@@ -40,7 +40,7 @@ export async function GET() {
 
     // Generate filename with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    const filename = `mothership-backup-${timestamp}.zip`;
+    const filename = `vault-backup-${timestamp}.zip`;
 
     return new NextResponse(buffer, {
       headers: {

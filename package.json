@@ -1,5 +1,5 @@
 {
-  "name": "mothership",
+  "name": "vault",
   "version": "0.1.0",
   "private": true,
   "author": "stephendotgg",
@@ -13,10 +13,10 @@
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:build": "npm run build && npm run prepare-standalone && electron-builder",
     "electron:start": "electron .",
-    "package": "npm rebuild better-sqlite3 && npm run build && npm run prepare-standalone && npx @electron/rebuild -f -w better-sqlite3 && npx electron-packager . Mothership --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --win32metadata.CompanyName=\"stephendotgg\" --win32metadata.FileDescription=\"Mothership\" --win32metadata.ProductName=\"Mothership\"",
-    "install:local": "node -e \"try{require('child_process').execSync('taskkill /F /IM Mothership.exe',{stdio:'ignore'})}catch(e){}\" && npm run package && node -e \"const fs=require('fs');const path=require('path');const src='dist/Mothership-win32-x64';const dest=path.join(process.env.LOCALAPPDATA,'Programs','Mothership');fs.rmSync(dest,{recursive:true,force:true});fs.cpSync(src,dest,{recursive:true});console.log('Installed to '+dest)\" && npm rebuild better-sqlite3",
-    "add-startup": "powershell -Command \"$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut([Environment]::GetFolderPath('Startup') + '\\Mothership.lnk'); $s.TargetPath = [Environment]::GetFolderPath('LocalApplicationData') + '\\Programs\\Mothership\\Mothership.exe'; $s.Save(); Write-Host 'Added to Windows startup'\"",
-    "remove-startup": "powershell -Command \"Remove-Item ([Environment]::GetFolderPath('Startup') + '\\Mothership.lnk') -Force -ErrorAction SilentlyContinue; Write-Host 'Removed from Windows startup'\""
+    "package": "npm rebuild better-sqlite3 && npm run build && npm run prepare-standalone && npx @electron/rebuild -f -w better-sqlite3 && npx electron-packager . Vault --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --win32metadata.CompanyName=\"stephendotgg\" --win32metadata.FileDescription=\"Vault\" --win32metadata.ProductName=\"Vault\"",
+    "install:local": "node -e \"try{require('child_process').execSync('taskkill /F /IM Vault.exe',{stdio:'ignore'})}catch(e){}\" && npm run package && node -e \"const fs=require('fs');const path=require('path');const src='dist/Vault-win32-x64';const dest=path.join(process.env.LOCALAPPDATA,'Programs','Vault');fs.rmSync(dest,{recursive:true,force:true});fs.cpSync(src,dest,{recursive:true});console.log('Installed to '+dest)\" && npm rebuild better-sqlite3",
+    "add-startup": "powershell -Command \"$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut([Environment]::GetFolderPath('Startup') + '\\Vault.lnk'); $s.TargetPath = [Environment]::GetFolderPath('LocalApplicationData') + '\\Programs\\Vault\\Vault.exe'; $s.Save(); Write-Host 'Added to Windows startup'\"",
+    "remove-startup": "powershell -Command \"Remove-Item ([Environment]::GetFolderPath('Startup') + '\\Vault.lnk') -Force -ErrorAction SilentlyContinue; Write-Host 'Removed from Windows startup'\""
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
@@ -65,8 +65,8 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.mothership.app",
-    "productName": "Mothership",
+    "appId": "com.vault.app",
+    "productName": "Vault",
     "directories": {
       "output": "dist"
     },

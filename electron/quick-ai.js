@@ -304,17 +304,7 @@ async function saveConversation() {
     return;
   }
 
-  setLoading(true);
-  setError("");
-
-  try {
-    const result = await window.electronAPI.quickAiSave(messagesToSave);
-    state.savedSessionId = result?.sessionId || null;
-    window.electronAPI.closeQuickAi();
-  } catch (error) {
-    setError(error instanceof Error ? error.message : "Failed to save chat");
-    setLoading(false);
-  }
+  window.electronAPI.quickAiSaveAndClose(messagesToSave);
 }
 
 function trashConversation() {

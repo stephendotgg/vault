@@ -27,7 +27,7 @@ export function TitleBar() {
          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}>
       {/* App title */}
       <div className="px-3 text-xs text-[#7eb8f7] font-medium">
-        Mothership
+        Vault
       </div>
       
       {/* Window controls */}

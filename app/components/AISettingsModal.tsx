@@ -8,8 +8,10 @@ interface AISettingsModalProps {
 }
 
 // Storage keys
-const OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
-const ENABLED_MODELS_STORAGE_KEY = "mothership-enabled-models";
+const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
+const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
+const ENABLED_MODELS_STORAGE_KEY = "vault-enabled-models";
+const LEGACY_ENABLED_MODELS_STORAGE_KEY = "mothership-enabled-models";
 
 interface OpenRouterModel {
   id: string;
@@ -35,7 +37,7 @@ const DEFAULT_MODEL_IDS = [
 
 export function getEnabledModelIds(): string[] {
   if (typeof window === "undefined") return DEFAULT_MODEL_IDS;
-  const stored = localStorage.getItem(ENABLED_MODELS_STORAGE_KEY);
+  const stored = localStorage.getItem(ENABLED_MODELS_STORAGE_KEY) || localStorage.getItem(LEGACY_ENABLED_MODELS_STORAGE_KEY);
   if (!stored) return DEFAULT_MODEL_IDS;
   try {
     const parsed = JSON.parse(stored);
@@ -64,7 +66,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
   // Load settings
   useEffect(() => {
     if (isOpen) {
-      setApiKey(localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || "");
+      setApiKey(localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY) || "");
       setEnabledModelIds(getEnabledModelIds());
       // Fetch instructions from API
       fetch("/api/ai/settings")

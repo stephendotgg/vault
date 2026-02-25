@@ -219,7 +219,7 @@ Answer questions about this note, help expand on ideas, suggest improvements, or
     const providerMessages = await normaliseMessagesForProvider(messages);
 
     // Build system prompt with context
-    const systemPrompt = `You are a helpful AI assistant integrated into Mothership, a personal notes and memories app. You have access to the user's notes, vault items, and memories to help answer their questions.
+    const systemPrompt = `You are a helpful AI assistant integrated into Vault, a personal notes and memories app. You have access to the user's notes, vault items, and memories to help answer their questions.
 
 ${contextSection}
 
@@ -231,8 +231,8 @@ ${userInstructions}`;
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://mothership.app",
-        "X-Title": "Mothership",
+        "HTTP-Referer": "https://vault.app",
+        "X-Title": "Vault",
       },
       body: JSON.stringify({
         model,

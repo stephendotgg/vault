@@ -18,6 +18,7 @@ export interface ElectronAPI {
   quickAiChat: (messages: Array<{ role: "user" | "assistant"; content: string }>) => Promise<{ content: string }>;
   quickAiChatStream: (requestId: string, messages: Array<{ role: "user" | "assistant"; content: string }>) => void;
   quickAiSave: (messages: Array<{ role: "user" | "assistant"; content: string }>) => Promise<{ saved: boolean; sessionId?: string }>;
+  quickAiSaveAndClose: (messages: Array<{ role: "user" | "assistant"; content: string }>) => void;
   quickAiTrash: (sessionId?: string) => void;
   closeQuickAi: () => void;
   onQuickAiStream: (callback: (payload: { requestId: string; type: "chunk" | "end" | "error"; chunk?: string; content?: string; message?: string }) => void) => () => void;
