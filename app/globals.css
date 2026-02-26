@@ -139,6 +139,14 @@ a {
   color: #63635c !important;
 }
 
+:root[data-theme="light"] .note-filled-icon {
+  color: #8a8a82 !important;
+}
+
+:root[data-theme="light"] .note-filled-icon-line {
+  stroke: #f2f2ed !important;
+}
+
 :root[data-theme="light"] .tiptap p.is-editor-empty:first-child::before,
 :root[data-theme="light"] .tiptap p.is-empty::before {
   color: #94a3b8;

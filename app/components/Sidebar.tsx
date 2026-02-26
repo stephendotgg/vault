@@ -130,11 +130,11 @@ function NoteIcon({ icon, hasContent }: { icon: string; hasContent: boolean }) {
   if (hasContent) {
     // Filled document icon with lines
     return (
-      <svg className="w-4 h-4 shrink-0 text-[#9b9b9b]" viewBox="0 0 24 24" fill="currentColor">
+      <svg className="w-4 h-4 shrink-0 text-[#9b9b9b] note-filled-icon" viewBox="0 0 24 24" fill="currentColor">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
         <path d="M14 2v6h6" fill="none" stroke="currentColor" strokeWidth="1"/>
-        <line x1="8" y1="13" x2="16" y2="13" stroke="#202020" strokeWidth="1.5"/>
-        <line x1="8" y1="17" x2="14" y2="17" stroke="#202020" strokeWidth="1.5"/>
+        <line className="note-filled-icon-line" x1="8" y1="13" x2="16" y2="13" stroke="#202020" strokeWidth="1.5"/>
+        <line className="note-filled-icon-line" x1="8" y1="17" x2="14" y2="17" stroke="#202020" strokeWidth="1.5"/>
       </svg>
     );
   }
