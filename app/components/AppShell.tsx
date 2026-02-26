@@ -16,6 +16,13 @@ import { Note, VaultItem, Occasion } from "@/types/models";
 
 type ViewType = "home" | "note" | "vault" | "memories" | "archive" | "fileCleaner" | "ai" | "settings";
 
+const THEME_MODE_STORAGE_KEY = "vault-theme-mode";
+const THEME_MODE_EVENT = "vault-theme-updated";
+
+function applyThemeMode(mode: "dark" | "light") {
+  document.documentElement.setAttribute("data-theme", mode);
+}
+
 export function AppShell() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [vaultItems, setVaultItems] = useState<VaultItem[]>([]);
@@ -34,6 +41,28 @@ export function AppShell() {
   const [allChatMessages, setAllChatMessages] = useState<Map<string, ChatMessage[]>>(new Map());
 
   // Load saved state from localStorage after hydration
+  useEffect(() => {
+    const savedThemeMode = localStorage.getItem(THEME_MODE_STORAGE_KEY);
+    if (savedThemeMode === "light" || savedThemeMode === "dark") {
+      applyThemeMode(savedThemeMode);
+    } else {
+      applyThemeMode("dark");
+    }
+
+    const handleThemeUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ mode?: "dark" | "light" }>;
+      const mode = customEvent.detail?.mode;
+      if (mode === "light" || mode === "dark") {
+        applyThemeMode(mode);
+      }
+    };
+
+    window.addEventListener(THEME_MODE_EVENT, handleThemeUpdated as EventListener);
+    return () => {
+      window.removeEventListener(THEME_MODE_EVENT, handleThemeUpdated as EventListener);
+    };
+  }, []);
+
   useEffect(() => {
     const savedNoteId = localStorage.getItem("selected-note-id");
     const savedView = localStorage.getItem("current-view") as ViewType | null;
