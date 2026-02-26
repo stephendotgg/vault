@@ -250,9 +250,9 @@ a {
 }
 
 :root[data-theme="light"] .ai-user-bubble {
-  background-color: #ecece7 !important;
+  background-color: #f7f7f4 !important;
   color: #2a2a25 !important;
-  border: 1px solid #dfdfd8;
+  border: 1px solid #e8e8e1;
 }
 
 :root[data-theme="light"] .ai-assistant-content {
@@ -260,18 +260,18 @@ a {
 }
 
 :root[data-theme="light"] .ai-assistant-content :where(code) {
-  background: #e8e8e2 !important;
+  background: #f1f1ec !important;
   color: #2f2f29 !important;
 }
 
 :root[data-theme="light"] .ai-assistant-content :where(pre) {
-  background: #e8e8e2 !important;
-  border: 1px solid #ddddd5;
+  background: #f1f1ec !important;
+  border: 1px solid #e3e3dc;
 }
 
 :root[data-theme="light"] .ai-chat-composer {
-  background-color: #f1f1ec !important;
-  border-color: #d8d8d1 !important;
+  background-color: #f7f7f3 !important;
+  border-color: #e4e4dd !important;
 }
 
 :root[data-theme="light"] .note-filled-icon {
