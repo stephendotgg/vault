@@ -898,9 +898,9 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                 <div
                   key={session.id}
                   onClick={() => setCurrentSessionId(session.id)}
-                  className={`group flex items-center gap-2 px-3 py-2 mx-2 rounded cursor-pointer ${
+                  className={`ai-history-item group flex items-center gap-2 px-3 py-2 mx-2 rounded cursor-pointer ${
                     session.id === currentSessionId
-                      ? "bg-[#3f3f3f] text-[#ebebeb]"
+                      ? "ai-history-item-selected bg-[#3f3f3f] text-[#ebebeb]"
                       : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
                   }`}
                 >

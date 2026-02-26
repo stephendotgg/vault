@@ -250,9 +250,9 @@ a {
 }
 
 :root[data-theme="light"] .ai-user-bubble {
-  background-color: #f7f7f4 !important;
+  background-color: transparent !important;
   color: #2a2a25 !important;
-  border: 1px solid #e8e8e1;
+  border: 0 !important;
 }
 
 :root[data-theme="light"] .ai-assistant-content {
@@ -272,6 +272,15 @@ a {
 :root[data-theme="light"] .ai-chat-composer {
   background-color: #f7f7f3 !important;
   border-color: #e4e4dd !important;
+}
+
+:root[data-theme="light"] .ai-history-item-selected {
+  background-color: #ecece6 !important;
+  color: #2a2a25 !important;
+}
+
+:root[data-theme="light"] .ai-history-item:hover {
+  background-color: #efefe9 !important;
 }
 
 :root[data-theme="light"] .note-filled-icon {
