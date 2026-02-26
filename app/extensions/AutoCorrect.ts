@@ -6,20 +6,12 @@ let dictionary: Typo | null = null;
 let dictionaryLoading = false;
 
 const AUTOCORRECT_ENABLED_STORAGE_KEY = "vault-setting-autocorrect-enabled";
-const AUTOCORRECT_IGNORE_CAPS_STORAGE_KEY = "vault-setting-autocorrect-ignore-capitalized";
 
 function isAutocorrectEnabled(): boolean {
   if (typeof window === "undefined") {
     return true;
   }
   return localStorage.getItem(AUTOCORRECT_ENABLED_STORAGE_KEY) !== "false";
-}
-
-function shouldIgnoreCapitalizedWords(): boolean {
-  if (typeof window === "undefined") {
-    return true;
-  }
-  return localStorage.getItem(AUTOCORRECT_IGNORE_CAPS_STORAGE_KEY) !== "false";
 }
 
 // Load dictionary asynchronously
@@ -89,7 +81,7 @@ export const AutoCorrect = Extension.create({
             const word = wordMatch[1];
 
             // Skip capitalised words (likely names/proper nouns)
-            if (shouldIgnoreCapitalizedWords() && /^[A-Z]/.test(word)) {
+            if (/^[A-Z]/.test(word)) {
               return false;
             }
             
