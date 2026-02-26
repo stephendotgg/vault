@@ -75,8 +75,8 @@ export function SettingsView() {
           </div>
 
           <section className="space-y-3">
-            <h2 className="text-lg text-[#e3e3e3] font-medium">Notes</h2>
-            <p className="text-sm text-[#9b9b9b]">Customize notes-related behavior and sidebar visibility.</p>
+            <h2 className="text-lg text-[#e3e3e3] font-medium">Sidebar</h2>
+            <p className="text-sm text-[#9b9b9b]">Choose which sections and actions appear in the sidebar.</p>
             <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(Object.keys(sectionLabels) as SidebarVisibilityKey[]).map((section) => (
                 <label key={section} className="flex items-center gap-2 text-sm text-[#d1d1d1] cursor-pointer">
