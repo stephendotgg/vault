@@ -5,6 +5,7 @@ import { Note } from "@/types/models";
 import { IconPicker } from "./IconPicker";
 
 type SectionKey = "notes" | "vault" | "memories" | "dreamJournal" | "voiceLog";
+type SidebarVisibilityKey = SectionKey | "fileCleaner";
 
 interface NoteWithChildren extends Note {
   children: NoteWithChildren[];
@@ -354,7 +355,7 @@ interface CreateMenuState {
   y: number;
 }
 
-type SidebarVisibilityState = Record<SectionKey, boolean>;
+type SidebarVisibilityState = Record<SidebarVisibilityKey, boolean>;
 
 const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
@@ -362,14 +363,16 @@ const defaultSidebarVisibility: SidebarVisibilityState = {
   memories: false,
   dreamJournal: false,
   voiceLog: false,
+  fileCleaner: true,
 };
 
-const sidebarSectionLabels: Record<SectionKey, string> = {
+const sidebarSectionLabels: Record<SidebarVisibilityKey, string> = {
   notes: "Notes",
   vault: "Vault",
   memories: "Memories",
   dreamJournal: "Dream Journal",
   voiceLog: "Voice Log",
+  fileCleaner: "File Cleaner",
 };
 
 export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onRenameNote, onMoveNote, onOpenVault, onOpenVaultAddModal, onOpenMemories, onOpenMemoryAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onUpdateNote, notes }: SidebarProps) {
@@ -500,7 +503,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const toggleVisibleSection = (section: SectionKey) => {
+  const toggleVisibleSection = (section: SidebarVisibilityKey) => {
     setVisibleSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
@@ -840,15 +843,17 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
       {/* Bottom section */}
       <div className="px-2 pt-1 pb-2">
-        <button
-          onClick={onOpenFileCleaner}
-          className="w-full flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-          <span>File Cleaner</span>
-        </button>
+        {visibleSections.fileCleaner && (
+          <button
+            onClick={onOpenFileCleaner}
+            className="w-full flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            <span>File Cleaner</span>
+          </button>
+        )}
         <button
           onClick={onOpenArchive}
           className="w-full flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
@@ -902,7 +907,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
 
         {isSidebarSettingsOpen && (
           <div className="mt-1 rounded border border-[#2f2f2f] bg-[#1c1c1c] p-2 flex flex-col gap-1">
-            {(Object.keys(sidebarSectionLabels) as SectionKey[]).map((sectionKey) => (
+            {(Object.keys(sidebarSectionLabels) as SidebarVisibilityKey[]).map((sectionKey) => (
               <label key={sectionKey} className="flex items-center gap-2 text-xs text-[#b5b5b5] cursor-pointer select-none">
                 <input
                   type="checkbox"
