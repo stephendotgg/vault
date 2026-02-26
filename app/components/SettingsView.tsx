@@ -105,7 +105,7 @@ export function SettingsView() {
                   aria-checked={themeMode === "light"}
                   aria-label="Toggle light mode"
                   onClick={() => setThemeMode((prev) => (prev === "light" ? "dark" : "light"))}
-                  className="inline-flex items-center gap-2 border border-[#3a3a3a] bg-transparent px-0 py-0 text-xs text-[#d1d1d1]"
+                  className="inline-flex items-center gap-2 bg-transparent px-0 py-0 text-xs text-[#d1d1d1]"
                 >
                   <span className={`${themeMode === "dark" ? "text-[#e3e3e3]" : "text-[#9b9b9b]"}`}>Dark</span>
                   <span className={`h-4 w-8 rounded-full transition-colors ${themeMode === "light" ? "bg-[#7eb8f7]" : "bg-[#3a3a3a]"}`}>
