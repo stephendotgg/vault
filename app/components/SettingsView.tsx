@@ -65,15 +65,6 @@ export function SettingsView() {
 
       <div className="flex-1 overflow-auto">
         <div className="max-w-3xl mx-auto px-10 py-8 space-y-8">
-          <div className="border-b border-[#2f2f2f] pb-3">
-            <button
-              type="button"
-              className="px-3 py-1.5 text-sm rounded bg-[#2a2a2a] text-[#e3e3e3] border border-[#3a3a3a]"
-            >
-              Notes
-            </button>
-          </div>
-
           <section className="space-y-3">
             <h2 className="text-lg text-[#e3e3e3] font-medium">Sidebar</h2>
             <p className="text-sm text-[#9b9b9b]">Choose which sections and actions appear in the sidebar.</p>
