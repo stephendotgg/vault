@@ -42,6 +42,26 @@ function getUntitledLabel(noteLike: Pick<Note, "icon" | "content">): string {
   return isSpreadsheetNoteLike(noteLike) ? "New sheet" : "New page";
 }
 
+function hasSpreadsheetCellContent(content: string): boolean {
+  if (!isSpreadsheetContent(content)) {
+    return false;
+  }
+
+  try {
+    const payload = content.slice(SPREADSHEET_CONTENT_PREFIX.length);
+    const parsed = JSON.parse(payload);
+    if (!Array.isArray(parsed)) {
+      return false;
+    }
+
+    return parsed.some((row) =>
+      Array.isArray(row) && row.some((cell) => typeof cell === "string" && cell.trim().length > 0)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function normalizeSpreadsheetData(raw: string[][]): string[][] {
   const rowCount = Math.max(raw.length, DEFAULT_SPREADSHEET_ROWS);
   const colCount = Math.max(
@@ -179,9 +199,10 @@ const NoteImage = Image.extend({
 });
 
 // Note icon - can be emoji, custom image, or default document icon
-function NoteIcon({ icon, hasContent, className = "" }: { 
+function NoteIcon({ icon, hasContent, content = "", className = "" }: { 
   icon: string; 
   hasContent: boolean; 
+  content?: string;
   className?: string;
 }) {
   // Custom image icon (stored as "icon:filename.ext")
@@ -197,8 +218,9 @@ function NoteIcon({ icon, hasContent, className = "" }: {
   }
 
   const isSpreadsheetIcon = icon === "sheet" || icon === "📊";
+  const resolvedHasContent = isSpreadsheetIcon ? hasSpreadsheetCellContent(content) : hasContent;
   if (isSpreadsheetIcon) {
-    if (hasContent) {
+    if (resolvedHasContent) {
       return (
         <svg className={`w-4 h-4 shrink-0 text-[#9b9b9b] note-filled-icon ${className}`} viewBox="0 0 24 24" fill="currentColor">
           <rect x="3" y="3" width="18" height="18" rx="2.5" ry="2.5" />
@@ -231,7 +253,7 @@ function NoteIcon({ icon, hasContent, className = "" }: {
   }
   
   // Default document icon
-  if (hasContent) {
+  if (resolvedHasContent) {
     return (
       <svg className={`w-4 h-4 shrink-0 text-[#9b9b9b] note-filled-icon ${className}`} viewBox="0 0 24 24" fill="currentColor">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
@@ -1031,7 +1053,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                 )}
                 {index === breadcrumbs.length - 1 ? (
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
+                    <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} content={crumb.content} />
                     <span className="truncate">{crumb.id === note.id ? (title || getUntitledLabel(note)) : (crumb.title || getUntitledLabel(crumb))}</span>
                   </div>
                 ) : (
@@ -1039,7 +1061,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                     onClick={() => onSelectNote(crumb.id)}
                     className="flex items-center gap-1.5 hover:text-[#e3e3e3] transition-colors min-w-0 cursor-pointer"
                   >
-                    <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
+                    <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} content={crumb.content} />
                     <span className="truncate max-w-[120px]">{crumb.title || getUntitledLabel(crumb)}</span>
                   </button>
                 )}
@@ -1115,7 +1137,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                     onClick={() => onSelectNote(child.id)}
                     className="w-full flex items-center gap-2 px-2 py-1 hover:bg-[#2a2a2a] rounded transition-colors cursor-pointer text-left"
                   >
-                    <NoteIcon icon={child.icon} hasContent={child.content.length > 0 && child.content !== "<p></p>"} />
+                    <NoteIcon icon={child.icon} hasContent={child.content.length > 0 && child.content !== "<p></p>"} content={child.content} />
                     <span className="note-title-text text-[#9b9b9b] text-sm truncate">
                       {child.title || getUntitledLabel(child)}
                     </span>

@@ -47,6 +47,26 @@ function getUntitledLabel(noteLike: Pick<Note, "icon" | "content">): string {
   return isSpreadsheetNoteLike(noteLike) ? "New sheet" : "New page";
 }
 
+function hasSpreadsheetCellContent(content: string): boolean {
+  if (!content.startsWith(SPREADSHEET_CONTENT_PREFIX)) {
+    return false;
+  }
+
+  try {
+    const payload = content.slice(SPREADSHEET_CONTENT_PREFIX.length);
+    const parsed = JSON.parse(payload);
+    if (!Array.isArray(parsed)) {
+      return false;
+    }
+
+    return parsed.some((row) =>
+      Array.isArray(row) && row.some((cell) => typeof cell === "string" && cell.trim().length > 0)
+    );
+  } catch {
+    return false;
+  }
+}
+
 // Build tree structure from flat notes array
 function buildNoteTree(notes: Note[]): NoteWithChildren[] {
   const noteMap = new Map<string, NoteWithChildren>();
@@ -111,7 +131,7 @@ interface NoteItemProps {
 }
 
 // Note icon - can be emoji, custom image, or default document icon
-function NoteIcon({ icon, hasContent }: { icon: string; hasContent: boolean }) {
+function NoteIcon({ icon, hasContent, content = "" }: { icon: string; hasContent: boolean; content?: string }) {
   // Custom image icon (stored as "icon:filename.ext")
   if (icon.startsWith("icon:")) {
     const filename = icon.substring(5);
@@ -125,8 +145,9 @@ function NoteIcon({ icon, hasContent }: { icon: string; hasContent: boolean }) {
   }
 
   const isSpreadsheetIcon = icon === "sheet" || icon === "📊";
+  const resolvedHasContent = isSpreadsheetIcon ? hasSpreadsheetCellContent(content) : hasContent;
   if (isSpreadsheetIcon) {
-    if (hasContent) {
+    if (resolvedHasContent) {
       return (
         <svg className="w-4 h-4 shrink-0 text-[#9b9b9b] note-filled-icon" viewBox="0 0 24 24" fill="currentColor">
           <rect x="3" y="3" width="18" height="18" rx="2.5" ry="2.5" />
@@ -162,7 +183,7 @@ function NoteIcon({ icon, hasContent }: { icon: string; hasContent: boolean }) {
   }
   
   // Default document icon
-  if (hasContent) {
+  if (resolvedHasContent) {
     // Filled document icon with lines
     return (
       <svg className="w-4 h-4 shrink-0 text-[#9b9b9b] note-filled-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -284,7 +305,7 @@ function NoteItem({
 
         {/* Note content */}
         <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
-          <NoteIcon icon={note.icon} hasContent={note.content.length > 0 && note.content !== "<p></p>"} />
+          <NoteIcon icon={note.icon} hasContent={note.content.length > 0 && note.content !== "<p></p>"} content={note.content} />
           {isEditing ? (
             <input
               ref={inputRef}

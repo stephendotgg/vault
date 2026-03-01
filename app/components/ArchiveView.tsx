@@ -21,8 +21,28 @@ function getUntitledLabel(noteLike: Pick<Note, "icon" | "content">): string {
   return isSpreadsheetNoteLike(noteLike) ? "New sheet" : "New page";
 }
 
+function hasSpreadsheetCellContent(content: string): boolean {
+  if (!content.startsWith(SPREADSHEET_CONTENT_PREFIX)) {
+    return false;
+  }
+
+  try {
+    const payload = content.slice(SPREADSHEET_CONTENT_PREFIX.length);
+    const parsed = JSON.parse(payload);
+    if (!Array.isArray(parsed)) {
+      return false;
+    }
+
+    return parsed.some((row) =>
+      Array.isArray(row) && row.some((cell) => typeof cell === "string" && cell.trim().length > 0)
+    );
+  } catch {
+    return false;
+  }
+}
+
 // Note icon - can be emoji, custom image, or default document icon
-function NoteIcon({ icon, hasContent }: { icon: string; hasContent: boolean }) {
+function NoteIcon({ icon, hasContent, content = "" }: { icon: string; hasContent: boolean; content?: string }) {
   // Custom image icon (stored as "icon:filename.ext")
   if (icon.startsWith("icon:")) {
     const filename = icon.substring(5);
@@ -36,8 +56,9 @@ function NoteIcon({ icon, hasContent }: { icon: string; hasContent: boolean }) {
   }
 
   const isSpreadsheetIcon = icon === "sheet" || icon === "📊";
+  const resolvedHasContent = isSpreadsheetIcon ? hasSpreadsheetCellContent(content) : hasContent;
   if (isSpreadsheetIcon) {
-    if (hasContent) {
+    if (resolvedHasContent) {
       return (
         <svg className="w-4 h-4 shrink-0 text-[#9b9b9b] note-filled-icon" viewBox="0 0 24 24" fill="currentColor">
           <rect x="3" y="3" width="18" height="18" rx="2.5" ry="2.5" />
@@ -70,7 +91,7 @@ function NoteIcon({ icon, hasContent }: { icon: string; hasContent: boolean }) {
   }
   
   // Default document icon
-  if (hasContent) {
+  if (resolvedHasContent) {
     return (
       <svg className="w-4 h-4 shrink-0 text-[#9b9b9b] note-filled-icon" viewBox="0 0 24 24" fill="currentColor">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
@@ -112,7 +133,7 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote
             </svg>
             {/* Note breadcrumb */}
             <div className="flex items-center gap-1.5 min-w-0">
-              <NoteIcon icon={selectedNote.icon} hasContent={selectedNote.content.length > 0 && selectedNote.content !== "<p></p>"} />
+              <NoteIcon icon={selectedNote.icon} hasContent={selectedNote.content.length > 0 && selectedNote.content !== "<p></p>"} content={selectedNote.content} />
               <span className="truncate">{selectedNote.title || getUntitledLabel(selectedNote)}</span>
             </div>
           </div>
@@ -178,7 +199,7 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote
                   onClick={() => onSelectNote(note.id)}
                   className="group w-full flex items-center gap-2 px-2 py-1 hover:bg-[#2a2a2a] rounded transition-colors text-left cursor-pointer"
                 >
-                  <NoteIcon icon={note.icon} hasContent={note.content.length > 0 && note.content !== "<p></p>"} />
+                  <NoteIcon icon={note.icon} hasContent={note.content.length > 0 && note.content !== "<p></p>"} content={note.content} />
                   <span className="note-title-text text-[#9b9b9b] text-sm truncate flex-1">
                     {note.title || getUntitledLabel(note)}
                   </span>
