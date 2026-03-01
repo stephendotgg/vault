@@ -556,6 +556,63 @@ a {
   outline-offset: 2px;
 }
 
+.sheet-note-grid {
+  background: #111111;
+}
+
+.sheet-note-grid .Spreadsheet {
+  --background-color: #151515;
+  --text-color: #f0f0f0;
+  --readonly-text-color: #a5a5a5;
+  --header-background-color: #1d1d1d;
+  --border-color: #262626;
+  --outline-color: #3b82f6;
+  --outline-background-color: rgba(59, 130, 246, 0.14);
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+  font-size: 13px;
+}
+
+.sheet-note-grid .Spreadsheet table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  background: #111111;
+}
+
+.sheet-note-grid .Spreadsheet .Spreadsheet__cell,
+.sheet-note-grid .Spreadsheet .Spreadsheet__header {
+  border: 1px solid #262626;
+  min-width: 104px;
+  min-height: 30px;
+  height: 30px;
+  max-height: 30px;
+  background: #151515;
+  color: #f0f0f0;
+}
+
+.sheet-note-grid .Spreadsheet .Spreadsheet__header {
+  background: #1d1d1d;
+  color: #a5a5a5;
+  font-size: 11px;
+}
+
+:root[data-theme="light"] .sheet-note-grid,
+:root[data-theme="light"] .sheet-note-grid .Spreadsheet,
+:root[data-theme="light"] .sheet-note-grid .Spreadsheet table,
+:root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__cell,
+:root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__header {
+  background: #111111 !important;
+  color: #f0f0f0 !important;
+  border-color: #262626 !important;
+}
+
+:root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__header {
+  background: #1d1d1d !important;
+  color: #a5a5a5 !important;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
