@@ -178,12 +178,12 @@ export function AppShell() {
   }, []);
 
   // Create new note (optionally as a child)
-  const handleCreateNote = useCallback(async (parentId?: string) => {
+  const handleCreateNote = useCallback(async (parentId?: string, kind: "note" | "spreadsheet" = "note") => {
     try {
       const res = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parentId: parentId || null }),
+        body: JSON.stringify({ parentId: parentId || null, kind }),
       });
 
       if (res.ok) {
