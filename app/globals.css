@@ -604,6 +604,17 @@ a {
   font-size: 11px;
 }
 
+.sheet-note-grid .Spreadsheet table tr > th.Spreadsheet__header:first-child,
+.sheet-note-grid .Spreadsheet table thead th.Spreadsheet__header:first-child,
+.sheet-note-grid .Spreadsheet table tbody th.Spreadsheet__header:first-child {
+  min-width: 40px !important;
+  width: 40px !important;
+  max-width: 40px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  text-align: center !important;
+}
+
 .sheet-note-grid .Spreadsheet .Spreadsheet__data-viewer,
 .sheet-note-grid .Spreadsheet .Spreadsheet__data-editor input {
   background: #151515 !important;
