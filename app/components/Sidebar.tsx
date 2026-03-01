@@ -37,6 +37,16 @@ interface SidebarProps {
   notes: Note[];
 }
 
+const SPREADSHEET_CONTENT_PREFIX = "vault:sheet:v1:";
+
+function isSpreadsheetNoteLike(noteLike: Pick<Note, "icon" | "content">): boolean {
+  return noteLike.icon === "sheet" || noteLike.icon === "📊" || noteLike.content.startsWith(SPREADSHEET_CONTENT_PREFIX);
+}
+
+function getUntitledLabel(noteLike: Pick<Note, "icon" | "content">): string {
+  return isSpreadsheetNoteLike(noteLike) ? "New sheet" : "New page";
+}
+
 // Build tree structure from flat notes array
 function buildNoteTree(notes: Note[]): NoteWithChildren[] {
   const noteMap = new Map<string, NoteWithChildren>();
@@ -293,7 +303,7 @@ function NoteItem({
                 e.stopPropagation();
                 onStartRename(note.id);
               }}
-            >{hiddenNoteNames.has(note.id) ? obfuscateTitle(note.title || "New page") : (note.title || "New page")}</span>
+            >{hiddenNoteNames.has(note.id) ? obfuscateTitle(note.title || getUntitledLabel(note)) : (note.title || getUntitledLabel(note))}</span>
           )}
         </div>
 

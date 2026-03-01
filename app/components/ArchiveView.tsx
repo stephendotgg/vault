@@ -11,6 +11,16 @@ interface ArchiveViewProps {
   onDeletePermanently: (id: string) => void;
 }
 
+const SPREADSHEET_CONTENT_PREFIX = "vault:sheet:v1:";
+
+function isSpreadsheetNoteLike(noteLike: Pick<Note, "icon" | "content">): boolean {
+  return noteLike.icon === "sheet" || noteLike.icon === "📊" || noteLike.content.startsWith(SPREADSHEET_CONTENT_PREFIX);
+}
+
+function getUntitledLabel(noteLike: Pick<Note, "icon" | "content">): string {
+  return isSpreadsheetNoteLike(noteLike) ? "New sheet" : "New page";
+}
+
 // Note icon - can be emoji, custom image, or default document icon
 function NoteIcon({ icon, hasContent }: { icon: string; hasContent: boolean }) {
   // Custom image icon (stored as "icon:filename.ext")
@@ -103,7 +113,7 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote
             {/* Note breadcrumb */}
             <div className="flex items-center gap-1.5 min-w-0">
               <NoteIcon icon={selectedNote.icon} hasContent={selectedNote.content.length > 0 && selectedNote.content !== "<p></p>"} />
-              <span className="truncate">{selectedNote.title || "New page"}</span>
+              <span className="truncate">{selectedNote.title || getUntitledLabel(selectedNote)}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -131,7 +141,7 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote
         {/* Note editor area - reuse the content portion */}
         <div className="flex-1 overflow-auto">
           <div className="max-w-3xl mx-auto px-16 py-12">
-            <h1 className="text-4xl font-bold text-[#e3e3e3] mb-4">{selectedNote.title || "New page"}</h1>
+            <h1 className="text-4xl font-bold text-[#e3e3e3] mb-4">{selectedNote.title || getUntitledLabel(selectedNote)}</h1>
             <div 
               className="prose prose-invert max-w-none text-[#e3e3e3] text-base leading-relaxed"
               dangerouslySetInnerHTML={{ __html: selectedNote.content || "<p class='text-[#4a4a4a]'>No content</p>" }}
@@ -170,7 +180,7 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote
                 >
                   <NoteIcon icon={note.icon} hasContent={note.content.length > 0 && note.content !== "<p></p>"} />
                   <span className="note-title-text text-[#9b9b9b] text-sm truncate flex-1">
-                    {note.title || "New page"}
+                    {note.title || getUntitledLabel(note)}
                   </span>
                   
                   {/* Action buttons - same style as sidebar */}

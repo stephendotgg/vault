@@ -34,6 +34,14 @@ function isSpreadsheetContent(content: string): boolean {
   return content.startsWith(SPREADSHEET_CONTENT_PREFIX);
 }
 
+function isSpreadsheetNoteLike(noteLike: Pick<Note, "icon" | "content">): boolean {
+  return noteLike.icon === "sheet" || noteLike.icon === "📊" || isSpreadsheetContent(noteLike.content || "");
+}
+
+function getUntitledLabel(noteLike: Pick<Note, "icon" | "content">): string {
+  return isSpreadsheetNoteLike(noteLike) ? "New sheet" : "New page";
+}
+
 function normalizeSpreadsheetData(raw: string[][]): string[][] {
   const rowCount = Math.max(raw.length, DEFAULT_SPREADSHEET_ROWS);
   const colCount = Math.max(
@@ -861,7 +869,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           apiKey,
           model: "openai/gpt-4o-mini",
           noteContext: {
-            title: title || "New page",
+            title: title || getUntitledLabel(note),
             type: isSpreadsheetNote ? "spreadsheet" : "note",
             content: noteContent,
           },
@@ -968,7 +976,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           apiKey,
           model: "openai/gpt-4o-mini",
           noteContext: {
-            title: title || "New page",
+            title: title || getUntitledLabel(note),
             type: isSpreadsheetNote ? "spreadsheet" : "note",
             content: noteContent,
           },
@@ -1024,7 +1032,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                 {index === breadcrumbs.length - 1 ? (
                   <div className="flex items-center gap-1.5 min-w-0">
                     <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
-                    <span className="truncate">{crumb.id === note.id ? (title || "New page") : (crumb.title || "New page")}</span>
+                    <span className="truncate">{crumb.id === note.id ? (title || getUntitledLabel(note)) : (crumb.title || getUntitledLabel(crumb))}</span>
                   </div>
                 ) : (
                   <button
@@ -1032,7 +1040,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                     className="flex items-center gap-1.5 hover:text-[#e3e3e3] transition-colors min-w-0 cursor-pointer"
                   >
                     <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} />
-                    <span className="truncate max-w-[120px]">{crumb.title || "New page"}</span>
+                    <span className="truncate max-w-[120px]">{crumb.title || getUntitledLabel(crumb)}</span>
                   </button>
                 )}
               </div>
@@ -1109,7 +1117,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                   >
                     <NoteIcon icon={child.icon} hasContent={child.content.length > 0 && child.content !== "<p></p>"} />
                     <span className="note-title-text text-[#9b9b9b] text-sm truncate">
-                      {child.title || "New page"}
+                      {child.title || getUntitledLabel(child)}
                     </span>
                   </button>
                 ))}
