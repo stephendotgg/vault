@@ -165,6 +165,20 @@ function renderSheetInlineFormatting(value: string): React.ReactNode[] {
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-400 underline"
+          onMouseDown={(event) => {
+            if (event.ctrlKey || event.metaKey) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+
+            if (event.ctrlKey || event.metaKey) {
+              event.stopPropagation();
+              window.open(matchedUrl, "_blank", "noopener,noreferrer");
+            }
+          }}
         >
           {matchedUrl}
         </a>
