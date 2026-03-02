@@ -12,7 +12,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Spreadsheet from "react-spreadsheet";
-import type { Matrix, DataEditorProps, DataViewerProps } from "react-spreadsheet";
+import type { Matrix, DataEditorProps, DataViewerProps, Point } from "react-spreadsheet";
 import ReactMarkdown from "react-markdown";
 import { AutoCorrect } from "@/app/extensions/AutoCorrect";
 import { Note } from "@/types/models";
@@ -411,6 +411,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const [spreadsheetData, setSpreadsheetData] = useState<string[][]>(() =>
     parseSpreadsheetContent(note.content || "")
   );
+  const [activeSpreadsheetCell, setActiveSpreadsheetCell] = useState<Point | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -458,6 +459,62 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     () => spreadsheetData.map((row) => row.map((value) => ({ value }))),
     [spreadsheetData]
   );
+
+  const queueSpreadsheetSave = useCallback((normalized: string[][]) => {
+    const previousSerialized = lastSpreadsheetSerializedRef.current;
+    const nextSerialized = serializeSpreadsheetContent(normalized);
+
+    if (nextSerialized === previousSerialized) {
+      return;
+    }
+
+    spreadsheetDraftRef.current = normalized;
+    setSpreadsheetData(normalized);
+
+    const hadContent = hasSpreadsheetCellContent(previousSerialized);
+    const hasContentNow = hasSpreadsheetCellContent(nextSerialized);
+    if (hadContent !== hasContentNow) {
+      onUpdate({
+        ...note,
+        title: titleRef.current,
+        content: nextSerialized,
+      });
+    }
+
+    if (spreadsheetSaveTimeoutRef.current) {
+      clearTimeout(spreadsheetSaveTimeoutRef.current);
+    }
+
+    spreadsheetSaveTimeoutRef.current = setTimeout(() => {
+      if (nextSerialized === lastSpreadsheetSerializedRef.current) {
+        return;
+      }
+
+      lastSpreadsheetSerializedRef.current = nextSerialized;
+      void saveNoteRef.current(titleRef.current, nextSerialized, {
+        skipParentUpdate: true,
+      });
+    }, 1200);
+  }, [note, onUpdate]);
+
+  const applyFormatToActiveSpreadsheetCell = useCallback((marker: "**" | "//" | "__") => {
+    if (!activeSpreadsheetCell) {
+      return;
+    }
+
+    const row = activeSpreadsheetCell.row;
+    const column = activeSpreadsheetCell.column;
+    const source = spreadsheetDraftRef.current.length > 0 ? spreadsheetDraftRef.current : spreadsheetData;
+    const base = normalizeSpreadsheetData(source.map((r) => [...r]));
+    const currentValue = base[row]?.[column] ?? "";
+    const formatted = applySheetInlineFormat(currentValue, 0, currentValue.length, marker);
+
+    if (!base[row]) {
+      base[row] = [];
+    }
+    base[row][column] = formatted.nextValue;
+    queueSpreadsheetSave(base);
+  }, [activeSpreadsheetCell, queueSpreadsheetSave, spreadsheetData]);
 
   const setChatMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
     setAllChatMessages(prev => {
@@ -1263,44 +1320,32 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                   data={spreadsheetMatrix}
                   DataViewer={SheetDataViewer}
                   DataEditor={SheetDataEditor}
+                  onActivate={(active) => {
+                    setActiveSpreadsheetCell(active);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.target instanceof HTMLInputElement) {
+                      return;
+                    }
+
+                    const isMeta = event.ctrlKey || event.metaKey;
+                    if (!isMeta) {
+                      return;
+                    }
+
+                    const key = event.key.toLowerCase();
+                    if (key === "b" || key === "i" || key === "u") {
+                      event.preventDefault();
+                      const marker = key === "b" ? "**" : key === "i" ? "//" : "__";
+                      applyFormatToActiveSpreadsheetCell(marker);
+                    }
+                  }}
                   onChange={(nextData) => {
                     const source = nextData ?? [];
                     const normalized = normalizeSpreadsheetData(
                       source.map((row) => row.map((cell) => cell?.value ?? ""))
                     );
-
-                    spreadsheetDraftRef.current = normalized;
-                    setSpreadsheetData(normalized);
-
-                    if (spreadsheetSaveTimeoutRef.current) {
-                      clearTimeout(spreadsheetSaveTimeoutRef.current);
-                    }
-
-                    spreadsheetSaveTimeoutRef.current = setTimeout(() => {
-                      const serialized = serializeSpreadsheetContent(spreadsheetDraftRef.current);
-                      const previousSerialized = lastSpreadsheetSerializedRef.current;
-
-                      if (serialized === previousSerialized) {
-                        return;
-                      }
-
-                      const hadContent = hasSpreadsheetCellContent(previousSerialized);
-                      const hasContentNow = hasSpreadsheetCellContent(serialized);
-
-                      lastSpreadsheetSerializedRef.current = serialized;
-
-                      if (hadContent !== hasContentNow) {
-                        onUpdate({
-                          ...note,
-                          title: titleRef.current,
-                          content: serialized,
-                        });
-                      }
-
-                      void saveNoteRef.current(titleRef.current, serialized, {
-                        skipParentUpdate: true,
-                      });
-                    }, 1200);
+                    queueSpreadsheetSave(normalized);
                   }}
                 />
               </div>
