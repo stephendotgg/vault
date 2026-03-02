@@ -12,7 +12,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Spreadsheet from "react-spreadsheet";
-import type { Matrix } from "react-spreadsheet";
+import type { Matrix, DataEditorProps, DataViewerProps } from "react-spreadsheet";
 import ReactMarkdown from "react-markdown";
 import { AutoCorrect } from "@/app/extensions/AutoCorrect";
 import { Note } from "@/types/models";
@@ -25,6 +25,117 @@ const DEFAULT_SPREADSHEET_ROWS = 30;
 const DEFAULT_SPREADSHEET_COLS = 12;
 
 type SpreadsheetCell = { value: string };
+
+function applySheetInlineFormat(
+  value: string,
+  selectionStart: number,
+  selectionEnd: number,
+  marker: "**" | "//" | "__"
+): { nextValue: string; nextSelectionStart: number; nextSelectionEnd: number } {
+  const start = Math.max(0, Math.min(selectionStart, selectionEnd));
+  const end = Math.max(selectionStart, selectionEnd);
+  const selected = value.slice(start, end);
+  const wrapped = `${marker}${selected}${marker}`;
+  const nextValue = `${value.slice(0, start)}${wrapped}${value.slice(end)}`;
+  const cursorStart = start + marker.length;
+  const cursorEnd = cursorStart + selected.length;
+
+  return {
+    nextValue,
+    nextSelectionStart: cursorStart,
+    nextSelectionEnd: cursorEnd,
+  };
+}
+
+function renderSheetInlineFormatting(value: string): React.ReactNode[] {
+  const tokenRegex = /(\*\*[^*]+\*\*|\/\/[^/]+\/\/|__[^_]+__)/g;
+  const output: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let tokenIndex = 0;
+
+  for (const match of value.matchAll(tokenRegex)) {
+    const matched = match[0];
+    const index = match.index ?? 0;
+
+    if (index > lastIndex) {
+      output.push(value.slice(lastIndex, index));
+    }
+
+    if (matched.startsWith("**") && matched.endsWith("**")) {
+      output.push(<strong key={`b-${tokenIndex++}`}>{matched.slice(2, -2)}</strong>);
+    } else if (matched.startsWith("//") && matched.endsWith("//")) {
+      output.push(<em key={`i-${tokenIndex++}`}>{matched.slice(2, -2)}</em>);
+    } else if (matched.startsWith("__") && matched.endsWith("__")) {
+      output.push(<u key={`u-${tokenIndex++}`}>{matched.slice(2, -2)}</u>);
+    }
+
+    lastIndex = index + matched.length;
+  }
+
+  if (lastIndex < value.length) {
+    output.push(value.slice(lastIndex));
+  }
+
+  return output.length > 0 ? output : [value];
+}
+
+function SheetDataViewer({ cell, evaluatedCell }: DataViewerProps<SpreadsheetCell>) {
+  const rawValue = evaluatedCell?.value ?? cell?.value ?? "";
+  const value = typeof rawValue === "string" ? rawValue : String(rawValue);
+
+  return (
+    <span className="Spreadsheet__data-viewer">
+      {renderSheetInlineFormatting(value)}
+    </span>
+  );
+}
+
+function SheetDataEditor({ cell, onChange, exitEditMode }: DataEditorProps<SpreadsheetCell>) {
+  const handleEditorChange = (nextValue: string) => {
+    onChange({ value: nextValue });
+  };
+
+  const value = cell?.value ?? "";
+
+  return (
+    <div className="Spreadsheet__data-editor">
+      <input
+        value={value}
+        onChange={(e) => handleEditorChange(e.target.value)}
+        onKeyDown={(e) => {
+          const isMeta = e.ctrlKey || e.metaKey;
+          if (isMeta && (e.key === "b" || e.key === "B" || e.key === "i" || e.key === "I" || e.key === "u" || e.key === "U")) {
+            e.preventDefault();
+
+            const marker = e.key.toLowerCase() === "b" ? "**" : e.key.toLowerCase() === "i" ? "//" : "__";
+            const target = e.currentTarget;
+            const selectionStart = target.selectionStart ?? 0;
+            const selectionEnd = target.selectionEnd ?? selectionStart;
+            const formatted = applySheetInlineFormat(value, selectionStart, selectionEnd, marker);
+
+            handleEditorChange(formatted.nextValue);
+
+            requestAnimationFrame(() => {
+              target.setSelectionRange(formatted.nextSelectionStart, formatted.nextSelectionEnd);
+            });
+            return;
+          }
+
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            exitEditMode();
+          }
+
+          if (e.key === "Escape") {
+            e.preventDefault();
+            exitEditMode();
+          }
+        }}
+        autoFocus
+      />
+    </div>
+  );
+}
 
 function createDefaultSpreadsheetData(rows = DEFAULT_SPREADSHEET_ROWS, cols = DEFAULT_SPREADSHEET_COLS): string[][] {
   return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ""));
@@ -1150,6 +1261,8 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
               <div className="sheet-note-grid flex-1 overflow-auto bg-[#111111]">
                 <Spreadsheet
                   data={spreadsheetMatrix}
+                  DataViewer={SheetDataViewer}
+                  DataEditor={SheetDataEditor}
                   onChange={(nextData) => {
                     const source = nextData ?? [];
                     const normalized = normalizeSpreadsheetData(
@@ -1165,13 +1278,26 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
                     spreadsheetSaveTimeoutRef.current = setTimeout(() => {
                       const serialized = serializeSpreadsheetContent(spreadsheetDraftRef.current);
-                      if (serialized === lastSpreadsheetSerializedRef.current) {
+                      const previousSerialized = lastSpreadsheetSerializedRef.current;
+
+                      if (serialized === previousSerialized) {
                         return;
                       }
 
+                      const hadContent = hasSpreadsheetCellContent(previousSerialized);
+                      const hasContentNow = hasSpreadsheetCellContent(serialized);
+
                       lastSpreadsheetSerializedRef.current = serialized;
+
+                      if (hadContent !== hasContentNow) {
+                        onUpdate({
+                          ...note,
+                          title: titleRef.current,
+                          content: serialized,
+                        });
+                      }
+
                       void saveNoteRef.current(titleRef.current, serialized, {
-                        silent: true,
                         skipParentUpdate: true,
                       });
                     }, 1200);

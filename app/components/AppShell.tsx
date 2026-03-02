@@ -290,14 +290,6 @@ export function AppShell() {
     );
   };
 
-  // Delete note
-  const handleDeleteNote = (id: string) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
-    if (selectedNoteId === id) {
-      setSelectedNoteId(null);
-    }
-  };
-
   // Archive note (hide without deleting) - if note is empty, delete instead
   const handleArchiveNote = async (id: string) => {
     const note = notes.find((n) => n.id === id);
