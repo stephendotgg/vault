@@ -219,7 +219,16 @@ function SheetDataViewer({ cell, evaluatedCell }: DataViewerProps<SpreadsheetCel
   );
 }
 
-function SheetDataEditor({ cell, onChange, exitEditMode }: DataEditorProps<SpreadsheetCell>) {
+function SheetDataEditor({
+  cell,
+  onChange,
+  exitEditMode,
+  row,
+  column,
+  onMoveToNextCell,
+}: DataEditorProps<SpreadsheetCell> & {
+  onMoveToNextCell?: (point: Point) => void;
+}) {
   const handleEditorChange = (nextValue: string) => {
     onChange({ value: nextValue });
   };
@@ -253,6 +262,7 @@ function SheetDataEditor({ cell, onChange, exitEditMode }: DataEditorProps<Sprea
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             exitEditMode();
+            onMoveToNextCell?.({ row, column });
           }
 
           if (e.key === "Escape") {
@@ -541,6 +551,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     parseSpreadsheetContent(note.content || "")
   );
   const [activeSpreadsheetCell, setActiveSpreadsheetCell] = useState<Point | null>(null);
+  const spreadsheetRef = useRef<{ activate: (point: Point) => void } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -644,6 +655,29 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     base[row][column] = formatted.nextValue;
     queueSpreadsheetSave(base);
   }, [activeSpreadsheetCell, queueSpreadsheetSave, spreadsheetData]);
+
+  const moveToNextSpreadsheetCell = useCallback((fromPoint?: Point | null) => {
+    const active = fromPoint ?? activeSpreadsheetCell;
+    if (!active) {
+      return;
+    }
+
+    const lastRow = Math.max(spreadsheetData.length - 1, 0);
+    const nextRow = Math.min(active.row + 1, lastRow);
+    const nextPoint: Point = { row: nextRow, column: active.column };
+
+    setActiveSpreadsheetCell(nextPoint);
+    requestAnimationFrame(() => {
+      spreadsheetRef.current?.activate(nextPoint);
+    });
+  }, [activeSpreadsheetCell, spreadsheetData.length]);
+
+  const spreadsheetDataEditor = useCallback((props: DataEditorProps<SpreadsheetCell>) => (
+    <SheetDataEditor
+      {...props}
+      onMoveToNextCell={(point) => moveToNextSpreadsheetCell(point)}
+    />
+  ), [moveToNextSpreadsheetCell]);
 
   const setChatMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
     setAllChatMessages(prev => {
@@ -1446,14 +1480,21 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
             {isSpreadsheetNote ? (
               <div className="sheet-note-grid flex-1 overflow-auto bg-[#111111]">
                 <Spreadsheet
+                  ref={spreadsheetRef as unknown as React.Ref<unknown>}
                   data={spreadsheetMatrix}
                   DataViewer={SheetDataViewer}
-                  DataEditor={SheetDataEditor}
+                  DataEditor={spreadsheetDataEditor}
                   onActivate={(active) => {
                     setActiveSpreadsheetCell(active);
                   }}
                   onKeyDown={(event) => {
                     if (event.target instanceof HTMLInputElement) {
+                      return;
+                    }
+
+                    if (event.key === "Enter" && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+                      event.preventDefault();
+                      moveToNextSpreadsheetCell();
                       return;
                     }
 
