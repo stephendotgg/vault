@@ -621,6 +621,11 @@ a {
   color: #f0f0f0 !important;
 }
 
+.sheet-note-grid .Spreadsheet .Spreadsheet__data-viewer a {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
 :root[data-theme="light"] .sheet-note-grid,
 :root[data-theme="light"] .sheet-note-grid .Spreadsheet,
 :root[data-theme="light"] .sheet-note-grid .Spreadsheet table,

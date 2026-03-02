@@ -30,7 +30,7 @@ function toggleSheetInlineFormat(
   value: string,
   selectionStart: number,
   selectionEnd: number,
-  marker: "**" | "//" | "__"
+  marker: "**" | "*" | "__"
 ): { nextValue: string; nextSelectionStart: number; nextSelectionEnd: number } {
   const start = Math.max(0, Math.min(selectionStart, selectionEnd));
   const end = Math.max(selectionStart, selectionEnd);
@@ -120,10 +120,10 @@ function renderSheetInlineFormatting(value: string): React.ReactNode[] {
       continue;
     }
 
-    if (value.startsWith("//", index)) {
+    if (value.startsWith("*", index) && !value.startsWith("**", index)) {
       flush();
       state = { ...state, italic: !state.italic };
-      index += 2;
+      index += 1;
       continue;
     }
 
@@ -145,7 +145,40 @@ function renderSheetInlineFormatting(value: string): React.ReactNode[] {
   }
 
   return segments.map((segment, segmentIndex) => {
-    let node: React.ReactNode = segment.text;
+    const linkifiedNodes: React.ReactNode[] = [];
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    let cursor = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = urlRegex.exec(segment.text)) !== null) {
+      const matchedUrl = match[0];
+      const matchIndex = match.index;
+
+      if (matchIndex > cursor) {
+        linkifiedNodes.push(segment.text.slice(cursor, matchIndex));
+      }
+
+      linkifiedNodes.push(
+        <a
+          key={`url-${segmentIndex}-${matchIndex}`}
+          href={matchedUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 underline"
+        >
+          {matchedUrl}
+        </a>
+      );
+
+      cursor = matchIndex + matchedUrl.length;
+    }
+
+    if (cursor < segment.text.length) {
+      linkifiedNodes.push(segment.text.slice(cursor));
+    }
+
+    const baseNode: React.ReactNode = linkifiedNodes.length > 0 ? linkifiedNodes : segment.text;
+    let node: React.ReactNode = baseNode;
 
     if (segment.state.bold) {
       node = <strong key={`b-${segmentIndex}`}>{node}</strong>;
@@ -189,7 +222,7 @@ function SheetDataEditor({ cell, onChange, exitEditMode }: DataEditorProps<Sprea
           if (isMeta && (e.key === "b" || e.key === "B" || e.key === "i" || e.key === "I" || e.key === "u" || e.key === "U")) {
             e.preventDefault();
 
-            const marker = e.key.toLowerCase() === "b" ? "**" : e.key.toLowerCase() === "i" ? "//" : "__";
+            const marker = e.key.toLowerCase() === "b" ? "**" : e.key.toLowerCase() === "i" ? "*" : "__";
             const target = e.currentTarget;
             const selectionStart = target.selectionStart ?? 0;
             const selectionEnd = target.selectionEnd ?? selectionStart;
@@ -579,7 +612,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     }, 1200);
   }, [note, onUpdate]);
 
-  const applyFormatToActiveSpreadsheetCell = useCallback((marker: "**" | "//" | "__") => {
+  const applyFormatToActiveSpreadsheetCell = useCallback((marker: "**" | "*" | "__") => {
     if (!activeSpreadsheetCell) {
       return;
     }
@@ -1418,7 +1451,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                     const key = event.key.toLowerCase();
                     if (key === "b" || key === "i" || key === "u") {
                       event.preventDefault();
-                      const marker = key === "b" ? "**" : key === "i" ? "//" : "__";
+                      const marker = key === "b" ? "**" : key === "i" ? "*" : "__";
                       applyFormatToActiveSpreadsheetCell(marker);
                     }
                   }}
