@@ -2,6 +2,11 @@ const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut, desktopCaptu
 const path = require("path");
 const { execFile } = require("child_process");
 const fs = require("fs");
+const speechSdk = require("microsoft-cognitiveservices-speech-sdk");
+
+if (process.platform === "win32") {
+  app.setAppUserModelId("com.vault.app");
+}
 
 // Set NODE_ENV early to prevent TypeScript installation attempts
 const isDev = !app.isPackaged;
@@ -46,8 +51,14 @@ let callsAbsentPollCount = 0;
 let callsTranscriberWindow = null;
 let callsLiveNoteId = null;
 let callsLiveContent = "";
+let callsLiveTranscriptHtml = "";
+let callsLiveTranscriptText = "";
+let callsLiveSummaryHtml = "";
 let callsChunkQueue = Promise.resolve();
 let callsChunkCounter = 0;
+let callsSpeechRecognizer = null;
+let callsSpeechPushStream = null;
+let callsSpeechRunning = false;
 const CALLS_CHUNK_MS = 3000;
 const CALLS_POLL_MS = 5000;
 const CALLS_ABSENT_POLLS_TO_STOP = 1;
@@ -351,7 +362,16 @@ async function ensureCallsCategory() {
   }
 }
 
-function formatCallTitle(startedAt) {
+function formatCallTitle(startedAt, meetingTitle = "") {
+  const cleanedMeetingTitle = String(meetingTitle || "")
+    .replace(/\s*[-|–—]\s*Microsoft Teams( classic)?$/i, "")
+    .replace(/\s*\|\s*Teams$/i, "")
+    .trim();
+
+  if (cleanedMeetingTitle) {
+    return cleanedMeetingTitle.slice(0, 120);
+  }
+
   const yyyy = startedAt.getFullYear();
   const mm = String(startedAt.getMonth() + 1).padStart(2, "0");
   const dd = String(startedAt.getDate()).padStart(2, "0");
@@ -360,7 +380,22 @@ function formatCallTitle(startedAt) {
   return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 }
 
-async function createLiveCallNote(startedAt) {
+function buildCallNoteContent({ summaryHtml = "", transcriptHtml = "" } = {}) {
+  const summarySection = summaryHtml
+    ? `<p><u><strong>Summary & action items</strong></u></p>${summaryHtml}`
+    : "";
+
+  const transcriptHeading = "<p><u><strong>Transcript</strong></u></p>";
+  const transcriptBody = transcriptHtml || "<p><br></p>";
+
+  if (!summarySection) {
+    return `${transcriptHeading}${transcriptBody}`;
+  }
+
+  return `${summarySection}<p><br></p>${transcriptHeading}${transcriptBody}`;
+}
+
+async function createLiveCallNote(startedAt, meetingTitle = "") {
   const callsParentId = await ensureCallsCategory();
   const created = await apiRequest("/api/notes", {
     method: "POST",
@@ -368,8 +403,8 @@ async function createLiveCallNote(startedAt) {
   });
 
   const noteId = created.id;
-  const title = formatCallTitle(startedAt);
-  const initialContent = "<p>Live transcription started…</p>";
+  const title = formatCallTitle(startedAt, meetingTitle);
+  const initialContent = buildCallNoteContent({ summaryHtml: "", transcriptHtml: "" });
 
   const updated = await apiRequest(`/api/notes/${noteId}`, {
     method: "PATCH",
@@ -383,9 +418,128 @@ async function createLiveCallNote(startedAt) {
   });
 
   callsLiveContent = initialContent;
+  callsLiveSummaryHtml = "";
+  callsLiveTranscriptHtml = "";
+  callsLiveTranscriptText = "";
   callsLog("Created live call note", { noteId, title, parentId: callsParentId });
   notifyCallsChanged();
   return updated;
+}
+
+async function generateCallSummaryMarkdown(transcriptText) {
+  const apiKey = await getOpenRouterApiKeyFromMainWindow();
+  if (!apiKey) {
+    return "";
+  }
+
+  const prompt = [
+    "You summarize team call transcripts.",
+    "Return concise output in markdown with exactly these sections:",
+    "Summary:",
+    "- bullet points",
+    "",
+    "Action items:",
+    "- bullet points",
+    "",
+    "Rules:",
+    "- Keep it brief and practical.",
+    "- Maximum 4 bullets total across both sections.",
+    "- Do not invent details.",
+    "- If no action items exist, include one bullet saying none identified.",
+    "",
+    "Transcript:",
+    transcriptText.slice(0, 12000),
+  ].join("\n");
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://vault.app",
+      "X-Title": "Vault",
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 260,
+      temperature: 0.2,
+    }),
+  });
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    throw new Error(details || `OpenRouter summary request failed (${response.status})`);
+  }
+
+  const data = await response.json();
+  return (data?.choices?.[0]?.message?.content || "").trim();
+}
+
+async function finalizeCallSummary(noteId, transcriptHtml, transcriptText) {
+  if (!noteId || !transcriptText.trim()) {
+    return;
+  }
+
+  try {
+    const summaryMarkdown = await generateCallSummaryMarkdown(transcriptText);
+    if (!summaryMarkdown) {
+      callsLog("Skipped call summary generation (missing API key or empty response)", { noteId });
+      return;
+    }
+
+    const summaryHtml = toNoteHtml(summaryMarkdown);
+    const nextContent = buildCallNoteContent({ summaryHtml, transcriptHtml });
+
+    const updated = await apiRequest(`/api/notes/${noteId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ content: nextContent }),
+    });
+
+    callsLog("Saved call summary/action items", {
+      noteId,
+      summaryLength: summaryMarkdown.length,
+    });
+
+    if (callsLiveNoteId === noteId) {
+      callsLiveSummaryHtml = summaryHtml;
+      callsLiveContent = updated?.content || nextContent;
+    }
+
+    notifyCallsChanged();
+
+    if (Notification.isSupported()) {
+      try {
+        const notification = new Notification({
+          title: "Call summary ready",
+          body: "Summary and action items from the Teams call are ready.",
+          icon: getNotificationIconPath(),
+        });
+
+        notification.on("click", () => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            if (mainWindow.isMinimized()) {
+              mainWindow.restore();
+            }
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        });
+
+        notification.show();
+      } catch (error) {
+        callsLog("Failed to show summary notification", {
+          noteId,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  } catch (error) {
+    callsLog("Call summary generation failed", {
+      noteId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 async function appendLiveCallTranscript(text) {
@@ -400,7 +554,15 @@ async function appendLiveCallTranscript(text) {
   const textToAppend = text.trim();
 
   const nextChunk = toNoteHtml(textToAppend);
-  const merged = `${callsLiveContent || ""}${nextChunk}`;
+  callsLiveTranscriptHtml = `${callsLiveTranscriptHtml || ""}${nextChunk}`;
+  callsLiveTranscriptText = callsLiveTranscriptText
+    ? `${callsLiveTranscriptText}\n${textToAppend}`
+    : textToAppend;
+
+  const merged = buildCallNoteContent({
+    summaryHtml: callsLiveSummaryHtml,
+    transcriptHtml: callsLiveTranscriptHtml,
+  });
 
   const updated = await apiRequest(`/api/notes/${callsLiveNoteId}`, {
     method: "PATCH",
@@ -416,6 +578,148 @@ async function appendLiveCallTranscript(text) {
     totalContentLength: callsLiveContent.length,
   });
   notifyCallsChanged();
+}
+
+function decodeWavChunkToPcm(base64Wav) {
+  const wavBuffer = Buffer.from(base64Wav, "base64");
+  const view = new DataView(wavBuffer.buffer, wavBuffer.byteOffset, wavBuffer.byteLength);
+
+  const numChannels = view.getUint16(22, true);
+  const sampleRate = view.getUint32(24, true);
+  const bitsPerSample = view.getUint16(34, true);
+  const dataSize = view.getUint32(40, true);
+  const dataOffset = 44;
+
+  if (bitsPerSample !== 16 || numChannels !== 1 || sampleRate !== 16000) {
+    throw new Error(`Unexpected WAV format (channels=${numChannels}, sampleRate=${sampleRate}, bits=${bitsPerSample})`);
+  }
+
+  const end = Math.min(dataOffset + dataSize, wavBuffer.length);
+  return wavBuffer.subarray(dataOffset, end);
+}
+
+function stopCallsSpeechRecognizer() {
+  return new Promise((resolve) => {
+    const recognizer = callsSpeechRecognizer;
+    const pushStream = callsSpeechPushStream;
+
+    callsSpeechRecognizer = null;
+    callsSpeechPushStream = null;
+    callsSpeechRunning = false;
+
+    if (pushStream) {
+      try {
+        pushStream.close();
+      } catch {
+        // ignore close errors
+      }
+    }
+
+    if (!recognizer) {
+      resolve();
+      return;
+    }
+
+    try {
+      recognizer.stopContinuousRecognitionAsync(
+        () => {
+          try {
+            recognizer.close();
+          } catch {
+            // ignore close errors
+          }
+          callsLog("Stopped Azure continuous recognizer");
+          resolve();
+        },
+        (error) => {
+          callsLog("Failed stopping Azure continuous recognizer", {
+            message: error instanceof Error ? error.message : String(error),
+          });
+          try {
+            recognizer.close();
+          } catch {
+            // ignore close errors
+          }
+          resolve();
+        }
+      );
+    } catch (error) {
+      callsLog("Recognizer stop threw", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      try {
+        recognizer.close();
+      } catch {
+        // ignore close errors
+      }
+      resolve();
+    }
+  });
+}
+
+async function startCallsSpeechRecognizer() {
+  await stopCallsSpeechRecognizer();
+
+  const config = await getAzureSpeechConfigFromMainWindow();
+  if (!config.key || !config.region) {
+    throw new Error("Azure Speech key/region missing. Configure them in Settings > API Keys.");
+  }
+
+  const speechConfig = speechSdk.SpeechConfig.fromSubscription(config.key, config.region);
+  speechConfig.speechRecognitionLanguage = config.language || "en-US";
+
+  const streamFormat = speechSdk.AudioStreamFormat.getWaveFormatPCM(16000, 16, 1);
+  const pushStream = speechSdk.AudioInputStream.createPushStream(streamFormat);
+  const audioConfig = speechSdk.AudioConfig.fromStreamInput(pushStream);
+  const recognizer = new speechSdk.SpeechRecognizer(speechConfig, audioConfig);
+
+  recognizer.recognized = (_sender, event) => {
+    if (event.result.reason !== speechSdk.ResultReason.RecognizedSpeech) {
+      return;
+    }
+
+    const text = (event.result.text || "").trim();
+    if (!text) {
+      return;
+    }
+
+    callsChunkQueue = callsChunkQueue
+      .then(() => appendLiveCallTranscript(text))
+      .catch((error) => {
+        callsLog("Failed appending recognized speech", {
+          message: error instanceof Error ? error.message : String(error),
+          preview: text.slice(0, 80),
+        });
+      });
+  };
+
+  recognizer.canceled = (_sender, event) => {
+    callsLog("Azure recognizer canceled", {
+      reason: event.reason,
+      errorCode: event.errorCode,
+      errorDetails: event.errorDetails,
+    });
+  };
+
+  recognizer.sessionStarted = () => {
+    callsLog("Azure recognizer session started");
+  };
+
+  recognizer.sessionStopped = () => {
+    callsLog("Azure recognizer session stopped");
+  };
+
+  await new Promise((resolve, reject) => {
+    recognizer.startContinuousRecognitionAsync(resolve, reject);
+  });
+
+  callsSpeechRecognizer = recognizer;
+  callsSpeechPushStream = pushStream;
+  callsSpeechRunning = true;
+  callsLog("Started Azure continuous recognizer", {
+    region: config.region,
+    language: config.language || "en-US",
+  });
 }
 
 function runPowerShell(command) {
@@ -437,13 +741,46 @@ function runPowerShell(command) {
 
 async function isTeamsLikelyInCall() {
   try {
-    const output = await runPowerShell("$procs = Get-Process -Name 'ms-teams','Teams' -ErrorAction SilentlyContinue; if (-not $procs) { '0'; exit }; $inCall = $false; foreach ($p in $procs) { if ($p.MainWindowTitle -match '(?i)(meeting|call)') { $inCall = $true; break } }; if ($inCall) { '1' } else { '0' }");
-    callsLog("Teams call probe output", output);
-    return output === "1";
+    const output = await runPowerShell("$procs = Get-Process -Name 'ms-teams','Teams' -ErrorAction SilentlyContinue; if (-not $procs) { '{\"isActive\":false,\"title\":\"\"}'; exit }; $title=''; $inCall=$false; foreach ($p in $procs) { $t = [string]$p.MainWindowTitle; if ($t -match '(?i)(meeting|call)') { $inCall=$true; $title=$t; break } }; @{ isActive = $inCall; title = $title } | ConvertTo-Json -Compress");
+
+    let parsed = null;
+    try {
+      parsed = JSON.parse(output);
+    } catch {
+      parsed = null;
+    }
+
+    const isActive = Boolean(parsed?.isActive);
+    const title = typeof parsed?.title === "string" ? parsed.title : "";
+
+    callsLog("Teams call probe output", { isActive, title });
+    return { isActive, title };
   } catch {
     callsLog("Teams call probe failed");
-    return false;
+    return { isActive: false, title: "" };
   }
+}
+
+function getNotificationIconPath() {
+  const candidates = [
+    path.join(__dirname, "..", "app", "favicon.ico"),
+    path.join(process.resourcesPath || "", "app", "app", "favicon.ico"),
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+    try {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    } catch {
+      // ignore lookup errors
+    }
+  }
+
+  return undefined;
 }
 
 async function createCallsTranscriberWindow() {
@@ -507,24 +844,27 @@ async function createCallsTranscriberWindow() {
   return window;
 }
 
-async function startLiveCallTranscription() {
+async function startLiveCallTranscription(meetingTitle = "") {
   if (callsLiveNoteId) {
     callsLog("Start ignored: live note already active", callsLiveNoteId);
     return;
   }
 
   const startedAt = new Date();
-  const note = await createLiveCallNote(startedAt);
+  const note = await createLiveCallNote(startedAt, meetingTitle);
   callsLiveNoteId = note.id;
   callsChunkQueue = Promise.resolve();
   callsChunkCounter = 0;
   callsLog("Starting live call transcription", { noteId: callsLiveNoteId });
+
+  await startCallsSpeechRecognizer();
 
   if (Notification.isSupported()) {
     try {
       const notification = new Notification({
         title: "Teams call detected",
         body: "Click to open Quick Note for this call.",
+        icon: getNotificationIconPath(),
       });
 
       notification.on("click", () => {
@@ -550,6 +890,8 @@ async function startLiveCallTranscription() {
 
 function stopLiveCallTranscription() {
   const noteIdToReset = callsLiveNoteId;
+  const transcriptHtmlToFinalize = callsLiveTranscriptHtml;
+  const transcriptTextToFinalize = callsLiveTranscriptText;
   callsLog("Stopping live call transcription", { noteId: noteIdToReset, chunksProcessed: callsChunkCounter });
   if (callsTranscriberWindow && !callsTranscriberWindow.isDestroyed()) {
     callsTranscriberWindow.webContents.send("calls-transcriber-stop");
@@ -574,7 +916,15 @@ function stopLiveCallTranscription() {
 
   callsLiveNoteId = null;
   callsLiveContent = "";
+  callsLiveSummaryHtml = "";
+  callsLiveTranscriptHtml = "";
+  callsLiveTranscriptText = "";
   callsChunkQueue = Promise.resolve();
+  void stopCallsSpeechRecognizer();
+
+  if (noteIdToReset) {
+    void finalizeCallSummary(noteIdToReset, transcriptHtmlToFinalize, transcriptTextToFinalize);
+  }
 }
 
 async function transcribeWavChunk(base64Wav) {
@@ -618,13 +968,13 @@ async function pollTeamsCallState() {
   callsMonitorRunning = true;
 
   try {
-    const isActive = await isTeamsLikelyInCall();
-    callsLog("Poll teams state", { isActive, hasLiveNote: Boolean(callsLiveNoteId), absentCount: callsAbsentPollCount });
+    const teamsState = await isTeamsLikelyInCall();
+    callsLog("Poll teams state", { ...teamsState, hasLiveNote: Boolean(callsLiveNoteId), absentCount: callsAbsentPollCount });
 
-    if (isActive) {
+    if (teamsState.isActive) {
       callsAbsentPollCount = 0;
       if (!callsLiveNoteId) {
-        await startLiveCallTranscription();
+        await startLiveCallTranscription(teamsState.title);
       }
       return;
     }
@@ -1363,22 +1713,26 @@ ipcMain.on("calls-transcriber-audio-chunk", (event, payload) => {
   const chunkId = callsChunkCounter;
   callsLog("Received transcriber chunk", { chunkId, base64Length: base64Wav.length, noteId: callsLiveNoteId });
 
-  callsChunkQueue = callsChunkQueue
-    .then(async () => {
-      callsLog("Processing chunk", { chunkId });
-      const text = await transcribeWavChunk(base64Wav);
-      if (text) {
-        await appendLiveCallTranscript(text);
-      } else {
-        callsLog("Chunk produced empty transcript", { chunkId });
-      }
-    })
-    .catch((error) => {
-      callsLog("Chunk processing failed", {
-        chunkId,
-        message: error instanceof Error ? error.message : String(error),
-      });
+  try {
+    if (!callsSpeechPushStream || !callsSpeechRunning) {
+      callsLog("Dropped chunk: recognizer not ready", { chunkId });
+      return;
+    }
+
+    const pcmBuffer = decodeWavChunkToPcm(base64Wav);
+    const arrayBuffer = pcmBuffer.buffer.slice(
+      pcmBuffer.byteOffset,
+      pcmBuffer.byteOffset + pcmBuffer.byteLength
+    );
+
+    callsSpeechPushStream.write(arrayBuffer);
+    callsLog("Wrote PCM chunk to Azure recognizer", { chunkId, bytes: pcmBuffer.byteLength });
+  } catch (error) {
+    callsLog("Failed writing chunk to recognizer", {
+      chunkId,
+      message: error instanceof Error ? error.message : String(error),
     });
+  }
 
   const senderWindow = BrowserWindow.fromWebContents(event.sender);
   if (senderWindow && !senderWindow.isDestroyed()) {
@@ -1564,6 +1918,7 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   globalShortcut.unregisterAll();
   stopCallsMonitor();
+  void stopCallsSpeechRecognizer();
   if (server) {
     server.close();
   }
