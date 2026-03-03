@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { NodeSelection, TextSelection } from "@tiptap/pm/state";
 import { EditorView } from "@tiptap/pm/view";
@@ -12,7 +12,17 @@ import TaskItem from "@tiptap/extension-task-item";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Spreadsheet from "react-spreadsheet";
-import type { Matrix, DataEditorProps, DataViewerProps, Point } from "react-spreadsheet";
+import type {
+  Matrix,
+  DataEditorProps,
+  DataViewerProps,
+  Point,
+  Selection,
+  ColumnIndicatorProps,
+  RowIndicatorProps,
+  RowProps,
+} from "react-spreadsheet";
+import { EmptySelection } from "react-spreadsheet";
 import ReactMarkdown from "react-markdown";
 import { AutoCorrect } from "@/app/extensions/AutoCorrect";
 import { Note } from "@/types/models";
@@ -23,8 +33,34 @@ const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
 const SPREADSHEET_CONTENT_PREFIX = "vault:sheet:v1:";
 const DEFAULT_SPREADSHEET_ROWS = 30;
 const DEFAULT_SPREADSHEET_COLS = 12;
+const DEFAULT_SPREADSHEET_COLUMN_WIDTH = 104;
+const DEFAULT_SPREADSHEET_ROW_HEIGHT = 30;
+const MIN_SPREADSHEET_COLUMN_WIDTH = 56;
+const MIN_SPREADSHEET_ROW_HEIGHT = 24;
 
 type SpreadsheetCell = { value: string };
+
+function spreadsheetColumnIndexToLabel(column: number): string {
+  let label = "";
+  let index = column;
+  while (index >= 0) {
+    label = String.fromCharCode(65 + (index % 26)) + label;
+    index = Math.floor(index / 26) - 1;
+  }
+  return label;
+}
+
+function ensureSize(values: number[], targetLength: number, fallback: number): number[] {
+  if (values.length === targetLength) {
+    return values;
+  }
+
+  if (values.length > targetLength) {
+    return values.slice(0, targetLength);
+  }
+
+  return [...values, ...Array.from({ length: targetLength - values.length }, () => fallback)];
+}
 
 function toggleSheetInlineFormat(
   value: string,
@@ -568,7 +604,20 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const [spreadsheetData, setSpreadsheetData] = useState<string[][]>(() =>
     parseSpreadsheetContent(note.content || "")
   );
+  const [spreadsheetColumnWidths, setSpreadsheetColumnWidths] = useState<number[]>(() =>
+    Array.from({ length: DEFAULT_SPREADSHEET_COLS }, () => DEFAULT_SPREADSHEET_COLUMN_WIDTH)
+  );
+  const [spreadsheetRowHeights, setSpreadsheetRowHeights] = useState<number[]>(() =>
+    Array.from({ length: DEFAULT_SPREADSHEET_ROWS }, () => DEFAULT_SPREADSHEET_ROW_HEIGHT)
+  );
   const [activeSpreadsheetCell, setActiveSpreadsheetCell] = useState<Point | null>(null);
+  const [spreadsheetSelection, setSpreadsheetSelection] = useState<Selection | undefined>(undefined);
+  const [isSpreadsheetResizing, setIsSpreadsheetResizing] = useState(false);
+  const spreadsheetResizeRef = useRef<
+    | { axis: "column"; index: number; startPosition: number; startSize: number }
+    | { axis: "row"; index: number; startPosition: number; startSize: number }
+    | null
+  >(null);
   const spreadsheetRef = useRef<{ activate: (point: Point) => void } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -702,6 +751,200 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       onNavigateCell={(point, direction) => moveSpreadsheetSelection(point, direction)}
     />
   ), [moveSpreadsheetSelection]);
+
+  const clearSpreadsheetInteractionState = useCallback(() => {
+    setSpreadsheetSelection(new EmptySelection());
+    setActiveSpreadsheetCell(null);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, []);
+
+  const beginSpreadsheetColumnResize = useCallback((column: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    clearSpreadsheetInteractionState();
+    setIsSpreadsheetResizing(true);
+
+    const baseWidth = spreadsheetColumnWidths[column] ?? DEFAULT_SPREADSHEET_COLUMN_WIDTH;
+    spreadsheetResizeRef.current = {
+      axis: "column",
+      index: column,
+      startPosition: event.clientX,
+      startSize: baseWidth,
+    };
+  }, [clearSpreadsheetInteractionState, spreadsheetColumnWidths]);
+
+  const beginSpreadsheetRowResize = useCallback((row: number, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    clearSpreadsheetInteractionState();
+    setIsSpreadsheetResizing(true);
+
+    const baseHeight = spreadsheetRowHeights[row] ?? DEFAULT_SPREADSHEET_ROW_HEIGHT;
+    spreadsheetResizeRef.current = {
+      axis: "row",
+      index: row,
+      startPosition: event.clientY,
+      startSize: baseHeight,
+    };
+  }, [clearSpreadsheetInteractionState, spreadsheetRowHeights]);
+
+  const SpreadsheetColumnIndicator = useCallback(({
+    column,
+    label,
+    selected,
+    onSelect,
+  }: ColumnIndicatorProps) => {
+    const width = spreadsheetColumnWidths[column] ?? DEFAULT_SPREADSHEET_COLUMN_WIDTH;
+
+    return (
+      <th
+        className={`Spreadsheet__header ${selected ? "Spreadsheet__header--selected" : ""} Spreadsheet__header--resizable-column`}
+        onClick={(event) => onSelect(column, event.shiftKey)}
+        tabIndex={0}
+        style={{ width, minWidth: width, maxWidth: width }}
+      >
+        <span>{label !== undefined ? label : spreadsheetColumnIndexToLabel(column)}</span>
+        <button
+          type="button"
+          aria-label={`Resize column ${column + 1}`}
+          className="Spreadsheet__resize-handle Spreadsheet__resize-handle--column"
+          onMouseDown={(event) => beginSpreadsheetColumnResize(column, event)}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        />
+      </th>
+    );
+  }, [beginSpreadsheetColumnResize, spreadsheetColumnWidths]);
+
+  const SpreadsheetRowIndicator = useCallback(({
+    row,
+    label,
+    selected,
+    onSelect,
+  }: RowIndicatorProps) => {
+    const height = spreadsheetRowHeights[row] ?? DEFAULT_SPREADSHEET_ROW_HEIGHT;
+
+    return (
+      <th
+        className={`Spreadsheet__header ${selected ? "Spreadsheet__header--selected" : ""} Spreadsheet__header--resizable-row`}
+        onClick={(event) => onSelect(row, event.shiftKey)}
+        tabIndex={0}
+        style={{ height, minHeight: height, maxHeight: height }}
+      >
+        <span>{label !== undefined ? label : row + 1}</span>
+        <button
+          type="button"
+          aria-label={`Resize row ${row + 1}`}
+          className="Spreadsheet__resize-handle Spreadsheet__resize-handle--row"
+          onMouseDown={(event) => beginSpreadsheetRowResize(row, event)}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        />
+      </th>
+    );
+  }, [beginSpreadsheetRowResize, spreadsheetRowHeights]);
+
+  const SpreadsheetRow = useCallback(({ row, children }: RowProps) => {
+    const height = spreadsheetRowHeights[row] ?? DEFAULT_SPREADSHEET_ROW_HEIGHT;
+
+    return (
+      <tr>
+        {React.Children.map(children, (child) => {
+          if (!React.isValidElement(child)) {
+            return child;
+          }
+
+          const existingStyle = ((child.props as { style?: React.CSSProperties }).style ?? {});
+          return React.cloneElement(child as React.ReactElement<{ style?: React.CSSProperties }>, {
+            style: {
+              ...existingStyle,
+              height,
+              minHeight: height,
+              maxHeight: height,
+            },
+          });
+        })}
+      </tr>
+    );
+  }, [spreadsheetRowHeights]);
+
+  const spreadsheetColumnSizeCss = useMemo(() => {
+    return spreadsheetColumnWidths
+      .map((width, index) => {
+        const columnPosition = index + 2;
+        return `.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__table tr > *:nth-child(${columnPosition}) { width: ${width}px; min-width: ${width}px; max-width: ${width}px; }`;
+      })
+      .join("\n");
+  }, [spreadsheetColumnWidths]);
+
+  useEffect(() => {
+    const columnCount = Math.max(spreadsheetData[0]?.length ?? 0, DEFAULT_SPREADSHEET_COLS);
+    const rowCount = Math.max(spreadsheetData.length, DEFAULT_SPREADSHEET_ROWS);
+
+    setSpreadsheetColumnWidths((prev) => ensureSize(prev, columnCount, DEFAULT_SPREADSHEET_COLUMN_WIDTH));
+    setSpreadsheetRowHeights((prev) => ensureSize(prev, rowCount, DEFAULT_SPREADSHEET_ROW_HEIGHT));
+  }, [spreadsheetData]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      const resizeState = spreadsheetResizeRef.current;
+      if (!resizeState) {
+        return;
+      }
+
+      if (resizeState.axis === "column") {
+        const delta = event.clientX - resizeState.startPosition;
+        const nextWidth = Math.max(MIN_SPREADSHEET_COLUMN_WIDTH, resizeState.startSize + delta);
+
+        setSpreadsheetColumnWidths((prev) => {
+          const next = [...prev];
+          next[resizeState.index] = nextWidth;
+          return next;
+        });
+        return;
+      }
+
+      const delta = event.clientY - resizeState.startPosition;
+      const nextHeight = Math.max(MIN_SPREADSHEET_ROW_HEIGHT, resizeState.startSize + delta);
+
+      setSpreadsheetRowHeights((prev) => {
+        const next = [...prev];
+        next[resizeState.index] = nextHeight;
+        return next;
+      });
+    };
+
+    const handleMouseUp = () => {
+      spreadsheetResizeRef.current = null;
+      setIsSpreadsheetResizing(false);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeSpreadsheetCell) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      spreadsheetRef.current?.activate(activeSpreadsheetCell);
+    });
+  }, [activeSpreadsheetCell, spreadsheetColumnWidths]);
 
   const setChatMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
     setAllChatMessages(prev => {
@@ -1503,12 +1746,27 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
             {isSpreadsheetNote ? (
               <div className="sheet-note-grid flex-1 overflow-auto bg-[#111111]">
+                <style>{spreadsheetColumnSizeCss}</style>
                 <Spreadsheet
                   ref={spreadsheetRef as unknown as React.Ref<unknown>}
+                  className={`vault-sheet-resizable ${isSpreadsheetResizing ? "vault-sheet-resizing" : ""}`}
                   data={spreadsheetMatrix}
+                  selected={spreadsheetSelection}
                   DataViewer={SheetDataViewer}
                   DataEditor={spreadsheetDataEditor}
+                  ColumnIndicator={SpreadsheetColumnIndicator}
+                  RowIndicator={SpreadsheetRowIndicator}
+                  Row={SpreadsheetRow}
+                  onSelect={(selection) => {
+                    if (isSpreadsheetResizing) {
+                      return;
+                    }
+                    setSpreadsheetSelection(selection);
+                  }}
                   onActivate={(active) => {
+                    if (isSpreadsheetResizing) {
+                      return;
+                    }
                     setActiveSpreadsheetCell(active);
                   }}
                   onKeyDown={(event) => {

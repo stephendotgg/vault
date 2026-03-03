@@ -604,6 +604,68 @@ a {
   font-size: 11px;
 }
 
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__header--resizable-column,
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__header--resizable-row {
+  position: relative;
+  overflow: visible !important;
+}
+
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__resize-handle {
+  position: absolute;
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  opacity: 1;
+  z-index: 2;
+}
+
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__resize-handle--column {
+  cursor: col-resize;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 100%;
+}
+
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__resize-handle--row {
+  cursor: row-resize;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 8px;
+}
+
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__resize-handle--column::before,
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__resize-handle--row::before {
+  content: "";
+  position: absolute;
+  background: #3b82f6;
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__header--resizable-column:hover .Spreadsheet__resize-handle--column::before,
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__header--resizable-row:hover .Spreadsheet__resize-handle--row::before,
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__resize-handle:focus-visible::before {
+  opacity: 1;
+}
+
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__resize-handle--column::before {
+  top: 18%;
+  bottom: 18%;
+  left: 2.5px;
+  width: 3px;
+}
+
+.sheet-note-grid .Spreadsheet.vault-sheet-resizable .Spreadsheet__resize-handle--row::before {
+  left: 18%;
+  right: 18%;
+  top: 3px;
+  height: 2px;
+}
+
 .sheet-note-grid .Spreadsheet table tr > th.Spreadsheet__header:first-child,
 .sheet-note-grid .Spreadsheet table thead th.Spreadsheet__header:first-child,
 .sheet-note-grid .Spreadsheet table tbody th.Spreadsheet__header:first-child {
@@ -644,6 +706,12 @@ a {
 .sheet-note-grid .Spreadsheet .Spreadsheet__floating-rect--selected,
 .sheet-note-grid .Spreadsheet .Spreadsheet__floating-rect--copied {
   border-color: #3b82f6 !important;
+}
+
+.sheet-note-grid .Spreadsheet.vault-sheet-resizing .Spreadsheet__active-cell,
+.sheet-note-grid .Spreadsheet.vault-sheet-resizing .Spreadsheet__floating-rect--selected,
+.sheet-note-grid .Spreadsheet.vault-sheet-resizing .Spreadsheet__floating-rect--copied {
+  display: none !important;
 }
 
 :root[data-theme="light"] .sheet-note-grid,
