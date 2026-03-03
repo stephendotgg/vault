@@ -728,7 +728,7 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-[#2f2f2f] mx-2 my-1" />
+      <div className="h-0 border-t border-[#2f2f2f] mx-2 my-1 shrink-0" />
 
       {/* Sections */}
       <div className="flex-1 overflow-auto px-2 py-2">
@@ -902,10 +902,10 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-[#2f2f2f] mx-2 my-1" />
+      <div className="h-0 border-t border-[#2f2f2f] mx-2 my-1 shrink-0" />
 
       {/* Bottom section */}
-      <div className="px-2 pt-1 pb-2">
+      <div className="px-2 py-2">
         {visibleSections.fileCleaner && (
           <button
             onClick={onOpenFileCleaner}
