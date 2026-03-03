@@ -418,6 +418,109 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+type ParsedCallNoteSections = {
+  transcriptLabel: string;
+  transcriptDate: string | null;
+  summaryItems: string[];
+  actionItems: string[];
+  transcriptLines: string[];
+};
+
+function normalizeCallLine(text: string): string {
+  return String(text || "")
+    .replace(/^[-•]\s+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseCallNoteSections(html: string): ParsedCallNoteSections {
+  if (!html || typeof window === "undefined") {
+    return {
+      transcriptLabel: "Transcript",
+      transcriptDate: null,
+      summaryItems: [],
+      actionItems: [],
+      transcriptLines: [],
+    };
+  }
+
+  const parser = new DOMParser();
+  const document = parser.parseFromString(html, "text/html");
+  const blocks = Array.from(document.body.querySelectorAll("p,li"));
+
+  let currentSection: "summary" | "actions" | "transcript" | null = null;
+  let transcriptLabel = "Transcript";
+  let transcriptDate: string | null = null;
+  const summaryItems: string[] = [];
+  const actionItems: string[] = [];
+  const transcriptLines: string[] = [];
+
+  const pushUnique = (list: string[], value: string) => {
+    if (!value) {
+      return;
+    }
+
+    if (list[list.length - 1] === value || list.includes(value)) {
+      return;
+    }
+
+    list.push(value);
+  };
+
+  for (const block of blocks) {
+    if (block.tagName === "P" && block.closest("li")) {
+      continue;
+    }
+
+    const text = normalizeCallLine(block.textContent || "");
+    if (!text) {
+      continue;
+    }
+
+    if (/^summary:?$/i.test(text)) {
+      currentSection = "summary";
+      continue;
+    }
+
+    if (/^action\s*items:?$/i.test(text)) {
+      currentSection = "actions";
+      continue;
+    }
+
+    if (/^transcript(?:\s*\((.+)\))?:?$/i.test(text)) {
+      const match = text.match(/^transcript(?:\s*\((.+)\))?:?$/i);
+      if (match?.[1]) {
+        transcriptDate = match[1].trim();
+        transcriptLabel = `Transcript (${transcriptDate})`;
+      }
+      currentSection = "transcript";
+      continue;
+    }
+
+    if (currentSection === "summary") {
+      pushUnique(summaryItems, text);
+      continue;
+    }
+
+    if (currentSection === "actions") {
+      pushUnique(actionItems, text);
+      continue;
+    }
+
+    if (currentSection === "transcript") {
+      pushUnique(transcriptLines, text);
+    }
+  }
+
+  return {
+    transcriptLabel,
+    transcriptDate,
+    summaryItems,
+    actionItems,
+    transcriptLines,
+  };
+}
+
 function isImageUrl(value: string): boolean {
   if (!/^https?:\/\//i.test(value)) {
     return false;
@@ -601,7 +704,24 @@ interface NoteEditorProps {
 
 export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
+  const parentNote = useMemo(
+    () => (note.parentId ? allNotes.find((entry) => entry.id === note.parentId) ?? null : null),
+    [allNotes, note.parentId]
+  );
+  const isCallNote = useMemo(() => {
+    if (parentNote?.title === "Calls") {
+      return true;
+    }
+
+    const contentText = stripHtml(note.content || "");
+    return /transcript\s*\(/i.test(contentText) && /summary/i.test(contentText);
+  }, [note.content, parentNote?.title]);
+  const parsedCallSections = useMemo(
+    () => parseCallNoteSections(note.content || ""),
+    [note.content]
+  );
   const isSpreadsheetNote = useMemo(() => isSpreadsheetContent(note.content || ""), [note.content]);
+  const showCallNoteView = !isSpreadsheetNote && isCallNote;
   const [spreadsheetData, setSpreadsheetData] = useState<string[][]>(() =>
     parseSpreadsheetContent(note.content || "")
   );
@@ -1746,6 +1866,13 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
               />
             )}
 
+            {!isSpreadsheetNote && showCallNoteView && parsedCallSections.transcriptDate && (
+              <div className="mb-4 flex items-center gap-2 text-sm text-[#8f8f8f]">
+                <span className="text-base leading-none">🗓️</span>
+                <span>{parsedCallSections.transcriptDate}</span>
+              </div>
+            )}
+
             {/* Sub-pages list */}
             {!isSpreadsheetNote && childPages.length > 0 && (
               <div className="mb-6 -mx-2">
@@ -1829,6 +1956,55 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                     queueSpreadsheetSave(normalized);
                   }}
                 />
+              </div>
+            ) : showCallNoteView ? (
+              <div className="flex-1 pb-10">
+                <div className="space-y-4">
+                  <section className="rounded-lg border border-[#2f2f2f] bg-[#191919] px-4 py-3">
+                    <h3 className="text-xs uppercase tracking-wider text-[#91918e] font-semibold mb-2">🧠 Summary</h3>
+                    {parsedCallSections.summaryItems.length > 0 ? (
+                      <ul className="space-y-1.5">
+                        {parsedCallSections.summaryItems.map((item, index) => (
+                          <li key={`summary-${index}`} className="text-sm text-[#d7d7d7] leading-relaxed">
+                            • {item}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-[#7a7a7a]">No summary yet.</p>
+                    )}
+                  </section>
+
+                  <section className="rounded-lg border border-[#2f2f2f] bg-[#191919] px-4 py-3">
+                    <h3 className="text-xs uppercase tracking-wider text-[#91918e] font-semibold mb-2">✅ Action Items</h3>
+                    {parsedCallSections.actionItems.length > 0 ? (
+                      <ul className="space-y-1.5">
+                        {parsedCallSections.actionItems.map((item, index) => (
+                          <li key={`action-${index}`} className="text-sm text-[#d7d7d7] leading-relaxed">
+                            • {item}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-[#7a7a7a]">No action items identified.</p>
+                    )}
+                  </section>
+
+                  <section className="rounded-lg border border-[#2f2f2f] bg-[#191919] px-4 py-3">
+                    <h3 className="text-xs uppercase tracking-wider text-[#91918e] font-semibold mb-2">🗣️ {parsedCallSections.transcriptLabel}</h3>
+                    {parsedCallSections.transcriptLines.length > 0 ? (
+                      <div className="space-y-2 max-h-[52vh] overflow-auto pr-1">
+                        {parsedCallSections.transcriptLines.map((line, index) => (
+                          <p key={`line-${index}`} className="text-sm text-[#c5c5c5] leading-relaxed">
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-[#7a7a7a]">Transcript will appear here as the call is transcribed.</p>
+                    )}
+                  </section>
+                </div>
               </div>
             ) : (
               <EditorContent editor={editor} className="flex-1" />

@@ -125,6 +125,71 @@ let server;
 
 const PORT = isDev ? 3000 : 51333;
 
+function runCommand(command, args) {
+  return new Promise((resolve) => {
+    execFile(command, args, { windowsHide: true }, (error, stdout, stderr) => {
+      resolve({ error, stdout: stdout || "", stderr: stderr || "" });
+    });
+  });
+}
+
+async function killProcessesListeningOnPort(port) {
+  if (process.platform !== "win32") {
+    return;
+  }
+
+  const result = await runCommand("netstat", ["-ano", "-p", "tcp"]);
+  if (result.error) {
+    console.error(`Failed to inspect TCP listeners for port ${port}:`, result.error.message || result.error);
+    return;
+  }
+
+  const pidSet = new Set();
+  const lines = result.stdout.split(/\r?\n/);
+  const portToken = `:${port}`;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || !line.startsWith("TCP")) {
+      continue;
+    }
+
+    const parts = line.split(/\s+/);
+    if (parts.length < 5) {
+      continue;
+    }
+
+    const localAddress = parts[1];
+    const state = parts[3];
+    const pid = parts[4];
+
+    if (!localAddress.endsWith(portToken) || state.toUpperCase() !== "LISTENING") {
+      continue;
+    }
+
+    const numericPid = Number(pid);
+    if (!Number.isFinite(numericPid) || numericPid <= 0 || numericPid === process.pid) {
+      continue;
+    }
+
+    pidSet.add(String(numericPid));
+  }
+
+  if (pidSet.size === 0) {
+    return;
+  }
+
+  for (const pid of pidSet) {
+    const killResult = await runCommand("taskkill", ["/PID", pid, "/F"]);
+    if (killResult.error) {
+      console.error(`Failed to kill PID ${pid} on port ${port}:`, killResult.error.message || killResult.error);
+      continue;
+    }
+
+    console.log(`Killed stale process PID ${pid} listening on port ${port}`);
+  }
+}
+
 function escapeHtml(value) {
   return value
     .replace(/&/g, "&amp;")
@@ -1913,6 +1978,8 @@ async function startNextServer() {
     console.log("Development mode - expecting external Next.js server");
     return;
   }
+
+  await killProcessesListeningOnPort(PORT);
 
   // In production, start the embedded server
   console.log("Starting production Next.js server...");
