@@ -18,9 +18,94 @@ type ViewType = "home" | "note" | "vault" | "memories" | "archive" | "fileCleane
 
 const THEME_MODE_STORAGE_KEY = "vault-theme-mode";
 const THEME_MODE_EVENT = "vault-theme-updated";
+const QUICK_NOTE_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-note";
+const QUICK_AI_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-ai";
+const SHORTCUTS_UPDATED_EVENT = "vault-shortcuts-updated";
+const DEFAULT_QUICK_NOTE_SHORTCUT = "Ctrl+Q";
+const DEFAULT_QUICK_AI_SHORTCUT = "Ctrl+Space";
+
+type ShortcutBinding = {
+  key: string;
+  ctrl: boolean;
+  alt: boolean;
+  shift: boolean;
+  meta: boolean;
+};
 
 function applyThemeMode(mode: "dark" | "light") {
   document.documentElement.setAttribute("data-theme", mode);
+}
+
+function normalizeShortcutKey(key: string): string {
+  if (key === " ") return "space";
+  if (key.length === 1) return key.toLowerCase();
+  return key.toLowerCase();
+}
+
+function parseShortcut(shortcut: string): ShortcutBinding | null {
+  const pieces = shortcut
+    .split("+")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (pieces.length === 0) {
+    return null;
+  }
+
+  const binding: ShortcutBinding = {
+    key: "",
+    ctrl: false,
+    alt: false,
+    shift: false,
+    meta: false,
+  };
+
+  for (const piece of pieces) {
+    const token = piece.toLowerCase();
+    if (token === "ctrl" || token === "control") {
+      binding.ctrl = true;
+      continue;
+    }
+    if (token === "alt" || token === "option") {
+      binding.alt = true;
+      continue;
+    }
+    if (token === "shift") {
+      binding.shift = true;
+      continue;
+    }
+    if (token === "meta" || token === "cmd" || token === "command") {
+      binding.meta = true;
+      continue;
+    }
+
+    binding.key = normalizeShortcutKey(token === "spacebar" ? "space" : token);
+  }
+
+  if (!binding.key) {
+    return null;
+  }
+
+  return binding;
+}
+
+function matchesShortcut(event: KeyboardEvent, binding: ShortcutBinding | null): boolean {
+  if (!binding) {
+    return false;
+  }
+
+  return (
+    normalizeShortcutKey(event.key) === binding.key &&
+    event.ctrlKey === binding.ctrl &&
+    event.altKey === binding.alt &&
+    event.shiftKey === binding.shift &&
+    event.metaKey === binding.meta
+  );
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  const element = target as HTMLElement | null;
+  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element?.isContentEditable;
 }
 
 function getDescendantNoteIds(notes: Note[], rootId: string): string[] {
@@ -59,6 +144,8 @@ export function AppShell() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
+  const [quickNoteShortcut, setQuickNoteShortcut] = useState(DEFAULT_QUICK_NOTE_SHORTCUT);
+  const [quickAiShortcut, setQuickAiShortcut] = useState(DEFAULT_QUICK_AI_SHORTCUT);
 
   // AI Chat state - persisted across note switches
   const [chatOpenStates, setChatOpenStates] = useState<Map<string, boolean>>(new Map());
@@ -91,6 +178,8 @@ export function AppShell() {
     const savedNoteId = localStorage.getItem("selected-note-id");
     const savedView = localStorage.getItem("current-view") as ViewType | null;
     const savedOccasionId = localStorage.getItem("selected-occasion-id");
+    const savedQuickNoteShortcut = localStorage.getItem(QUICK_NOTE_SHORTCUT_STORAGE_KEY);
+    const savedQuickAiShortcut = localStorage.getItem(QUICK_AI_SHORTCUT_STORAGE_KEY);
     
     if (savedView) {
       setCurrentView(savedView);
@@ -101,7 +190,33 @@ export function AppShell() {
     if (savedOccasionId) {
       setSelectedOccasionId(savedOccasionId);
     }
+    if (savedQuickNoteShortcut?.trim()) {
+      setQuickNoteShortcut(savedQuickNoteShortcut);
+    }
+    if (savedQuickAiShortcut?.trim()) {
+      setQuickAiShortcut(savedQuickAiShortcut);
+    }
     setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    const handleShortcutsUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ quickNoteShortcut?: string; quickAiShortcut?: string }>;
+      const nextQuickNoteShortcut = customEvent.detail?.quickNoteShortcut;
+      const nextQuickAiShortcut = customEvent.detail?.quickAiShortcut;
+
+      if (nextQuickNoteShortcut?.trim()) {
+        setQuickNoteShortcut(nextQuickNoteShortcut);
+      }
+      if (nextQuickAiShortcut?.trim()) {
+        setQuickAiShortcut(nextQuickAiShortcut);
+      }
+    };
+
+    window.addEventListener(SHORTCUTS_UPDATED_EVENT, handleShortcutsUpdated as EventListener);
+    return () => {
+      window.removeEventListener(SHORTCUTS_UPDATED_EVENT, handleShortcutsUpdated as EventListener);
+    };
   }, []);
 
   // Persist state to localStorage
@@ -242,30 +357,37 @@ export function AppShell() {
   }, [fetchNotes]);
 
   useEffect(() => {
-    if (window.electronAPI) {
-      return;
-    }
+    const quickNoteBinding = parseShortcut(quickNoteShortcut);
+    const quickAiBinding = parseShortcut(quickAiShortcut);
 
-    const handleWebShortcut = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const isTypingTarget =
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target?.isContentEditable;
-
-      if (isTypingTarget) {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) {
         return;
       }
 
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "q") {
+      if (matchesShortcut(event, quickNoteBinding)) {
         event.preventDefault();
-        void handleCreateNote();
+        if (window.electronAPI?.openQuickNote) {
+          window.electronAPI.openQuickNote();
+        } else {
+          void handleCreateNote();
+        }
+        return;
+      }
+
+      if (matchesShortcut(event, quickAiBinding)) {
+        event.preventDefault();
+        if (window.electronAPI?.openQuickAi) {
+          window.electronAPI.openQuickAi();
+        } else {
+          setCurrentView("ai");
+        }
       }
     };
 
-    window.addEventListener("keydown", handleWebShortcut);
-    return () => window.removeEventListener("keydown", handleWebShortcut);
-  }, [handleCreateNote]);
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [handleCreateNote, quickAiShortcut, quickNoteShortcut]);
 
   // Select note
   const handleSelectNote = (id: string) => {
@@ -440,13 +562,7 @@ export function AppShell() {
 
   useEffect(() => {
     const handleSearchShortcut = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      const isTypingTarget =
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target?.isContentEditable;
-
-      if (isTypingTarget) {
+      if (isTypingTarget(event.target)) {
         return;
       }
 

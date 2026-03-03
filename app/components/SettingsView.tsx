@@ -12,6 +12,30 @@ const SIDEBAR_VISIBILITY_EVENT = "vault-sidebar-visibility-updated";
 const AUTOCORRECT_ENABLED_STORAGE_KEY = "vault-setting-autocorrect-enabled";
 const THEME_MODE_STORAGE_KEY = "vault-theme-mode";
 const THEME_MODE_EVENT = "vault-theme-updated";
+const QUICK_NOTE_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-note";
+const QUICK_AI_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-ai";
+const SHORTCUTS_UPDATED_EVENT = "vault-shortcuts-updated";
+
+const DEFAULT_QUICK_NOTE_SHORTCUT = "Ctrl+Q";
+const DEFAULT_QUICK_AI_SHORTCUT = "Ctrl+Space";
+
+function formatShortcutFromEvent(event: KeyboardEvent): string | null {
+  const isModifierKey = ["Control", "Shift", "Alt", "Meta"].includes(event.key);
+  if (isModifierKey) {
+    return null;
+  }
+
+  const parts: string[] = [];
+  if (event.ctrlKey) parts.push("Ctrl");
+  if (event.altKey) parts.push("Alt");
+  if (event.shiftKey) parts.push("Shift");
+  if (event.metaKey) parts.push("Meta");
+
+  const normalizedKey = event.key === " " ? "Space" : event.key.length === 1 ? event.key.toUpperCase() : event.key;
+  parts.push(normalizedKey);
+
+  return parts.join("+");
+}
 
 const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
@@ -35,6 +59,8 @@ export function SettingsView() {
   const [sidebarVisibility, setSidebarVisibility] = useState<SidebarVisibilityState>(defaultSidebarVisibility);
   const [autocorrectEnabled, setAutocorrectEnabled] = useState(true);
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
+  const [quickNoteShortcut, setQuickNoteShortcut] = useState(DEFAULT_QUICK_NOTE_SHORTCUT);
+  const [quickAiShortcut, setQuickAiShortcut] = useState(DEFAULT_QUICK_AI_SHORTCUT);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -54,6 +80,16 @@ export function SettingsView() {
     const savedThemeMode = localStorage.getItem(THEME_MODE_STORAGE_KEY);
     if (savedThemeMode === "light" || savedThemeMode === "dark") {
       setThemeMode(savedThemeMode);
+    }
+
+    const savedQuickNoteShortcut = localStorage.getItem(QUICK_NOTE_SHORTCUT_STORAGE_KEY);
+    if (savedQuickNoteShortcut?.trim()) {
+      setQuickNoteShortcut(savedQuickNoteShortcut);
+    }
+
+    const savedQuickAiShortcut = localStorage.getItem(QUICK_AI_SHORTCUT_STORAGE_KEY);
+    if (savedQuickAiShortcut?.trim()) {
+      setQuickAiShortcut(savedQuickAiShortcut);
     }
 
     setHydrated(true);
@@ -84,6 +120,23 @@ export function SettingsView() {
     localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
     window.dispatchEvent(new CustomEvent(THEME_MODE_EVENT, { detail: { mode: themeMode } }));
   }, [themeMode, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    localStorage.setItem(QUICK_NOTE_SHORTCUT_STORAGE_KEY, quickNoteShortcut);
+    localStorage.setItem(QUICK_AI_SHORTCUT_STORAGE_KEY, quickAiShortcut);
+    window.dispatchEvent(
+      new CustomEvent(SHORTCUTS_UPDATED_EVENT, {
+        detail: {
+          quickNoteShortcut,
+          quickAiShortcut,
+        },
+      })
+    );
+  }, [quickNoteShortcut, quickAiShortcut, hydrated]);
 
   return (
     <div className="flex flex-col h-full">
@@ -153,6 +206,65 @@ export function SettingsView() {
                 />
                 <span>Enable autocorrect</span>
               </label>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg text-[#e3e3e3] font-medium">Keyboard Shortcuts</h2>
+            <p className="text-sm text-[#9b9b9b]">Click a field and press the key combo you want to use.</p>
+            <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-4">
+              <div className="space-y-1">
+                <label htmlFor="quick-note-shortcut" className="text-sm text-[#d1d1d1]">
+                  Quick Note
+                </label>
+                <input
+                  id="quick-note-shortcut"
+                  type="text"
+                  readOnly
+                  value={quickNoteShortcut}
+                  onKeyDown={(event) => {
+                    event.preventDefault();
+                    const shortcut = formatShortcutFromEvent(event);
+                    if (shortcut) {
+                      setQuickNoteShortcut(shortcut);
+                    }
+                  }}
+                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="quick-ai-shortcut" className="text-sm text-[#d1d1d1]">
+                  Quick AI Chat
+                </label>
+                <input
+                  id="quick-ai-shortcut"
+                  type="text"
+                  readOnly
+                  value={quickAiShortcut}
+                  onKeyDown={(event) => {
+                    event.preventDefault();
+                    const shortcut = formatShortcutFromEvent(event);
+                    if (shortcut) {
+                      setQuickAiShortcut(shortcut);
+                    }
+                  }}
+                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickNoteShortcut(DEFAULT_QUICK_NOTE_SHORTCUT);
+                    setQuickAiShortcut(DEFAULT_QUICK_AI_SHORTCUT);
+                  }}
+                  className="rounded border border-[#2f2f2f] bg-[#222] px-3 py-1.5 text-xs text-[#d1d1d1] hover:bg-[#2a2a2a]"
+                >
+                  Reset to defaults
+                </button>
+              </div>
             </div>
           </section>
         </div>
