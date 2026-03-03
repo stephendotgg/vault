@@ -1493,8 +1493,17 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                     }
 
                     if (event.key === "Enter" && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+                      const active = activeSpreadsheetCell;
+                      const activeValue = active
+                        ? (spreadsheetDraftRef.current[active.row]?.[active.column] ?? "")
+                        : "";
+
+                      if (activeValue.trim().length === 0) {
+                        return;
+                      }
+
                       event.preventDefault();
-                      moveToNextSpreadsheetCell();
+                      moveToNextSpreadsheetCell(active);
                       return;
                     }
 
