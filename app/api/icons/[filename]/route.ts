@@ -13,8 +13,10 @@ export async function GET(
   
   try {
     const iconsDir = getIconsDir();
-    const filepath = path.join(iconsDir, filename);
-    
+    const userIconPath = path.join(iconsDir, filename);
+    const bundledIconPath = path.join(process.cwd(), "public", "icons", filename);
+    const filepath = existsSync(userIconPath) ? userIconPath : bundledIconPath;
+
     if (!existsSync(filepath)) {
       return NextResponse.json({ error: "Icon not found" }, { status: 404 });
     }

@@ -594,8 +594,9 @@ export function Sidebar({ selectedNoteId, onSelectNote, onCreateNote, onArchiveN
     e.preventDefault();
 
     const note = notes.find((item) => item.id === noteId);
-    const isQuickNotesRoot = note?.parentId === null && note?.title === "Quick Notes";
-    if (isQuickNotesRoot) {
+    const isProtectedRoot =
+      note?.parentId === null && (note?.title === "Quick Notes" || note?.title === "Calls");
+    if (isProtectedRoot) {
       return;
     }
 

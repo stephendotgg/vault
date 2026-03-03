@@ -54,11 +54,13 @@ let callsLiveContent = "";
 let callsLiveTranscriptHtml = "";
 let callsLiveTranscriptText = "";
 let callsLiveSummaryHtml = "";
+let callsLiveStartedAt = null;
 let callsChunkQueue = Promise.resolve();
 let callsChunkCounter = 0;
 let callsSpeechRecognizer = null;
 let callsSpeechPushStream = null;
 let callsSpeechRunning = false;
+const CALLS_CATEGORY_ICON = "icon:calls.webp";
 const CALLS_CHUNK_MS = 3000;
 const CALLS_POLL_MS = 5000;
 const CALLS_ABSENT_POLLS_TO_STOP = 1;
@@ -325,10 +327,10 @@ async function ensureCallsCategory() {
 
     if (existing?.id) {
       callsLog("Using existing Calls category", existing.id);
-      if (existing.icon !== "📞") {
+      if (existing.icon !== CALLS_CATEGORY_ICON) {
         await apiRequest(`/api/notes/${existing.id}`, {
           method: "PATCH",
-          body: JSON.stringify({ icon: "📞" }),
+          body: JSON.stringify({ icon: CALLS_CATEGORY_ICON }),
         });
         notifyCallsChanged();
       }
@@ -344,7 +346,7 @@ async function ensureCallsCategory() {
       method: "PATCH",
       body: JSON.stringify({
         title: "Calls",
-        icon: "📞",
+        icon: CALLS_CATEGORY_ICON,
         order: -99999,
       }),
     });
@@ -366,10 +368,13 @@ function formatCallTitle(startedAt, meetingTitle = "") {
   const cleanedMeetingTitle = String(meetingTitle || "")
     .replace(/\s*[-|–—]\s*Microsoft Teams( classic)?$/i, "")
     .replace(/\s*\|\s*Teams$/i, "")
+    .replace(/\s*\|\s*Microsoft\s*\|.*$/i, "")
     .trim();
 
-  if (cleanedMeetingTitle) {
-    return cleanedMeetingTitle.slice(0, 120);
+  const firstSegmentTitle = cleanedMeetingTitle.split("|")[0]?.trim() || "";
+
+  if (firstSegmentTitle) {
+    return firstSegmentTitle.slice(0, 120);
   }
 
   const yyyy = startedAt.getFullYear();
@@ -380,19 +385,50 @@ function formatCallTitle(startedAt, meetingTitle = "") {
   return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 }
 
-function buildCallNoteContent({ summaryHtml = "", transcriptHtml = "" } = {}) {
-  const summarySection = summaryHtml
-    ? `<p><u><strong>Summary & action items</strong></u></p>${summaryHtml}`
-    : "";
+function formatCallTimestamp(value) {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    return "";
+  }
 
-  const transcriptHeading = "<p><u><strong>Transcript</strong></u></p>";
-  const transcriptBody = transcriptHtml || "<p><br></p>";
+  const yyyy = value.getFullYear();
+  const mm = String(value.getMonth() + 1).padStart(2, "0");
+  const dd = String(value.getDate()).padStart(2, "0");
+  const hh = String(value.getHours()).padStart(2, "0");
+  const min = String(value.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
+function normalizeCallSummaryMarkdown(markdown) {
+  let next = String(markdown || "").trim();
+
+  next = next.replace(/^\s*\*{0,2}\s*summary\s*:?\s*\*{0,2}\s*$/im, "**Summary**");
+  next = next.replace(/^\s*\*{0,2}\s*action\s*items\s*:?\s*\*{0,2}\s*$/im, "**Action Items**");
+
+  if (!/\*\*\s*summary\s*\*\*/i.test(next)) {
+    next = `**Summary**\n${next}`.trim();
+  }
+
+  if (!/\*\*\s*action\s*items\s*\*\*/i.test(next)) {
+    next = `${next}\n\n**Action Items**\n- None identified`;
+  }
+
+  return next;
+}
+
+function buildCallNoteContent({ summaryHtml = "", transcriptHtml = "", transcriptStartedAt = null } = {}) {
+  const summarySection = String(summaryHtml || "").replace(/(?:\s*<p><br><\/p>\s*)+$/i, "");
+
+  const transcriptStamp = formatCallTimestamp(transcriptStartedAt);
+  const transcriptLabel = transcriptStamp ? `Transcript (${transcriptStamp})` : "Transcript";
+  const transcriptHeading = `<p><u><strong>${transcriptLabel}</strong></u></p>`;
+
+  const transcriptBody = String(transcriptHtml || "").replace(/^(?:\s*<p><br><\/p>\s*)+/i, "") || "<p><br></p>";
 
   if (!summarySection) {
     return `${transcriptHeading}${transcriptBody}`;
   }
 
-  return `${summarySection}<p><br></p>${transcriptHeading}${transcriptBody}`;
+  return `${summarySection}${transcriptHeading}${transcriptBody}`;
 }
 
 async function createLiveCallNote(startedAt, meetingTitle = "") {
@@ -404,7 +440,11 @@ async function createLiveCallNote(startedAt, meetingTitle = "") {
 
   const noteId = created.id;
   const title = formatCallTitle(startedAt, meetingTitle);
-  const initialContent = buildCallNoteContent({ summaryHtml: "", transcriptHtml: "" });
+  const initialContent = buildCallNoteContent({
+    summaryHtml: "",
+    transcriptHtml: "",
+    transcriptStartedAt: startedAt,
+  });
 
   const updated = await apiRequest(`/api/notes/${noteId}`, {
     method: "PATCH",
@@ -421,6 +461,7 @@ async function createLiveCallNote(startedAt, meetingTitle = "") {
   callsLiveSummaryHtml = "";
   callsLiveTranscriptHtml = "";
   callsLiveTranscriptText = "";
+  callsLiveStartedAt = startedAt;
   callsLog("Created live call note", { noteId, title, parentId: callsParentId });
   notifyCallsChanged();
   return updated;
@@ -476,20 +517,25 @@ async function generateCallSummaryMarkdown(transcriptText) {
   return (data?.choices?.[0]?.message?.content || "").trim();
 }
 
-async function finalizeCallSummary(noteId, transcriptHtml, transcriptText) {
+async function finalizeCallSummary(noteId, transcriptHtml, transcriptText, transcriptStartedAt = null) {
   if (!noteId || !transcriptText.trim()) {
     return;
   }
 
   try {
-    const summaryMarkdown = await generateCallSummaryMarkdown(transcriptText);
-    if (!summaryMarkdown) {
+    const summaryMarkdownRaw = await generateCallSummaryMarkdown(transcriptText);
+    if (!summaryMarkdownRaw) {
       callsLog("Skipped call summary generation (missing API key or empty response)", { noteId });
       return;
     }
 
+    const summaryMarkdown = normalizeCallSummaryMarkdown(summaryMarkdownRaw);
     const summaryHtml = toNoteHtml(summaryMarkdown);
-    const nextContent = buildCallNoteContent({ summaryHtml, transcriptHtml });
+    const nextContent = buildCallNoteContent({
+      summaryHtml,
+      transcriptHtml,
+      transcriptStartedAt,
+    });
 
     const updated = await apiRequest(`/api/notes/${noteId}`, {
       method: "PATCH",
@@ -562,6 +608,7 @@ async function appendLiveCallTranscript(text) {
   const merged = buildCallNoteContent({
     summaryHtml: callsLiveSummaryHtml,
     transcriptHtml: callsLiveTranscriptHtml,
+    transcriptStartedAt: callsLiveStartedAt,
   });
 
   const updated = await apiRequest(`/api/notes/${callsLiveNoteId}`, {
@@ -853,6 +900,7 @@ async function startLiveCallTranscription(meetingTitle = "") {
   const startedAt = new Date();
   const note = await createLiveCallNote(startedAt, meetingTitle);
   callsLiveNoteId = note.id;
+  callsLiveStartedAt = startedAt;
   callsChunkQueue = Promise.resolve();
   callsChunkCounter = 0;
   callsLog("Starting live call transcription", { noteId: callsLiveNoteId });
@@ -892,6 +940,7 @@ function stopLiveCallTranscription() {
   const noteIdToReset = callsLiveNoteId;
   const transcriptHtmlToFinalize = callsLiveTranscriptHtml;
   const transcriptTextToFinalize = callsLiveTranscriptText;
+  const startedAtToFinalize = callsLiveStartedAt;
   callsLog("Stopping live call transcription", { noteId: noteIdToReset, chunksProcessed: callsChunkCounter });
   if (callsTranscriberWindow && !callsTranscriberWindow.isDestroyed()) {
     callsTranscriberWindow.webContents.send("calls-transcriber-stop");
@@ -919,11 +968,12 @@ function stopLiveCallTranscription() {
   callsLiveSummaryHtml = "";
   callsLiveTranscriptHtml = "";
   callsLiveTranscriptText = "";
+  callsLiveStartedAt = null;
   callsChunkQueue = Promise.resolve();
   void stopCallsSpeechRecognizer();
 
   if (noteIdToReset) {
-    void finalizeCallSummary(noteIdToReset, transcriptHtmlToFinalize, transcriptTextToFinalize);
+    void finalizeCallSummary(noteIdToReset, transcriptHtmlToFinalize, transcriptTextToFinalize, startedAtToFinalize);
   }
 }
 
