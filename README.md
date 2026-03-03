@@ -1,97 +1,141 @@
 # Vault
 
-A Notion-like desktop app built with Next.js and Electron. Features notes with drag-drop reordering, a vault (key-value store), and memories with voice recording and local Whisper transcription.
+A note-taking-first desktop app with rich text, spreadsheet notes, and hierarchical organization. It also includes opinionated everyday extras like a key-value vault, voice log, dream journal, file cleaner, plus Quick Note and Quick AI Chat for busy moments. Everything runs locally. No cloud, no account, no subscription.
+
+![Platform](https://img.shields.io/badge/platform-Windows-blue)
+![Electron](https://img.shields.io/badge/Electron-29-47848F)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey)
+
+## Why
+
+I built Vault because I was unsatisfied with existing apps. One app had features another didn’t, workflows were fragmented, and AI was often locked behind premium pricing. I wanted one place that covered my real daily workflow without subscriptions deciding what I could or couldn’t do.
+
+I also wanted total control, so Vault is local-first by design: everything is stored in a local SQLite database on your machine, AI uses your own API key, voice transcription runs on-device, and nothing leaves your computer unless you choose it. Due to popular demand, I open-sourced it and modularized it so users can bend it to their own will.
+
+## Features
+
+### Notes
+- Hierarchical pages with drag-and-drop reordering
+- Rich text editing, custom icons, archive, and full-text search
+
+### Spreadsheets
+- Spreadsheet notes with inline editing and formatting
+- Resizable grid with optional AI help in context
+
+### AI Chat
+- Multi-session chat with auto-generated titles
+- [OpenRouter](https://openrouter.ai) integration, streaming responses, image support, and custom instructions
+- Context-aware in-note and global modes with vector search
+
+### Quick Windows (Global Hotkeys)
+- **Ctrl+Q** — floating Quick Note window, saves to your notes with AI-generated title
+- **Ctrl+Space** — floating Quick AI window for instant queries without opening the full app
 
 ## Tech Stack
 
-- **Next.js 16** - App router with Turbopack
-- **Electron 29** - Desktop app wrapper
-- **Prisma** - SQLite database with better-sqlite3
-- **@xenova/transformers** - Local Whisper model for voice transcription
+| Layer | Tech |
+|---|---|
+| Desktop shell | Electron 29 |
+| Frontend | Next.js 16 (App Router, Turbopack), React 19, Tailwind CSS 4 |
+| Database | SQLite via Prisma |
+| AI (cloud) | OpenRouter API (OpenAI-compatible, user-supplied key) |
+| AI (local) | Whisper for voice transcription |
 
-## Development
+## Data Storage
 
-### 1. Install dependencies
+All user data lives in:
+
+| OS | Path |
+|---|---|
+| Windows | `%APPDATA%\Vault\data\` |
+
+This folder contains:
+- `mothership.db` — the SQLite database (notes, vault, memories, chat history, settings)
+- `icons/` — custom note icons
+- `.trash/` — stores the last deleted file to power the undo system (before final empty)
+
+Data persists independently of the app installation, so reinstalling or updating doesn't touch it.
+
+## Local Development
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org) 18+
+- npm
+
+### Setup
 
 ```bash
+# 1. Clone the repo
+git clone https://github.com/yourusername/vault.git
+cd vault
+
+# 2. Install dependencies
 npm install
-```
 
-### 2. Generate Prisma client
-
-```bash
+# 3. Generate Prisma client
 npx prisma generate
 ```
 
-### 3. Run in browser (Next.js dev mode)
+### Run in browser (Next.js dev mode)
 
 ```bash
 npm run dev
-# or
-bun dev
 ```
 
-Opens at http://localhost:3000
+Opens at http://localhost:3000. Good for UI work — no Electron overhead.
 
-### 4. Run in Electron (dev mode)
+### Run in Electron (dev mode)
 
 ```bash
-npm run electron-dev
+npm run electron:dev
 ```
 
-This starts Next.js dev server and Electron together.
+Starts the Next.js dev server and Electron together.
 
-## Packaging for Distribution
 
-### Quick Install (one command)
+## Building & Installing
+
+### Install to your machine (one command)
 
 ```bash
 npm run install:local
 ```
 
 This will:
-1. Kill any running Vault instances
+1. Kill any running Vault instance
 2. Rebuild native modules for Node.js
 3. Build Next.js for production
 4. Rebuild native modules for Electron
 5. Package with electron-packager
 6. Install to `%LOCALAPPDATA%\Programs\Vault`
 
-### Manual Steps (if needed)
-
-#### 1. Build and package
+### Package only
 
 ```bash
 npm run package
 ```
 
-Output: `dist/Vault-win32-x64/`
+Output goes to `dist/Vault-win32-x64/`.
 
-#### 2. Install to Programs folder
+## AI Setup
 
-```powershell
-$dest = "$env:LOCALAPPDATA\Programs\Vault"
-Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
-Copy-Item -Recurse "dist\Vault-win32-x64" $dest
-```
+Vault uses [OpenRouter](https://openrouter.ai) for AI features. You bring your own key:
 
-### After packaging, to return to dev mode
+1. Sign up at openrouter.ai and get an API key
+2. Open Vault → Settings → AI
+3. Paste your API key
+4. Choose your preferred model
 
-```bash
-npm rebuild better-sqlite3
-```
+For voice transcription, no setup is needed — the Whisper model downloads automatically on first use and runs locally from that point on.
 
-> **Note:** `better-sqlite3` is a native module that must be compiled for either your system's Node.js (dev) or Electron's Node.js (production). Always rebuild after switching.
+## Contributing
 
-## Data Storage
+PRs and issues are welcome. This is a personal project so I may be opinionated about direction, but if you've found a bug or have a genuinely useful idea, open an issue and let's talk.
 
-In production, user data is stored in:
-- **Windows**: `%APPDATA%\Vault\data\`
-- **macOS**: `~/Library/Application Support/Vault/data/`
-- **Linux**: `~/.config/Vault/data/`
+If you're adding a feature, open an issue first so we're aligned before you put in the work. 
 
-This folder contains:
-- `mothership.db` - SQLite database
-- `images/` - Uploaded occasion images
+## License
 
-Data persists across app updates since it's stored outside the app folder.
+CC BY-NC 4.0 (Creative Commons Attribution-NonCommercial 4.0 International)
