@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pipeline } from "@xenova/transformers";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-// Cache the pipeline for reuse
-let transcriber: Awaited<ReturnType<typeof pipeline>> | null = null;
 let transcribeRequestCount = 0;
 
 function debugLog(message: string, payload?: unknown) {
@@ -22,59 +19,94 @@ function debugLog(message: string, payload?: unknown) {
   }
 }
 
-async function getTranscriber() {
-  if (!transcriber) {
-    console.log("Loading Whisper model (first time may take a minute)...");
-    transcriber = await pipeline(
-      "automatic-speech-recognition",
-      "Xenova/whisper-small", // Good balance of speed and accuracy
-      { 
-        progress_callback: undefined 
-      }
-    );
-    console.log("Whisper model loaded!");
-  }
-  return transcriber;
+function getAzureSpeechConfig(request: NextRequest): { key: string; region: string; language: string } {
+  const key =
+    request.headers.get("x-vault-azure-speech-key")?.trim() ||
+    process.env.AZURE_SPEECH_KEY?.trim() ||
+    "";
+  const region =
+    request.headers.get("x-vault-azure-speech-region")?.trim() ||
+    process.env.AZURE_SPEECH_REGION?.trim() ||
+    "";
+  const language =
+    request.headers.get("x-vault-azure-speech-language")?.trim() ||
+    process.env.AZURE_SPEECH_LANGUAGE?.trim() ||
+    "en-US";
+
+  return { key, region, language };
 }
 
-// Parse WAV file and extract Float32Array audio data
-function parseWav(buffer: ArrayBuffer): { audioData: Float32Array; sampleRate: number } {
-  const view = new DataView(buffer);
-  
-  // Read WAV header
-  const numChannels = view.getUint16(22, true);
-  const sampleRate = view.getUint32(24, true);
-  const bitsPerSample = view.getUint16(34, true);
-  
-  // Find data chunk
-  const dataOffset = 44;
-  const dataSize = view.getUint32(40, true);
-  
-  // Convert to Float32Array
-  const numSamples = dataSize / (bitsPerSample / 8) / numChannels;
-  const audioData = new Float32Array(numSamples);
-  
-  for (let i = 0; i < numSamples; i++) {
-    const sampleIndex = dataOffset + i * numChannels * (bitsPerSample / 8);
-    // Read first channel only (mono)
-    if (bitsPerSample === 16) {
-      const sample = view.getInt16(sampleIndex, true);
-      audioData[i] = sample / 32768;
-    } else if (bitsPerSample === 32) {
-      const sample = view.getFloat32(sampleIndex, true);
-      audioData[i] = sample;
-    }
+async function transcribeWithAzureSpeech(params: {
+  audioBuffer: Buffer;
+  key: string;
+  region: string;
+  language: string;
+  requestId: number;
+}) {
+  const { audioBuffer, key, region, language, requestId } = params;
+  const endpoint = `https://${region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${encodeURIComponent(language)}&format=simple`;
+
+  debugLog("azure transcription request", {
+    requestId,
+    region,
+    language,
+    bytes: audioBuffer.byteLength,
+  });
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Ocp-Apim-Subscription-Key": key,
+      "Content-Type": "audio/wav; codecs=audio/pcm; samplerate=16000",
+      Accept: "application/json",
+    },
+    body: new Uint8Array(audioBuffer),
+  });
+
+  const raw = await response.text();
+  let parsed: { DisplayText?: string; RecognitionStatus?: string; error?: { message?: string } } | null = null;
+
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = null;
   }
-  
-  return { audioData, sampleRate };
+
+  if (!response.ok) {
+    const details = parsed?.error?.message || raw || `Azure Speech error (${response.status})`;
+    throw new Error(details);
+  }
+
+  const recognitionStatus = parsed?.RecognitionStatus || "Unknown";
+  const displayText = (parsed?.DisplayText || "").trim();
+
+  debugLog("azure transcription response", {
+    requestId,
+    recognitionStatus,
+    textLength: displayText.length,
+  });
+
+  if (recognitionStatus !== "Success") {
+    return "";
+  }
+
+  return displayText;
 }
 
 export async function POST(request: NextRequest) {
   const requestId = ++transcribeRequestCount;
   try {
     debugLog("request received", { requestId });
+    const { key, region, language } = getAzureSpeechConfig(request);
+    if (!key || !region) {
+      return NextResponse.json(
+        { error: "Azure Speech credentials missing. Set key and region in Settings → API Keys." },
+        { status: 400 }
+      );
+    }
+
     const contentType = request.headers.get("content-type") || "";
-    let arrayBuffer: ArrayBuffer;
+    let nodeBuffer: Buffer;
 
     if (contentType.includes("application/json")) {
       const body = await request.json().catch(() => ({}));
@@ -85,8 +117,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "No wavBase64 provided" }, { status: 400 });
       }
 
-      const nodeBuffer = Buffer.from(wavBase64, "base64");
-      arrayBuffer = nodeBuffer.buffer.slice(nodeBuffer.byteOffset, nodeBuffer.byteOffset + nodeBuffer.byteLength);
+      nodeBuffer = Buffer.from(wavBase64, "base64");
       debugLog("decoded JSON wav payload", { requestId, bytes: nodeBuffer.byteLength, source: body?.source || "unknown" });
     } else {
       const formData = await request.formData();
@@ -98,36 +129,21 @@ export async function POST(request: NextRequest) {
       }
 
       debugLog("audio file size", { requestId, bytes: audioFile.size });
-      arrayBuffer = await audioFile.arrayBuffer();
-      debugLog("read arrayBuffer", { requestId, bytes: arrayBuffer.byteLength });
+      nodeBuffer = Buffer.from(await audioFile.arrayBuffer());
+      debugLog("read arrayBuffer", { requestId, bytes: nodeBuffer.byteLength });
     }
-    
-    // Parse WAV file
-    const { audioData, sampleRate } = parseWav(arrayBuffer);
-    
-    debugLog("parsed wav", { requestId, samples: audioData.length, sampleRate });
-    
-    // Get or load the transcriber
-    const pipe = await getTranscriber();
-    
-    // Transcribe the audio - pass raw audio data directly
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (pipe as any)(audioData, {
-      chunk_length_s: 30,
-      stride_length_s: 5,
-      language: "english",
-      task: "transcribe",
-      sampling_rate: sampleRate,
-    });
-    
-    // Extract text from result
-    const text = typeof result === "object" && "text" in result 
-      ? (result as { text: string }).text 
-      : String(result);
 
-    debugLog("transcription result", { requestId, textLength: text.trim().length });
+    const text = await transcribeWithAzureSpeech({
+      audioBuffer: nodeBuffer,
+      key,
+      region,
+      language,
+      requestId,
+    });
+
+    debugLog("transcription result", { requestId, textLength: text.length });
     
-    return NextResponse.json({ text: text.trim() });
+    return NextResponse.json({ text });
   } catch (error) {
     debugLog("transcription error", { requestId, error: String(error) });
     

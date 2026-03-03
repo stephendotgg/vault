@@ -105,7 +105,7 @@ function matchesShortcut(event: KeyboardEvent, binding: ShortcutBinding | null):
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
-  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element?.isContentEditable;
+  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || Boolean(element?.isContentEditable);
 }
 
 function getDescendantNoteIds(notes: Note[], rootId: string): string[] {

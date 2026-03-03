@@ -1,17 +1,15 @@
 # Vault
 
-A note-taking-first desktop app with rich text, spreadsheet notes, and hierarchical organization. It also includes opinionated everyday extras like a key-value vault, voice log, dream journal, file cleaner, plus Quick Note and Quick AI Chat for busy moments. Everything runs locally. No cloud, no account, no subscription.
+A note-taking desktop app with rich text, spreadsheet notes, and hierarchical organization. It also includes opinionated everyday extras like a key-value vault, voice log, dream journal, file cleaner, plus Quick Note and Quick AI Chat for busy moments. Everything runs locally. No cloud, no account, no subscription.
 
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
-![Electron](https://img.shields.io/badge/Electron-29-47848F)
-![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey)
 
 ## Why
 
 I built Vault because I was unsatisfied with existing apps. One app had features another didn’t, workflows were fragmented, and AI was often locked behind premium pricing. I wanted one place that covered my real daily workflow without subscriptions deciding what I could or couldn’t do.
 
-I also wanted total control, so Vault is local-first by design: everything is stored in a local SQLite database on your machine, AI uses your own API key, voice transcription runs on-device, and nothing leaves your computer unless you choose it. Due to popular demand, I open-sourced it and modularized it so users can bend it to their own will.
+I also wanted total control, so Vault is local-first by design: everything is stored in a local SQLite database on your machine, AI uses your own API key, and voice transcription runs through your own Azure Speech credentials. Due to popular demand, I open-sourced it and modularized it so users can bend it to their own will.
 
 ## Features
 
@@ -40,7 +38,7 @@ I also wanted total control, so Vault is local-first by design: everything is st
 | Frontend | Next.js 16 (App Router, Turbopack), React 19, Tailwind CSS 4 |
 | Database | SQLite via Prisma |
 | AI (cloud) | OpenRouter API (OpenAI-compatible, user-supplied key) |
-| AI (local) | Whisper for voice transcription |
+| Transcription | Azure Speech live transcription (user-supplied key) |
 
 ## Data Storage
 

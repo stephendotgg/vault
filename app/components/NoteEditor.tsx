@@ -1463,7 +1463,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
     const apiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY);
     if (!apiKey) {
-      setChatError("Please set your OpenRouter API key in AI Settings.");
+      setChatError("Please set your OpenRouter API key in Settings > API Keys.");
       return;
     }
 
@@ -1577,7 +1577,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
     const apiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY);
     if (!apiKey) {
-      setChatError("Please set your OpenRouter API key in AI Settings.");
+      setChatError("Please set your OpenRouter API key in Settings > API Keys.");
       return;
     }
 

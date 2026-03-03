@@ -15,11 +15,21 @@ const THEME_MODE_EVENT = "vault-theme-updated";
 const QUICK_NOTE_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-note";
 const QUICK_AI_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-ai";
 const SHORTCUTS_UPDATED_EVENT = "vault-shortcuts-updated";
+const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
+const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
+const AZURE_SPEECH_KEY_STORAGE_KEY = "vault-azure-speech-key";
+const LEGACY_AZURE_SPEECH_KEY_STORAGE_KEY = "mothership-azure-speech-key";
+const AZURE_SPEECH_REGION_STORAGE_KEY = "vault-azure-speech-region";
+const LEGACY_AZURE_SPEECH_REGION_STORAGE_KEY = "mothership-azure-speech-region";
+const AZURE_SPEECH_LANGUAGE_STORAGE_KEY = "vault-azure-speech-language";
+const LEGACY_AZURE_SPEECH_LANGUAGE_STORAGE_KEY = "mothership-azure-speech-language";
 
 const DEFAULT_QUICK_NOTE_SHORTCUT = "Ctrl+Q";
 const DEFAULT_QUICK_AI_SHORTCUT = "Ctrl+Space";
 
-function formatShortcutFromEvent(event: KeyboardEvent): string | null {
+type ShortcutKeyboardEvent = Pick<KeyboardEvent, "key" | "ctrlKey" | "altKey" | "shiftKey" | "metaKey">;
+
+function formatShortcutFromEvent(event: ShortcutKeyboardEvent): string | null {
   const isModifierKey = ["Control", "Shift", "Alt", "Meta"].includes(event.key);
   if (isModifierKey) {
     return null;
@@ -61,6 +71,10 @@ export function SettingsView() {
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
   const [quickNoteShortcut, setQuickNoteShortcut] = useState(DEFAULT_QUICK_NOTE_SHORTCUT);
   const [quickAiShortcut, setQuickAiShortcut] = useState(DEFAULT_QUICK_AI_SHORTCUT);
+  const [openRouterApiKey, setOpenRouterApiKey] = useState("");
+  const [azureSpeechKey, setAzureSpeechKey] = useState("");
+  const [azureSpeechRegion, setAzureSpeechRegion] = useState("");
+  const [azureSpeechLanguage, setAzureSpeechLanguage] = useState("en-US");
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -91,6 +105,30 @@ export function SettingsView() {
     if (savedQuickAiShortcut?.trim()) {
       setQuickAiShortcut(savedQuickAiShortcut);
     }
+
+    const savedOpenRouterApiKey =
+      localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY) ||
+      "";
+    setOpenRouterApiKey(savedOpenRouterApiKey);
+
+    const savedAzureSpeechKey =
+      localStorage.getItem(AZURE_SPEECH_KEY_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_AZURE_SPEECH_KEY_STORAGE_KEY) ||
+      "";
+    setAzureSpeechKey(savedAzureSpeechKey);
+
+    const savedAzureSpeechRegion =
+      localStorage.getItem(AZURE_SPEECH_REGION_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_AZURE_SPEECH_REGION_STORAGE_KEY) ||
+      "";
+    setAzureSpeechRegion(savedAzureSpeechRegion);
+
+    const savedAzureSpeechLanguage =
+      localStorage.getItem(AZURE_SPEECH_LANGUAGE_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_AZURE_SPEECH_LANGUAGE_STORAGE_KEY) ||
+      "en-US";
+    setAzureSpeechLanguage(savedAzureSpeechLanguage || "en-US");
 
     setHydrated(true);
   }, []);
@@ -137,6 +175,17 @@ export function SettingsView() {
       })
     );
   }, [quickNoteShortcut, quickAiShortcut, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    localStorage.setItem(OPENROUTER_API_KEY_STORAGE_KEY, openRouterApiKey);
+    localStorage.setItem(AZURE_SPEECH_KEY_STORAGE_KEY, azureSpeechKey);
+    localStorage.setItem(AZURE_SPEECH_REGION_STORAGE_KEY, azureSpeechRegion);
+    localStorage.setItem(AZURE_SPEECH_LANGUAGE_STORAGE_KEY, azureSpeechLanguage || "en-US");
+  }, [openRouterApiKey, azureSpeechKey, azureSpeechRegion, azureSpeechLanguage, hydrated]);
 
   return (
     <div className="flex flex-col h-full">
@@ -206,6 +255,72 @@ export function SettingsView() {
                 />
                 <span>Enable autocorrect</span>
               </label>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg text-[#e3e3e3] font-medium">API Keys</h2>
+            <p className="text-sm text-[#9b9b9b]">Manage credentials for AI chat and live transcription.</p>
+            <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-4">
+              <div className="space-y-1">
+                <label htmlFor="openrouter-api-key" className="text-sm text-[#d1d1d1]">
+                  OpenRouter API key
+                </label>
+                <input
+                  id="openrouter-api-key"
+                  type="password"
+                  autoComplete="off"
+                  value={openRouterApiKey}
+                  onChange={(event) => setOpenRouterApiKey(event.target.value)}
+                  placeholder="sk-or-..."
+                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="azure-speech-key" className="text-sm text-[#d1d1d1]">
+                  Azure Speech key
+                </label>
+                <input
+                  id="azure-speech-key"
+                  type="password"
+                  autoComplete="off"
+                  value={azureSpeechKey}
+                  onChange={(event) => setAzureSpeechKey(event.target.value)}
+                  placeholder="Azure Speech key"
+                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label htmlFor="azure-speech-region" className="text-sm text-[#d1d1d1]">
+                    Azure Speech region
+                  </label>
+                  <input
+                    id="azure-speech-region"
+                    type="text"
+                    value={azureSpeechRegion}
+                    onChange={(event) => setAzureSpeechRegion(event.target.value)}
+                    placeholder="eastus"
+                    className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="azure-speech-language" className="text-sm text-[#d1d1d1]">
+                    Transcription language
+                  </label>
+                  <input
+                    id="azure-speech-language"
+                    type="text"
+                    value={azureSpeechLanguage}
+                    onChange={(event) => setAzureSpeechLanguage(event.target.value || "en-US")}
+                    placeholder="en-US"
+                    className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                  />
+                </div>
+              </div>
             </div>
           </section>
 

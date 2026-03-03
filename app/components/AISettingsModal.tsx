@@ -8,8 +8,6 @@ interface AISettingsModalProps {
 }
 
 // Storage keys
-const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
-const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
 const ENABLED_MODELS_STORAGE_KEY = "vault-enabled-models";
 const LEGACY_ENABLED_MODELS_STORAGE_KEY = "mothership-enabled-models";
 
@@ -48,11 +46,9 @@ export function getEnabledModelIds(): string[] {
 }
 
 export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
-  const [apiKey, setApiKey] = useState("");
   const [instructions, setInstructions] = useState<string[]>([]);
   const [newInstruction, setNewInstruction] = useState("");
   const [loading, setLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const newInstructionRef = useRef<HTMLInputElement>(null);
   
   // Model management state
@@ -66,7 +62,6 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
   // Load settings
   useEffect(() => {
     if (isOpen) {
-      setApiKey(localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY) || "");
       setEnabledModelIds(getEnabledModelIds());
       // Fetch instructions from API
       fetch("/api/ai/settings")
@@ -78,7 +73,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
           console.error("Failed to load AI settings:", err);
           setInstructions([]);
         });
-      setTimeout(() => inputRef.current?.focus(), 50);
+      setTimeout(() => newInstructionRef.current?.focus(), 50);
     }
   }, [isOpen]);
 
@@ -125,7 +120,6 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
 
   const handleSave = async () => {
     setLoading(true);
-    localStorage.setItem(OPENROUTER_API_KEY_STORAGE_KEY, apiKey);
     localStorage.setItem(ENABLED_MODELS_STORAGE_KEY, JSON.stringify(enabledModelIds));
     
     // Save instructions to API
@@ -141,12 +135,6 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
     
     setLoading(false);
     onClose();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      handleSave();
-    }
   };
 
   const addInstruction = () => {
@@ -198,27 +186,6 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
 
         {/* Body */}
         <div className="p-4 space-y-5">
-          {/* API Key */}
-          <div>
-            <label className="block text-xs text-[#9b9b9b] mb-1.5">OpenRouter API Key</label>
-            <input
-              ref={inputRef}
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="sk-or-..."
-              autoComplete="off"
-              data-1p-ignore
-              data-lpignore="true"
-              data-form-type="other"
-              className="w-full bg-[#1a1a1a] text-[#ebebeb] text-sm px-3 py-2 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b]"
-            />
-            <p className="text-xs text-[#6b6b6b] mt-1.5">
-              Get your API key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-[#7eb8f7] hover:underline">openrouter.ai/keys</a>
-            </p>
-          </div>
-
           {/* Instructions */}
           <div>
             <label className="block text-xs text-[#9b9b9b] mb-2">Instructions</label>

@@ -7,6 +7,13 @@ interface VoiceRecorderProps {
   disabled?: boolean;
 }
 
+const AZURE_SPEECH_KEY_STORAGE_KEY = "vault-azure-speech-key";
+const LEGACY_AZURE_SPEECH_KEY_STORAGE_KEY = "mothership-azure-speech-key";
+const AZURE_SPEECH_REGION_STORAGE_KEY = "vault-azure-speech-region";
+const LEGACY_AZURE_SPEECH_REGION_STORAGE_KEY = "mothership-azure-speech-region";
+const AZURE_SPEECH_LANGUAGE_STORAGE_KEY = "vault-azure-speech-language";
+const LEGACY_AZURE_SPEECH_LANGUAGE_STORAGE_KEY = "mothership-azure-speech-language";
+
 type RecordingState = "idle" | "recording" | "processing";
 
 // Convert audio blob to WAV format for server-side processing
@@ -76,6 +83,23 @@ export function VoiceRecorder({ onTranscription, disabled }: VoiceRecorderProps)
   const streamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const getAzureSpeechConfig = () => {
+    const key =
+      localStorage.getItem(AZURE_SPEECH_KEY_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_AZURE_SPEECH_KEY_STORAGE_KEY) ||
+      "";
+    const region =
+      localStorage.getItem(AZURE_SPEECH_REGION_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_AZURE_SPEECH_REGION_STORAGE_KEY) ||
+      "";
+    const language =
+      localStorage.getItem(AZURE_SPEECH_LANGUAGE_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_AZURE_SPEECH_LANGUAGE_STORAGE_KEY) ||
+      "en-US";
+
+    return { key, region, language };
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -114,7 +138,7 @@ export function VoiceRecorder({ onTranscription, disabled }: VoiceRecorderProps)
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          sampleRate: 16000, // Whisper prefers 16kHz
+          sampleRate: 16000,
         } 
       });
       
@@ -152,6 +176,11 @@ export function VoiceRecorder({ onTranscription, disabled }: VoiceRecorderProps)
         setAudioUrl(url);
         
         try {
+          const azureSpeech = getAzureSpeechConfig();
+          if (!azureSpeech.key || !azureSpeech.region) {
+            throw new Error("Azure Speech key/region missing. Set them in Settings > API Keys.");
+          }
+
           // Convert to WAV format for server-side processing
           const wavBlob = await convertToWav(audioBlob);
           
@@ -160,6 +189,11 @@ export function VoiceRecorder({ onTranscription, disabled }: VoiceRecorderProps)
           
           const response = await fetch("/api/transcribe", {
             method: "POST",
+            headers: {
+              "x-vault-azure-speech-key": azureSpeech.key,
+              "x-vault-azure-speech-region": azureSpeech.region,
+              "x-vault-azure-speech-language": azureSpeech.language,
+            },
             body: formData,
           });
           

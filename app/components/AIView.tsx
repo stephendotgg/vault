@@ -437,8 +437,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
     // Check for API key
     const apiKey = getApiKey();
     if (!apiKey) {
-      setError("Please set your OpenRouter API key in settings.");
-      setShowSettings(true);
+      setError("Please set your OpenRouter API key in Settings > API Keys.");
       return;
     }
 
@@ -681,7 +680,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
 
     const apiKey = getApiKey();
     if (!apiKey) {
-      setError("Please set your OpenRouter API key in settings.");
+      setError("Please set your OpenRouter API key in Settings > API Keys.");
       return;
     }
 

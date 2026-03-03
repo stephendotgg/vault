@@ -1,6 +1,6 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut, desktopCapturer } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut, desktopCapturer, Notification } = require("electron");
 const path = require("path");
-const { execFile, spawn } = require("child_process");
+const { execFile } = require("child_process");
 const fs = require("fs");
 
 // Set NODE_ENV early to prevent TypeScript installation attempts
@@ -31,6 +31,7 @@ if (!isDev && process.platform === "win32") {
 let mainWindow;
 const quickNoteWindows = new Set();
 const quickAiWindows = new Set();
+const quickNoteParentByWindowId = new Map();
 let warmQuickNoteWindow = null;
 let warmQuickAiWindow = null;
 let warmQuickNoteLoading = false;
@@ -47,9 +48,6 @@ let callsLiveNoteId = null;
 let callsLiveContent = "";
 let callsChunkQueue = Promise.resolve();
 let callsChunkCounter = 0;
-let callsTranscribeWorker = null;
-let callsTranscribeWorkerRequestId = 0;
-const callsTranscribeWorkerPending = new Map();
 const CALLS_CHUNK_MS = 3000;
 const CALLS_POLL_MS = 5000;
 const CALLS_ABSENT_POLLS_TO_STOP = 1;
@@ -93,88 +91,6 @@ function callsLog(...args) {
   const line = `[CALLS ${stamp}] ${textArgs}`;
   console.log(line);
   appendDebugLog(line);
-}
-
-function ensureCallsTranscribeWorker() {
-  if (callsTranscribeWorker && !callsTranscribeWorker.killed) {
-    return callsTranscribeWorker;
-  }
-
-  const workerPath = path.join(__dirname, "calls-transcribe-worker.js");
-  callsTranscribeWorker = spawn(process.execPath, [workerPath], {
-    stdio: ["ignore", "pipe", "pipe", "ipc"],
-    windowsHide: true,
-    env: {
-      ...process.env,
-      ELECTRON_RUN_AS_NODE: "1",
-    },
-  });
-
-  callsLog("Started calls transcribe worker", {
-    pid: callsTranscribeWorker.pid,
-    execPath: process.execPath,
-    workerPath,
-  });
-
-  callsTranscribeWorker.stdout?.on("data", (chunk) => {
-    const text = String(chunk || "").trim();
-    if (text) {
-      callsLog("Worker stdout", text);
-    }
-  });
-
-  callsTranscribeWorker.stderr?.on("data", (chunk) => {
-    const text = String(chunk || "").trim();
-    if (text) {
-      callsLog("Worker stderr", text);
-    }
-  });
-
-  callsTranscribeWorker.on("message", (message) => {
-    const requestId = typeof message?.requestId === "number" ? message.requestId : -1;
-    const pending = callsTranscribeWorkerPending.get(requestId);
-    if (!pending) {
-      return;
-    }
-
-    callsTranscribeWorkerPending.delete(requestId);
-
-    if (message?.type === "result") {
-      pending.resolve(typeof message?.text === "string" ? message.text : "");
-      return;
-    }
-
-    const errorText = typeof message?.error === "string" ? message.error : "Worker transcription failed";
-    pending.reject(new Error(errorText));
-  });
-
-  callsTranscribeWorker.on("exit", (code, signal) => {
-    callsLog("Calls transcribe worker exited", { code, signal });
-    for (const [requestId, pending] of callsTranscribeWorkerPending.entries()) {
-      pending.reject(new Error(`Worker exited before completing request ${requestId}`));
-      callsTranscribeWorkerPending.delete(requestId);
-    }
-    callsTranscribeWorker = null;
-  });
-
-  return callsTranscribeWorker;
-}
-
-async function transcribeWavChunkInWorker(base64Wav) {
-  const worker = ensureCallsTranscribeWorker();
-  const requestId = ++callsTranscribeWorkerRequestId;
-
-  const resultPromise = new Promise((resolve, reject) => {
-    callsTranscribeWorkerPending.set(requestId, { resolve, reject });
-  });
-
-  worker.send({
-    type: "transcribe",
-    requestId,
-    wavBase64: base64Wav,
-  });
-
-  return resultPromise;
 }
 
 function notifyQuickNotesChanged() {
@@ -604,6 +520,27 @@ async function startLiveCallTranscription() {
   callsChunkCounter = 0;
   callsLog("Starting live call transcription", { noteId: callsLiveNoteId });
 
+  if (Notification.isSupported()) {
+    try {
+      const notification = new Notification({
+        title: "Teams call detected",
+        body: "Click to open Quick Note for this call.",
+      });
+
+      notification.on("click", () => {
+        void createQuickNoteWindow({ parentNoteId: note.id });
+      });
+
+      notification.show();
+      callsLog("Displayed Teams call detected notification", { noteId: note.id });
+    } catch (error) {
+      callsLog("Failed to show Teams call detected notification", {
+        noteId: note.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   const window = await createCallsTranscriberWindow();
   window.webContents.send("calls-transcriber-start", {
     chunkMs: CALLS_CHUNK_MS,
@@ -642,7 +579,33 @@ function stopLiveCallTranscription() {
 
 async function transcribeWavChunk(base64Wav) {
   callsLog("Transcribe chunk request", { payloadBytes: base64Wav.length });
-  const text = String(await transcribeWavChunkInWorker(base64Wav)).trim();
+  const config = await getAzureSpeechConfigFromMainWindow();
+
+  if (!config.key || !config.region) {
+    throw new Error("Azure Speech key/region missing. Configure them in Settings > API Keys.");
+  }
+
+  const response = await fetch(`http://localhost:${PORT}/api/transcribe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-vault-azure-speech-key": config.key,
+      "x-vault-azure-speech-region": config.region,
+      "x-vault-azure-speech-language": config.language,
+    },
+    body: JSON.stringify({
+      wavBase64: base64Wav,
+      source: "calls-transcriber",
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(body || `Transcription failed (${response.status})`);
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  const text = typeof payload?.text === "string" ? payload.text.trim() : "";
   callsLog("Transcribe chunk response", { textLength: text.length, preview: text.slice(0, 80) });
   return text;
 }
@@ -705,14 +668,6 @@ function stopCallsMonitor() {
   callsLog("Calls monitor stopped");
 }
 
-function stopCallsTranscribeWorker() {
-  if (callsTranscribeWorker && !callsTranscribeWorker.killed) {
-    callsLog("Stopping calls transcribe worker", { pid: callsTranscribeWorker.pid });
-    callsTranscribeWorker.kill();
-  }
-  callsTranscribeWorker = null;
-}
-
 async function getOpenRouterApiKeyFromMainWindow() {
   try {
     if (!mainWindow || mainWindow.isDestroyed()) {
@@ -744,6 +699,31 @@ async function getSelectedModelFromMainWindow() {
     return typeof model === "string" && model.trim() ? model : "openai/gpt-4o-mini";
   } catch {
     return "openai/gpt-4o-mini";
+  }
+}
+
+async function getAzureSpeechConfigFromMainWindow() {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return { key: "", region: "", language: "en-US" };
+    }
+
+    const [key, region, language] = await mainWindow.webContents.executeJavaScript(
+      `[
+        localStorage.getItem('vault-azure-speech-key') || localStorage.getItem('mothership-azure-speech-key') || '',
+        localStorage.getItem('vault-azure-speech-region') || localStorage.getItem('mothership-azure-speech-region') || '',
+        localStorage.getItem('vault-azure-speech-language') || localStorage.getItem('mothership-azure-speech-language') || 'en-US'
+      ]`,
+      true
+    );
+
+    return {
+      key: typeof key === "string" ? key : "",
+      region: typeof region === "string" ? region : "",
+      language: typeof language === "string" && language.trim() ? language : "en-US",
+    };
+  } catch {
+    return { key: "", region: "", language: "en-US" };
   }
 }
 
@@ -855,12 +835,26 @@ function buildQuickNoteWindow() {
 
   window.on("closed", () => {
     quickNoteWindows.delete(window);
+    quickNoteParentByWindowId.delete(window.id);
     if (warmQuickNoteWindow === window) {
       warmQuickNoteWindow = null;
     }
   });
 
   return window;
+}
+
+function setQuickNoteParentForWindow(window, parentNoteId) {
+  if (!window || window.isDestroyed()) {
+    return;
+  }
+
+  if (typeof parentNoteId === "string" && parentNoteId.trim()) {
+    quickNoteParentByWindowId.set(window.id, parentNoteId.trim());
+    return;
+  }
+
+  quickNoteParentByWindowId.delete(window.id);
 }
 
 function buildQuickAiWindow() {
@@ -960,10 +954,13 @@ async function ensureWarmQuickAiWindow() {
   }
 }
 
-async function createQuickNoteWindow() {
+async function createQuickNoteWindow(options = {}) {
+  const parentNoteId = typeof options?.parentNoteId === "string" ? options.parentNoteId : "";
+
   if (isWindowUsable(warmQuickNoteWindow)) {
     const window = warmQuickNoteWindow;
     warmQuickNoteWindow = null;
+    setQuickNoteParentForWindow(window, parentNoteId);
     focusQuickWindow(window);
     void ensureWarmQuickNoteWindow();
     return;
@@ -972,6 +969,7 @@ async function createQuickNoteWindow() {
   const window = buildQuickNoteWindow();
   try {
     await window.loadFile(path.join(__dirname, "quick-note.html"));
+    setQuickNoteParentForWindow(window, parentNoteId);
     focusQuickWindow(window);
   } catch {
     if (!window.isDestroyed()) {
@@ -1005,7 +1003,8 @@ async function createQuickAiWindow() {
 }
 
 async function createOrUpdateQuickNote(text, options = {}) {
-  const quickNotesParentId = await ensureQuickNotesCategory();
+  const parentOverride = typeof options.parentId === "string" ? options.parentId.trim() : "";
+  const quickNotesParentId = parentOverride || await ensureQuickNotesCategory();
   const created = await apiRequest("/api/notes", {
     method: "POST",
     body: JSON.stringify({ parentId: quickNotesParentId }),
@@ -1101,7 +1100,9 @@ ipcMain.handle("quick-note-save", async (_event, payload) => {
     return { saved: false };
   }
 
-  const note = await createOrUpdateQuickNote(text, { archived: false, generateTitle: true });
+  const senderWindow = BrowserWindow.fromWebContents(_event.sender);
+  const parentId = senderWindow ? quickNoteParentByWindowId.get(senderWindow.id) : undefined;
+  const note = await createOrUpdateQuickNote(text, { archived: false, generateTitle: true, parentId });
   return { saved: true, noteId: note.id };
 });
 
@@ -1111,7 +1112,9 @@ ipcMain.handle("quick-note-archive", async (_event, payload) => {
     return { archived: false };
   }
 
-  const note = await createOrUpdateQuickNote(text, { archived: true, generateTitle: false });
+  const senderWindow = BrowserWindow.fromWebContents(_event.sender);
+  const parentId = senderWindow ? quickNoteParentByWindowId.get(senderWindow.id) : undefined;
+  const note = await createOrUpdateQuickNote(text, { archived: true, generateTitle: false, parentId });
   return { archived: true, noteId: note.id };
 });
 
@@ -1134,7 +1137,7 @@ ipcMain.handle("quick-ai-chat", async (_event, payload) => {
 
   const apiKey = await getOpenRouterApiKeyFromMainWindow();
   if (!apiKey) {
-    throw new Error("Please set your OpenRouter API key in AI Settings.");
+    throw new Error("Please set your OpenRouter API key in Settings > API Keys.");
   }
 
   const model = await getSelectedModelFromMainWindow();
@@ -1194,7 +1197,7 @@ ipcMain.on("quick-ai-chat-stream", async (event, payload) => {
   try {
     const apiKey = await getOpenRouterApiKeyFromMainWindow();
     if (!apiKey) {
-      throw new Error("Please set your OpenRouter API key in AI Settings.");
+      throw new Error("Please set your OpenRouter API key in Settings > API Keys.");
     }
 
     const model = await getSelectedModelFromMainWindow();
@@ -1561,7 +1564,6 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   globalShortcut.unregisterAll();
   stopCallsMonitor();
-  stopCallsTranscribeWorker();
   if (server) {
     server.close();
   }
