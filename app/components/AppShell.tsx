@@ -23,6 +23,30 @@ function applyThemeMode(mode: "dark" | "light") {
   document.documentElement.setAttribute("data-theme", mode);
 }
 
+function getDescendantNoteIds(notes: Note[], rootId: string): string[] {
+  const childrenByParent = new Map<string, string[]>();
+  for (const note of notes) {
+    if (!note.parentId) continue;
+    const existing = childrenByParent.get(note.parentId) ?? [];
+    existing.push(note.id);
+    childrenByParent.set(note.parentId, existing);
+  }
+
+  const ids = new Set<string>();
+  const queue = [rootId];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || ids.has(current)) continue;
+    ids.add(current);
+
+    const children = childrenByParent.get(current) ?? [];
+    queue.push(...children);
+  }
+
+  return [...ids];
+}
+
 export function AppShell() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [vaultItems, setVaultItems] = useState<VaultItem[]>([]);
@@ -293,11 +317,13 @@ export function AppShell() {
   // Archive note (hide without deleting) - if note is empty, delete instead
   const handleArchiveNote = async (id: string) => {
     const note = notes.find((n) => n.id === id);
+    const descendantIds = getDescendantNoteIds(notes, id);
+    const hasChildren = descendantIds.length > 1;
     const isEmpty = note && 
       (note.title === "" || note.title === "Untitled") && 
       (note.content === "" || note.content === "<p></p>");
     
-    if (isEmpty) {
+    if (isEmpty && !hasChildren) {
       // Delete empty notes instead of archiving
       try {
         const res = await fetch(`/api/notes/${id}`, { method: "DELETE" });
@@ -315,19 +341,23 @@ export function AppShell() {
     }
 
     try {
-      const res = await fetch(`/api/notes/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ archived: true }),
-      });
+      await Promise.all(
+        descendantIds.map((noteId) =>
+          fetch(`/api/notes/${noteId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ archived: true }),
+          })
+        )
+      );
 
-      if (res.ok) {
-        const updatedNote = await res.json();
-        setNotes((prev) => prev.map((n) => (n.id === id ? updatedNote : n)));
-        if (selectedNoteId === id) {
-          setSelectedNoteId(null);
-          setCurrentView("home");
-        }
+      setNotes((prev) =>
+        prev.map((n) => (descendantIds.includes(n.id) ? { ...n, archived: true } : n))
+      );
+
+      if (selectedNoteId && descendantIds.includes(selectedNoteId)) {
+        setSelectedNoteId(null);
+        setCurrentView("home");
       }
     } catch (error) {
       console.error("Failed to archive note:", error);
@@ -336,16 +366,25 @@ export function AppShell() {
 
   // Restore note from archive
   const handleRestoreNote = async (id: string) => {
-    try {
-      const res = await fetch(`/api/notes/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ archived: false }),
-      });
+    const descendantIds = getDescendantNoteIds(notes, id);
 
-      if (res.ok) {
-        const updatedNote = await res.json();
-        setNotes((prev) => prev.map((n) => (n.id === id ? updatedNote : n)));
+    try {
+      await Promise.all(
+        descendantIds.map((noteId) =>
+          fetch(`/api/notes/${noteId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ archived: false }),
+          })
+        )
+      );
+
+      setNotes((prev) =>
+        prev.map((n) => (descendantIds.includes(n.id) ? { ...n, archived: false } : n))
+      );
+
+      if (selectedArchivedNoteId && descendantIds.includes(selectedArchivedNoteId)) {
+        setSelectedArchivedNoteId(null);
       }
     } catch (error) {
       console.error("Failed to restore note:", error);
@@ -354,13 +393,15 @@ export function AppShell() {
 
   // Delete note permanently
   const handleDeletePermanently = async (id: string) => {
+    const descendantIds = getDescendantNoteIds(notes, id);
+
     try {
       const res = await fetch(`/api/notes/${id}`, {
         method: "DELETE",
       });
 
       if (res.ok) {
-        setNotes((prev) => prev.filter((n) => n.id !== id));
+        setNotes((prev) => prev.filter((n) => !descendantIds.includes(n.id)));
       }
     } catch (error) {
       console.error("Failed to delete note:", error);
@@ -758,7 +799,6 @@ export function AppShell() {
             notes={notes}
             selectedNoteId={selectedArchivedNoteId}
             onSelectNote={setSelectedArchivedNoteId}
-            onUpdateNote={handleUpdateNote}
             onRestoreNote={handleRestoreNote}
             onDeletePermanently={handleDeletePermanently}
           />

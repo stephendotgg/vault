@@ -1,14 +1,18 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { Note } from "@/types/models";
 
 interface ArchiveViewProps {
   notes: Note[];
   selectedNoteId: string | null;
   onSelectNote: (id: string | null) => void;
-  onUpdateNote: (note: Note) => void;
   onRestoreNote: (id: string) => void;
   onDeletePermanently: (id: string) => void;
+}
+
+interface NoteWithChildren extends Note {
+  children: NoteWithChildren[];
 }
 
 const SPREADSHEET_CONTENT_PREFIX = "vault:sheet:v1:";
@@ -41,15 +45,39 @@ function hasSpreadsheetCellContent(content: string): boolean {
   }
 }
 
-// Note icon - can be emoji, custom image, or default document icon
+function buildNoteTree(notes: Note[]): NoteWithChildren[] {
+  const noteMap = new Map<string, NoteWithChildren>();
+  const roots: NoteWithChildren[] = [];
+
+  notes.forEach((note) => {
+    noteMap.set(note.id, { ...note, children: [] });
+  });
+
+  notes.forEach((note) => {
+    const node = noteMap.get(note.id)!;
+    if (note.parentId && noteMap.has(note.parentId)) {
+      noteMap.get(note.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  const sortByOrder = (nodes: NoteWithChildren[]) => {
+    nodes.sort((a, b) => a.order - b.order);
+    nodes.forEach((node) => sortByOrder(node.children));
+  };
+
+  sortByOrder(roots);
+  return roots;
+}
+
 function NoteIcon({ icon, hasContent, content = "" }: { icon: string; hasContent: boolean; content?: string }) {
-  // Custom image icon (stored as "icon:filename.ext")
   if (icon.startsWith("icon:")) {
     const filename = icon.substring(5);
     return (
-      <img 
-        src={`/api/icons/${filename}`} 
-        alt="" 
+      <img
+        src={`/api/icons/${filename}`}
+        alt=""
         className="w-4 h-4 shrink-0 rounded-sm object-cover"
       />
     );
@@ -80,8 +108,7 @@ function NoteIcon({ icon, hasContent, content = "" }: { icon: string; hasContent
       </svg>
     );
   }
-  
-  // Emoji icon (any non-default value that's not an image)
+
   if (icon && icon !== "📄" && icon !== "sheet" && icon !== "📊") {
     return (
       <span className="w-4 h-4 shrink-0 text-sm leading-none flex items-center justify-center">
@@ -89,8 +116,7 @@ function NoteIcon({ icon, hasContent, content = "" }: { icon: string; hasContent
       </span>
     );
   }
-  
-  // Default document icon
+
   if (resolvedHasContent) {
     return (
       <svg className="w-4 h-4 shrink-0 text-[#9b9b9b] note-filled-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -101,6 +127,7 @@ function NoteIcon({ icon, hasContent, content = "" }: { icon: string; hasContent
       </svg>
     );
   }
+
   return (
     <svg className="w-4 h-4 shrink-0 text-[#6b6b6b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
@@ -109,34 +136,176 @@ function NoteIcon({ icon, hasContent, content = "" }: { icon: string; hasContent
   );
 }
 
-export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote, onDeletePermanently }: ArchiveViewProps) {
-  const archivedNotes = notes.filter((n) => n.archived);
-  const selectedNote = selectedNoteId ? notes.find((n) => n.id === selectedNoteId) : null;
+interface ArchiveTreeItemProps {
+  note: NoteWithChildren;
+  depth: number;
+  isExpanded: (id: string) => boolean;
+  selectedNoteId: string | null;
+  onToggleExpand: (id: string) => void;
+  onSelectNote: (id: string) => void;
+  onRestoreNote: (id: string) => void;
+  onDeletePermanently: (id: string) => void;
+}
 
-  // If a note is selected, show the NoteEditor
+function ArchiveTreeItem({
+  note,
+  depth,
+  isExpanded,
+  selectedNoteId,
+  onToggleExpand,
+  onSelectNote,
+  onRestoreNote,
+  onDeletePermanently,
+}: ArchiveTreeItemProps) {
+  const hasChildren = note.children.length > 0;
+  const expanded = isExpanded(note.id);
+  const isSelected = selectedNoteId === note.id;
+
+  return (
+    <div>
+      <div
+        onClick={() => onSelectNote(note.id)}
+        className={`group w-full flex items-center gap-2 px-2 py-1 rounded transition-colors text-left cursor-pointer ${
+          isSelected ? "bg-[#2a2a2a]" : "hover:bg-[#2a2a2a]"
+        }`}
+        style={{ paddingLeft: `${8 + depth * 16}px` }}
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (hasChildren) {
+              onToggleExpand(note.id);
+            }
+          }}
+          className={`w-4 h-4 flex items-center justify-center rounded hover:bg-[rgba(255,255,255,0.1)] ${
+            hasChildren ? "visible" : "invisible"
+          }`}
+        >
+          <svg
+            className={`w-3 h-3 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+          </svg>
+        </button>
+
+        <NoteIcon icon={note.icon} hasContent={note.content.length > 0 && note.content !== "<p></p>"} content={note.content} />
+        <span className="note-title-text text-[#9b9b9b] text-sm truncate flex-1">
+          {note.title || getUntitledLabel(note)}
+        </span>
+
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRestoreNote(note.id);
+            }}
+            className="p-0.5 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.1)] rounded transition-all cursor-pointer"
+            title="Restore note"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeletePermanently(note.id);
+            }}
+            className="p-0.5 text-[#6b6b6b] hover:text-red-400 hover:bg-[rgba(255,255,255,0.1)] rounded transition-all cursor-pointer"
+            title="Delete permanently"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {expanded && hasChildren && (
+        <div>
+          {note.children.map((child) => (
+            <ArchiveTreeItem
+              key={child.id}
+              note={child}
+              depth={depth + 1}
+              isExpanded={isExpanded}
+              selectedNoteId={selectedNoteId}
+              onToggleExpand={onToggleExpand}
+              onSelectNote={onSelectNote}
+              onRestoreNote={onRestoreNote}
+              onDeletePermanently={onDeletePermanently}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote, onDeletePermanently }: ArchiveViewProps) {
+  const archivedNotes = useMemo(() => notes.filter((n) => n.archived), [notes]);
+  const archivedNoteTree = useMemo(() => buildNoteTree(archivedNotes), [archivedNotes]);
+  const selectedNote = selectedNoteId ? notes.find((n) => n.id === selectedNoteId) : null;
+  const [collapsedNoteIds, setCollapsedNoteIds] = useState<Set<string>>(new Set());
+
+  const selectedBreadcrumbs = useMemo(() => {
+    if (!selectedNote) {
+      return [] as Note[];
+    }
+
+    const archivedMap = new Map(archivedNotes.map((note) => [note.id, note]));
+    const trail: Note[] = [];
+    let current: Note | undefined = selectedNote;
+
+    while (current && archivedMap.has(current.id)) {
+      trail.unshift(current);
+      current = current.parentId ? archivedMap.get(current.parentId) : undefined;
+    }
+
+    return trail;
+  }, [archivedNotes, selectedNote]);
+
+  const toggleExpand = (id: string) => {
+    setCollapsedNoteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const isExpanded = (id: string) => !collapsedNoteIds.has(id);
+
   if (selectedNote) {
     return (
       <div className="flex flex-col h-full">
-        {/* Top bar with breadcrumbs - same style as NoteEditor */}
         <div className="flex items-center justify-between h-11 px-4 border-b border-[#2f2f2f] shrink-0">
           <div className="flex items-center gap-1 text-sm text-[#9b9b9b] overflow-hidden">
-            {/* Archive breadcrumb */}
             <button
               onClick={() => onSelectNote(null)}
               className="hover:text-[#e3e3e3] transition-colors cursor-pointer"
             >
               <span className="truncate">Archive</span>
             </button>
-            {/* Separator */}
-            <svg className="w-3 h-3 text-[#6b6b6b] shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-            {/* Note breadcrumb */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <NoteIcon icon={selectedNote.icon} hasContent={selectedNote.content.length > 0 && selectedNote.content !== "<p></p>"} content={selectedNote.content} />
-              <span className="truncate">{selectedNote.title || getUntitledLabel(selectedNote)}</span>
-            </div>
+
+            {selectedBreadcrumbs.map((crumb) => (
+              <div key={crumb.id} className="flex items-center gap-1 text-sm text-[#9b9b9b] min-w-0">
+                <svg className="w-3 h-3 text-[#6b6b6b] shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <NoteIcon icon={crumb.icon} hasContent={crumb.content.length > 0 && crumb.content !== "<p></p>"} content={crumb.content} />
+                  <span className="truncate">{crumb.title || getUntitledLabel(crumb)}</span>
+                </div>
+              </div>
+            ))}
           </div>
+
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
@@ -158,12 +327,11 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote
             </button>
           </div>
         </div>
-        
-        {/* Note editor area - reuse the content portion */}
+
         <div className="flex-1 overflow-auto">
           <div className="max-w-3xl mx-auto px-16 py-12">
             <h1 className="text-4xl font-bold text-[#e3e3e3] mb-4">{selectedNote.title || getUntitledLabel(selectedNote)}</h1>
-            <div 
+            <div
               className="prose prose-invert max-w-none text-[#e3e3e3] text-base leading-relaxed"
               dangerouslySetInnerHTML={{ __html: selectedNote.content || "<p class='text-[#4a4a4a]'>No content</p>" }}
             />
@@ -175,14 +343,12 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote
 
   return (
     <div className="flex flex-col h-full">
-      {/* Top bar */}
       <div className="flex items-center justify-between h-11 px-4 border-b border-[#2f2f2f] shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-sm text-[#9b9b9b]">Archive</span>
         </div>
       </div>
 
-      {/* Archive content */}
       <div className="flex-1 overflow-auto">
         <div className="max-w-3xl mx-auto px-16 py-12">
           <h1 className="text-4xl font-bold text-[#e3e3e3] mb-4">Archive</h1>
@@ -193,43 +359,18 @@ export function ArchiveView({ notes, selectedNoteId, onSelectNote, onRestoreNote
             </div>
           ) : (
             <div className="-mx-2">
-              {archivedNotes.map((note) => (
-                <div
+              {archivedNoteTree.map((note) => (
+                <ArchiveTreeItem
                   key={note.id}
-                  onClick={() => onSelectNote(note.id)}
-                  className="group w-full flex items-center gap-2 px-2 py-1 hover:bg-[#2a2a2a] rounded transition-colors text-left cursor-pointer"
-                >
-                  <NoteIcon icon={note.icon} hasContent={note.content.length > 0 && note.content !== "<p></p>"} content={note.content} />
-                  <span className="note-title-text text-[#9b9b9b] text-sm truncate flex-1">
-                    {note.title || getUntitledLabel(note)}
-                  </span>
-                  
-                  {/* Action buttons - same style as sidebar */}
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
-                    {/* Restore button */}
-                    <button
-                      onClick={() => onRestoreNote(note.id)}
-                      className="p-0.5 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.1)] rounded transition-all cursor-pointer"
-                      title="Restore note"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                      </svg>
-                    </button>
-                    {/* Delete button */}
-                    <button
-                      onClick={() => {
-                        onDeletePermanently(note.id);
-                      }}
-                      className="p-0.5 text-[#6b6b6b] hover:text-red-400 hover:bg-[rgba(255,255,255,0.1)] rounded transition-all cursor-pointer"
-                      title="Delete permanently"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+                  note={note}
+                  depth={0}
+                  isExpanded={isExpanded}
+                  selectedNoteId={selectedNoteId}
+                  onToggleExpand={toggleExpand}
+                  onSelectNote={(id) => onSelectNote(id)}
+                  onRestoreNote={onRestoreNote}
+                  onDeletePermanently={onDeletePermanently}
+                />
               ))}
             </div>
           )}

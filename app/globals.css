@@ -720,30 +720,78 @@ a {
 :root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__table,
 :root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__cell,
 :root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__header {
-  background: #111111 !important;
-  color: #f0f0f0 !important;
-  border-color: #262626 !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d7dde6 !important;
 }
 
 :root[data-theme="light"] .sheet-note-grid .Spreadsheet {
-  --background-color: #151515 !important;
-  --text-color: #f0f0f0 !important;
-  --readonly-text-color: #a5a5a5 !important;
-  --header-background-color: #1d1d1d !important;
-  --border-color: #262626 !important;
+  --background-color: #ffffff !important;
+  --text-color: #111827 !important;
+  --readonly-text-color: #6b7280 !important;
+  --header-background-color: #f3f6fb !important;
+  --border-color: #d7dde6 !important;
   --outline-color: #3b82f6 !important;
   --outline-background-color: rgba(59, 130, 246, 0.14) !important;
 }
 
 :root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__header {
-  background: #1d1d1d !important;
-  color: #a5a5a5 !important;
+  background: #f3f6fb !important;
+  color: #6b7280 !important;
 }
 
 :root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__data-viewer,
 :root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__data-editor input {
-  background: #151515 !important;
-  color: #f0f0f0 !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
+:root[data-theme="light"] .sheet-note-grid {
+  background: #f8fafc !important;
+}
+
+:root[data-theme="light"] .sheet-note-grid .Spreadsheet .Spreadsheet__data-viewer a {
+  color: #2563eb;
+}
+
+.sheet-note-grid.sheet-note-grid--light,
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet,
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet table,
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet .Spreadsheet__table,
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet .Spreadsheet__cell,
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet .Spreadsheet__header {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d7dde6 !important;
+}
+
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet {
+  --background-color: #ffffff !important;
+  --text-color: #111827 !important;
+  --readonly-text-color: #6b7280 !important;
+  --header-background-color: #f3f6fb !important;
+  --border-color: #d7dde6 !important;
+  --outline-color: #3b82f6 !important;
+  --outline-background-color: rgba(59, 130, 246, 0.14) !important;
+}
+
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet .Spreadsheet__header {
+  background: #f3f6fb !important;
+  color: #6b7280 !important;
+}
+
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet .Spreadsheet__data-viewer,
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet .Spreadsheet__data-editor input {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
+.sheet-note-grid.sheet-note-grid--light {
+  background: #f8fafc !important;
+}
+
+.sheet-note-grid.sheet-note-grid--light .Spreadsheet .Spreadsheet__data-viewer a {
+  color: #2563eb;
 }
 
 @theme inline {

@@ -30,6 +30,7 @@ import { Note } from "@/types/models";
 // Storage keys
 const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
 const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
+const THEME_MODE_EVENT = "vault-theme-updated";
 const SPREADSHEET_CONTENT_PREFIX = "vault:sheet:v1:";
 const DEFAULT_SPREADSHEET_ROWS = 30;
 const DEFAULT_SPREADSHEET_COLS = 12;
@@ -621,6 +622,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const spreadsheetRef = useRef<{ activate: (point: Point) => void } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isLightTheme, setIsLightTheme] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const spreadsheetSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const spreadsheetDraftRef = useRef<string[][]>(
@@ -999,6 +1001,24 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       titleInputRef.current?.focus();
     }
   }, [isSpreadsheetNote, note.id, note.title, note.content]);
+
+  useEffect(() => {
+    const syncTheme = () => {
+      const mode = document.documentElement.getAttribute("data-theme");
+      setIsLightTheme(mode === "light");
+    };
+
+    syncTheme();
+
+    const handleThemeUpdated = () => {
+      syncTheme();
+    };
+
+    window.addEventListener(THEME_MODE_EVENT, handleThemeUpdated as EventListener);
+    return () => {
+      window.removeEventListener(THEME_MODE_EVENT, handleThemeUpdated as EventListener);
+    };
+  }, []);
 
   // Build breadcrumb trail from current note to root
   const breadcrumbs = useMemo(() => {
@@ -1745,7 +1765,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
             )}
 
             {isSpreadsheetNote ? (
-              <div className="sheet-note-grid flex-1 overflow-auto bg-[#111111]">
+              <div className={`sheet-note-grid flex-1 overflow-auto bg-[#111111] ${isLightTheme ? "sheet-note-grid--light" : ""}`}>
                 <style>{spreadsheetColumnSizeCss}</style>
                 <Spreadsheet
                   ref={spreadsheetRef as unknown as React.Ref<unknown>}
