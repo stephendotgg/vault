@@ -225,9 +225,9 @@ function SheetDataEditor({
   exitEditMode,
   row,
   column,
-  onMoveToNextCell,
+  onNavigateCell,
 }: DataEditorProps<SpreadsheetCell> & {
-  onMoveToNextCell?: (point: Point) => void;
+  onNavigateCell?: (point: Point, direction: "up" | "down" | "left" | "right") => void;
 }) {
   const handleEditorChange = (nextValue: string) => {
     onChange({ value: nextValue });
@@ -262,7 +262,25 @@ function SheetDataEditor({
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             exitEditMode();
-            onMoveToNextCell?.({ row, column });
+            onNavigateCell?.({ row, column }, "down");
+            return;
+          }
+
+          if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+            e.preventDefault();
+            exitEditMode();
+
+            const direction =
+              e.key === "ArrowUp"
+                ? "up"
+                : e.key === "ArrowDown"
+                  ? "down"
+                  : e.key === "ArrowLeft"
+                    ? "left"
+                    : "right";
+
+            onNavigateCell?.({ row, column }, direction);
+            return;
           }
 
           if (e.key === "Escape") {
@@ -656,28 +674,34 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     queueSpreadsheetSave(base);
   }, [activeSpreadsheetCell, queueSpreadsheetSave, spreadsheetData]);
 
-  const moveToNextSpreadsheetCell = useCallback((fromPoint?: Point | null) => {
+  const moveSpreadsheetSelection = useCallback((fromPoint: Point | null | undefined, direction: "up" | "down" | "left" | "right") => {
     const active = fromPoint ?? activeSpreadsheetCell;
     if (!active) {
       return;
     }
 
     const lastRow = Math.max(spreadsheetData.length - 1, 0);
-    const nextRow = Math.min(active.row + 1, lastRow);
-    const nextPoint: Point = { row: nextRow, column: active.column };
+    const lastColumn = Math.max((spreadsheetData[0]?.length ?? DEFAULT_SPREADSHEET_COLS) - 1, 0);
+
+    const rowDelta = direction === "up" ? -1 : direction === "down" ? 1 : 0;
+    const columnDelta = direction === "left" ? -1 : direction === "right" ? 1 : 0;
+
+    const nextRow = Math.min(Math.max(active.row + rowDelta, 0), lastRow);
+    const nextColumn = Math.min(Math.max(active.column + columnDelta, 0), lastColumn);
+    const nextPoint: Point = { row: nextRow, column: nextColumn };
 
     setActiveSpreadsheetCell(nextPoint);
     requestAnimationFrame(() => {
       spreadsheetRef.current?.activate(nextPoint);
     });
-  }, [activeSpreadsheetCell, spreadsheetData.length]);
+  }, [activeSpreadsheetCell, spreadsheetData]);
 
   const spreadsheetDataEditor = useCallback((props: DataEditorProps<SpreadsheetCell>) => (
     <SheetDataEditor
       {...props}
-      onMoveToNextCell={(point) => moveToNextSpreadsheetCell(point)}
+      onNavigateCell={(point, direction) => moveSpreadsheetSelection(point, direction)}
     />
-  ), [moveToNextSpreadsheetCell]);
+  ), [moveSpreadsheetSelection]);
 
   const setChatMessages = (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
     setAllChatMessages(prev => {
@@ -1503,7 +1527,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                       }
 
                       event.preventDefault();
-                      moveToNextSpreadsheetCell(active);
+                      moveSpreadsheetSelection(active, "down");
                       return;
                     }
 
