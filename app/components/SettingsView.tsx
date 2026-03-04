@@ -614,7 +614,7 @@ export function SettingsView() {
             </div>
           </section>
 
-          <p className="text-sm text-[#9b9b9b]">Vault, version {appVersion}.</p>
+          <p className="text-sm text-[#9b9b9b]">Vault, version {appVersion}</p>
         </div>
       </div>
     </div>
