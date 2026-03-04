@@ -10,9 +10,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   
   // Platform info
   platform: process.platform,
+  getThemeMode: () => ipcRenderer.invoke("quick-get-theme-mode"),
   
   // File system dialogs
   selectFolder: () => ipcRenderer.invoke("select-folder"),
+
+  // Startup settings
+  getOpenAtStartup: () => ipcRenderer.invoke("startup-get-open-at-login"),
+  setOpenAtStartup: (enabled) => ipcRenderer.invoke("startup-set-open-at-login", { enabled }),
 
   // Global shortcuts
   onGlobalNewNote: (callback) => {

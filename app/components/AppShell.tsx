@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Sidebar } from "./Sidebar";
 import { NoteEditor, ChatMessage } from "./NoteEditor";
 import { VaultView } from "./VaultView";
@@ -21,8 +21,16 @@ const THEME_MODE_EVENT = "vault-theme-updated";
 const QUICK_NOTE_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-note";
 const QUICK_AI_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-ai";
 const SHORTCUTS_UPDATED_EVENT = "vault-shortcuts-updated";
+const QUICK_NOTE_ENABLED_STORAGE_KEY = "vault-setting-quick-note-enabled";
+const QUICK_AI_ENABLED_STORAGE_KEY = "vault-setting-quick-ai-enabled";
+const QUICK_ACCESS_UPDATED_EVENT = "vault-quick-access-updated";
+const ARCHIVE_AUTO_DELETE_STORAGE_KEY = "vault-setting-archive-auto-delete-days";
+const ARCHIVE_AUTO_DELETE_EVENT = "vault-archive-auto-delete-updated";
 const DEFAULT_QUICK_NOTE_SHORTCUT = "Ctrl+Q";
 const DEFAULT_QUICK_AI_SHORTCUT = "Ctrl+Space";
+const ARCHIVE_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+type ArchiveAutoDeleteDays = "never" | "1" | "3" | "7" | "30" | "90";
 
 type ShortcutBinding = {
   key: string;
@@ -146,6 +154,10 @@ export function AppShell() {
   const [hydrated, setHydrated] = useState(false);
   const [quickNoteShortcut, setQuickNoteShortcut] = useState(DEFAULT_QUICK_NOTE_SHORTCUT);
   const [quickAiShortcut, setQuickAiShortcut] = useState(DEFAULT_QUICK_AI_SHORTCUT);
+  const [quickNoteEnabled, setQuickNoteEnabled] = useState(true);
+  const [quickAiEnabled, setQuickAiEnabled] = useState(true);
+  const [archiveAutoDeleteDays, setArchiveAutoDeleteDays] = useState<ArchiveAutoDeleteDays>("never");
+  const archiveCleanupInProgressRef = useRef(false);
 
   // AI Chat state - persisted across note switches
   const [chatOpenStates, setChatOpenStates] = useState<Map<string, boolean>>(new Map());
@@ -180,6 +192,9 @@ export function AppShell() {
     const savedOccasionId = localStorage.getItem("selected-occasion-id");
     const savedQuickNoteShortcut = localStorage.getItem(QUICK_NOTE_SHORTCUT_STORAGE_KEY);
     const savedQuickAiShortcut = localStorage.getItem(QUICK_AI_SHORTCUT_STORAGE_KEY);
+    const savedQuickNoteEnabled = localStorage.getItem(QUICK_NOTE_ENABLED_STORAGE_KEY);
+    const savedQuickAiEnabled = localStorage.getItem(QUICK_AI_ENABLED_STORAGE_KEY);
+    const savedArchiveAutoDeleteDays = localStorage.getItem(ARCHIVE_AUTO_DELETE_STORAGE_KEY);
     
     if (savedView) {
       setCurrentView(savedView);
@@ -195,6 +210,18 @@ export function AppShell() {
     }
     if (savedQuickAiShortcut?.trim()) {
       setQuickAiShortcut(savedQuickAiShortcut);
+    }
+    setQuickNoteEnabled(savedQuickNoteEnabled !== "false");
+    setQuickAiEnabled(savedQuickAiEnabled !== "false");
+    if (
+      savedArchiveAutoDeleteDays === "1" ||
+      savedArchiveAutoDeleteDays === "3" ||
+      savedArchiveAutoDeleteDays === "7" ||
+      savedArchiveAutoDeleteDays === "30" ||
+      savedArchiveAutoDeleteDays === "90" ||
+      savedArchiveAutoDeleteDays === "never"
+    ) {
+      setArchiveAutoDeleteDays(savedArchiveAutoDeleteDays);
     }
     setHydrated(true);
   }, []);
@@ -216,6 +243,48 @@ export function AppShell() {
     window.addEventListener(SHORTCUTS_UPDATED_EVENT, handleShortcutsUpdated as EventListener);
     return () => {
       window.removeEventListener(SHORTCUTS_UPDATED_EVENT, handleShortcutsUpdated as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleArchiveAutoDeleteUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ days?: ArchiveAutoDeleteDays }>;
+      const nextDays = customEvent.detail?.days;
+      if (
+        nextDays === "never" ||
+        nextDays === "1" ||
+        nextDays === "3" ||
+        nextDays === "7" ||
+        nextDays === "30" ||
+        nextDays === "90"
+      ) {
+        setArchiveAutoDeleteDays(nextDays);
+      }
+    };
+
+    window.addEventListener(ARCHIVE_AUTO_DELETE_EVENT, handleArchiveAutoDeleteUpdated as EventListener);
+    return () => {
+      window.removeEventListener(ARCHIVE_AUTO_DELETE_EVENT, handleArchiveAutoDeleteUpdated as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleQuickAccessUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ quickNoteEnabled?: boolean; quickAiEnabled?: boolean }>;
+      const nextQuickNoteEnabled = customEvent.detail?.quickNoteEnabled;
+      const nextQuickAiEnabled = customEvent.detail?.quickAiEnabled;
+
+      if (typeof nextQuickNoteEnabled === "boolean") {
+        setQuickNoteEnabled(nextQuickNoteEnabled);
+      }
+      if (typeof nextQuickAiEnabled === "boolean") {
+        setQuickAiEnabled(nextQuickAiEnabled);
+      }
+    };
+
+    window.addEventListener(QUICK_ACCESS_UPDATED_EVENT, handleQuickAccessUpdated as EventListener);
+    return () => {
+      window.removeEventListener(QUICK_ACCESS_UPDATED_EVENT, handleQuickAccessUpdated as EventListener);
     };
   }, []);
 
@@ -253,6 +322,69 @@ export function AppShell() {
     }
   }, []);
 
+  const runArchiveAutoDeleteCleanup = useCallback(async () => {
+    if (archiveAutoDeleteDays === "never" || archiveCleanupInProgressRef.current) {
+      return;
+    }
+
+    const days = Number(archiveAutoDeleteDays);
+    if (!Number.isFinite(days) || days <= 0) {
+      return;
+    }
+
+    archiveCleanupInProgressRef.current = true;
+
+    try {
+      const notesResponse = await fetch("/api/notes?includeArchived=true");
+      if (!notesResponse.ok) {
+        return;
+      }
+
+      const allNotes = (await notesResponse.json()) as Note[];
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+
+      const eligible = allNotes.filter((note) => {
+        if (!note.archived) {
+          return false;
+        }
+
+        const updatedAt = new Date(note.updatedAt).getTime();
+        return Number.isFinite(updatedAt) && updatedAt <= cutoff;
+      });
+
+      if (eligible.length === 0) {
+        return;
+      }
+
+      const eligibleIds = new Set(eligible.map((note) => note.id));
+      const rootIds = eligible
+        .filter((note) => !note.parentId || !eligibleIds.has(note.parentId))
+        .map((note) => note.id);
+
+      if (rootIds.length === 0) {
+        return;
+      }
+
+      await Promise.all(
+        rootIds.map((id) =>
+          fetch(`/api/notes/${id}`, {
+            method: "DELETE",
+          })
+        )
+      );
+
+      if (selectedArchivedNoteId && eligibleIds.has(selectedArchivedNoteId)) {
+        setSelectedArchivedNoteId(null);
+      }
+
+      await fetchNotes();
+    } catch (error) {
+      console.error("Failed to run archive auto-delete cleanup:", error);
+    } finally {
+      archiveCleanupInProgressRef.current = false;
+    }
+  }, [archiveAutoDeleteDays, fetchNotes, selectedArchivedNoteId]);
+
   // Fetch all vault items
   const fetchVaultItems = useCallback(async () => {
     try {
@@ -284,6 +416,22 @@ export function AppShell() {
     fetchVaultItems();
     fetchOccasions();
   }, [fetchNotes, fetchVaultItems, fetchOccasions]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    void runArchiveAutoDeleteCleanup();
+
+    const intervalId = window.setInterval(() => {
+      void runArchiveAutoDeleteCleanup();
+    }, ARCHIVE_CLEANUP_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [hydrated, runArchiveAutoDeleteCleanup]);
 
   useEffect(() => {
     const onError = (event: ErrorEvent) => {
@@ -366,6 +514,9 @@ export function AppShell() {
       }
 
       if (matchesShortcut(event, quickNoteBinding)) {
+        if (!quickNoteEnabled) {
+          return;
+        }
         event.preventDefault();
         if (window.electronAPI?.openQuickNote) {
           window.electronAPI.openQuickNote();
@@ -376,6 +527,9 @@ export function AppShell() {
       }
 
       if (matchesShortcut(event, quickAiBinding)) {
+        if (!quickAiEnabled) {
+          return;
+        }
         event.preventDefault();
         if (window.electronAPI?.openQuickAi) {
           window.electronAPI.openQuickAi();
@@ -387,7 +541,7 @@ export function AppShell() {
 
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, [handleCreateNote, quickAiShortcut, quickNoteShortcut]);
+  }, [handleCreateNote, quickAiEnabled, quickAiShortcut, quickNoteEnabled, quickNoteShortcut]);
 
   // Select note
   const handleSelectNote = (id: string) => {
@@ -859,11 +1013,13 @@ export function AppShell() {
   return (
     <div className="flex flex-1 overflow-hidden">
       <Sidebar
+        currentView={currentView}
         notes={notes}
         selectedNoteId={selectedNoteId}
         onSelectNote={handleSelectNote}
         onCreateNote={handleCreateNote}
         onArchiveNote={handleArchiveNote}
+        onDeletePermanently={handleDeletePermanently}
         onRenameNote={handleRenameNote}
         onMoveNote={handleMoveNote}
         onOpenVault={handleOpenVault}

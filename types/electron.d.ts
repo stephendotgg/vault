@@ -5,6 +5,8 @@ export interface ElectronAPI {
   reportRendererRuntimeError: (payload: unknown) => void;
   platform: string;
   selectFolder: () => Promise<string | null>;
+  getOpenAtStartup: () => Promise<boolean>;
+  setOpenAtStartup: (enabled: boolean) => Promise<boolean>;
   onGlobalNewNote: (callback: () => void) => () => void;
   openQuickNote: () => void;
   quickNoteCreate: (text: string, force?: boolean) => Promise<{ id: string }>;

@@ -124,6 +124,8 @@ function notifyCallsChanged() {
 let server;
 
 const PORT = isDev ? 3000 : 51333;
+const QUICK_NOTE_ENABLED_STORAGE_KEY = "vault-setting-quick-note-enabled";
+const QUICK_AI_ENABLED_STORAGE_KEY = "vault-setting-quick-ai-enabled";
 
 function runCommand(command, args) {
   return new Promise((resolve) => {
@@ -131,6 +133,42 @@ function runCommand(command, args) {
       resolve({ error, stdout: stdout || "", stderr: stderr || "" });
     });
   });
+}
+
+function isOpenAtStartupSupported() {
+  return process.platform === "win32" && app.isPackaged;
+}
+
+function getOpenAtStartupEnabled() {
+  if (!isOpenAtStartupSupported()) {
+    return false;
+  }
+
+  try {
+    const settings = app.getLoginItemSettings();
+    return Boolean(settings.openAtLogin);
+  } catch {
+    return false;
+  }
+}
+
+function setOpenAtStartupEnabled(enabled) {
+  if (!isOpenAtStartupSupported()) {
+    return false;
+  }
+
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: Boolean(enabled),
+      openAsHidden: false,
+      path: process.execPath,
+      args: [],
+    });
+  } catch {
+    return false;
+  }
+
+  return getOpenAtStartupEnabled();
 }
 
 async function killProcessesListeningOnPort(port) {
@@ -1083,6 +1121,15 @@ async function pollTeamsCallState() {
   callsMonitorRunning = true;
 
   try {
+    const teamsTranscriptionEnabled = await getTeamsCallTranscriptionEnabledFromMainWindow();
+    if (!teamsTranscriptionEnabled) {
+      if (callsLiveNoteId) {
+        stopLiveCallTranscription();
+      }
+      callsAbsentPollCount = 0;
+      return;
+    }
+
     const teamsState = await isTeamsLikelyInCall();
     callsLog("Poll teams state", { ...teamsState, hasLiveNote: Boolean(callsLiveNoteId), absentCount: callsAbsentPollCount });
 
@@ -1115,7 +1162,6 @@ function startCallsMonitor() {
     return;
   }
 
-  void ensureCallsCategory();
   void pollTeamsCallState();
   callsLog("Calls monitor started");
 
@@ -1147,6 +1193,63 @@ async function getOpenRouterApiKeyFromMainWindow() {
     return typeof key === "string" ? key : "";
   } catch {
     return "";
+  }
+}
+
+async function getTeamsCallTranscriptionEnabledFromMainWindow() {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return false;
+    }
+
+    const value = await mainWindow.webContents.executeJavaScript(
+      "localStorage.getItem('vault-setting-teams-call-transcription-enabled')",
+      true
+    );
+
+    return value === "true";
+  } catch {
+    return false;
+  }
+}
+
+async function getQuickAccessSettingsFromMainWindow() {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return { quickNoteEnabled: true, quickAiEnabled: true };
+    }
+
+    const result = await mainWindow.webContents.executeJavaScript(
+      `(() => ({
+        quickNoteEnabled: localStorage.getItem('${QUICK_NOTE_ENABLED_STORAGE_KEY}') !== 'false',
+        quickAiEnabled: localStorage.getItem('${QUICK_AI_ENABLED_STORAGE_KEY}') !== 'false'
+      }))()`,
+      true
+    );
+
+    return {
+      quickNoteEnabled: result?.quickNoteEnabled !== false,
+      quickAiEnabled: result?.quickAiEnabled !== false,
+    };
+  } catch {
+    return { quickNoteEnabled: true, quickAiEnabled: true };
+  }
+}
+
+async function getThemeModeFromMainWindow() {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return "dark";
+    }
+
+    const mode = await mainWindow.webContents.executeJavaScript(
+      "localStorage.getItem('vault-theme-mode') || 'dark'",
+      true
+    );
+
+    return mode === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
   }
 }
 
@@ -1356,6 +1459,11 @@ function buildQuickAiWindow() {
 }
 
 async function ensureWarmQuickNoteWindow() {
+  const { quickNoteEnabled } = await getQuickAccessSettingsFromMainWindow();
+  if (!quickNoteEnabled) {
+    return;
+  }
+
   if (isWindowUsable(warmQuickNoteWindow)) {
     return;
   }
@@ -1388,6 +1496,11 @@ async function ensureWarmQuickNoteWindow() {
 }
 
 async function ensureWarmQuickAiWindow() {
+  const { quickAiEnabled } = await getQuickAccessSettingsFromMainWindow();
+  if (!quickAiEnabled) {
+    return;
+  }
+
   if (isWindowUsable(warmQuickAiWindow)) {
     return;
   }
@@ -1420,6 +1533,11 @@ async function ensureWarmQuickAiWindow() {
 }
 
 async function createQuickNoteWindow(options = {}) {
+  const { quickNoteEnabled } = await getQuickAccessSettingsFromMainWindow();
+  if (!quickNoteEnabled) {
+    return;
+  }
+
   const parentNoteId = typeof options?.parentNoteId === "string" ? options.parentNoteId : "";
 
   if (isWindowUsable(warmQuickNoteWindow)) {
@@ -1446,6 +1564,11 @@ async function createQuickNoteWindow(options = {}) {
 }
 
 async function createQuickAiWindow() {
+  const { quickAiEnabled } = await getQuickAccessSettingsFromMainWindow();
+  if (!quickAiEnabled) {
+    return;
+  }
+
   if (isWindowUsable(warmQuickAiWindow)) {
     const window = warmQuickAiWindow;
     warmQuickAiWindow = null;
@@ -1555,8 +1678,18 @@ ipcMain.on("quick-note-close", (event, payload) => {
 });
 
 ipcMain.on("quick-note-open", () => {
-  void ensureQuickNotesCategory();
-  void createQuickNoteWindow();
+  void (async () => {
+    const { quickNoteEnabled } = await getQuickAccessSettingsFromMainWindow();
+    if (!quickNoteEnabled) {
+      return;
+    }
+    await ensureQuickNotesCategory();
+    await createQuickNoteWindow();
+  })();
+});
+
+ipcMain.handle("quick-get-theme-mode", async () => {
+  return getThemeModeFromMainWindow();
 });
 
 ipcMain.handle("quick-note-save", async (_event, payload) => {
@@ -1584,7 +1717,13 @@ ipcMain.handle("quick-note-archive", async (_event, payload) => {
 });
 
 ipcMain.on("quick-ai-open", () => {
-  void createQuickAiWindow();
+  void (async () => {
+    const { quickAiEnabled } = await getQuickAccessSettingsFromMainWindow();
+    if (!quickAiEnabled) {
+      return;
+    }
+    await createQuickAiWindow();
+  })();
 });
 
 ipcMain.handle("quick-ai-chat", async (_event, payload) => {
@@ -1870,6 +2009,15 @@ ipcMain.on("renderer-runtime-error", (_event, payload) => {
   callsLog("Renderer runtime error", payload);
 });
 
+ipcMain.handle("startup-get-open-at-login", async () => {
+  return getOpenAtStartupEnabled();
+});
+
+ipcMain.handle("startup-set-open-at-login", async (_event, payload) => {
+  const enabled = Boolean(payload?.enabled);
+  return setOpenAtStartupEnabled(enabled);
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -2001,7 +2149,13 @@ app.whenReady().then(async () => {
   }, 1200);
 
   const registered = globalShortcut.register("CommandOrControl+Q", () => {
-    void createQuickNoteWindow();
+    void (async () => {
+      const { quickNoteEnabled } = await getQuickAccessSettingsFromMainWindow();
+      if (!quickNoteEnabled) {
+        return;
+      }
+      await createQuickNoteWindow();
+    })();
   });
 
   if (!registered) {
@@ -2009,7 +2163,13 @@ app.whenReady().then(async () => {
   }
 
   const quickAiRegistered = globalShortcut.register("CommandOrControl+Space", () => {
-    void createQuickAiWindow();
+    void (async () => {
+      const { quickAiEnabled } = await getQuickAccessSettingsFromMainWindow();
+      if (!quickAiEnabled) {
+        return;
+      }
+      await createQuickAiWindow();
+    })();
   });
 
   if (!quickAiRegistered) {

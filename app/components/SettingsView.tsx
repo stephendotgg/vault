@@ -10,6 +10,13 @@ type SidebarVisibilityState = Record<SidebarVisibilityKey, boolean>;
 const SIDEBAR_VISIBILITY_STORAGE_KEY = "sidebar-visible-sections";
 const SIDEBAR_VISIBILITY_EVENT = "vault-sidebar-visibility-updated";
 const AUTOCORRECT_ENABLED_STORAGE_KEY = "vault-setting-autocorrect-enabled";
+const TEAMS_CALL_TRANSCRIPTION_ENABLED_STORAGE_KEY = "vault-setting-teams-call-transcription-enabled";
+const TEAMS_CALL_TRANSCRIPTION_EVENT = "vault-teams-call-transcription-updated";
+const QUICK_NOTE_ENABLED_STORAGE_KEY = "vault-setting-quick-note-enabled";
+const QUICK_AI_ENABLED_STORAGE_KEY = "vault-setting-quick-ai-enabled";
+const QUICK_ACCESS_UPDATED_EVENT = "vault-quick-access-updated";
+const ARCHIVE_AUTO_DELETE_STORAGE_KEY = "vault-setting-archive-auto-delete-days";
+const ARCHIVE_AUTO_DELETE_EVENT = "vault-archive-auto-delete-updated";
 const THEME_MODE_STORAGE_KEY = "vault-theme-mode";
 const THEME_MODE_EVENT = "vault-theme-updated";
 const QUICK_NOTE_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-note";
@@ -28,6 +35,7 @@ const DEFAULT_QUICK_NOTE_SHORTCUT = "Ctrl+Q";
 const DEFAULT_QUICK_AI_SHORTCUT = "Ctrl+Space";
 
 type ShortcutKeyboardEvent = Pick<KeyboardEvent, "key" | "ctrlKey" | "altKey" | "shiftKey" | "metaKey">;
+type ArchiveAutoDeleteDays = "never" | "1" | "3" | "7" | "30" | "90";
 
 function formatShortcutFromEvent(event: ShortcutKeyboardEvent): string | null {
   const isModifierKey = ["Control", "Shift", "Alt", "Meta"].includes(event.key);
@@ -59,15 +67,21 @@ const defaultSidebarVisibility: SidebarVisibilityState = {
 const sectionLabels: Record<SidebarVisibilityKey, string> = {
   notes: "Notes",
   vault: "Vault",
-  memories: "Memories",
-  dreamJournal: "Dream Journal",
-  voiceLog: "Voice Log",
+  memories: "Memories (WIP)",
+  dreamJournal: "Dream Journal (WIP)",
+  voiceLog: "Voice Log (WIP)",
   fileCleaner: "File Cleaner",
 };
 
 export function SettingsView() {
   const [sidebarVisibility, setSidebarVisibility] = useState<SidebarVisibilityState>(defaultSidebarVisibility);
   const [autocorrectEnabled, setAutocorrectEnabled] = useState(true);
+  const [teamsCallTranscriptionEnabled, setTeamsCallTranscriptionEnabled] = useState(false);
+  const [quickNoteEnabled, setQuickNoteEnabled] = useState(true);
+  const [quickAiEnabled, setQuickAiEnabled] = useState(true);
+  const [archiveAutoDeleteDays, setArchiveAutoDeleteDays] = useState<ArchiveAutoDeleteDays>("never");
+  const [openAtStartupEnabled, setOpenAtStartupEnabled] = useState(false);
+  const [isUpdatingOpenAtStartup, setIsUpdatingOpenAtStartup] = useState(false);
   const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
   const [quickNoteShortcut, setQuickNoteShortcut] = useState(DEFAULT_QUICK_NOTE_SHORTCUT);
   const [quickAiShortcut, setQuickAiShortcut] = useState(DEFAULT_QUICK_AI_SHORTCUT);
@@ -90,6 +104,27 @@ export function SettingsView() {
 
     const savedAutocorrectEnabled = localStorage.getItem(AUTOCORRECT_ENABLED_STORAGE_KEY);
     setAutocorrectEnabled(savedAutocorrectEnabled !== "false");
+
+    const savedTeamsCallTranscriptionEnabled = localStorage.getItem(TEAMS_CALL_TRANSCRIPTION_ENABLED_STORAGE_KEY);
+    setTeamsCallTranscriptionEnabled(savedTeamsCallTranscriptionEnabled === "true");
+
+    const savedQuickNoteEnabled = localStorage.getItem(QUICK_NOTE_ENABLED_STORAGE_KEY);
+    setQuickNoteEnabled(savedQuickNoteEnabled !== "false");
+
+    const savedQuickAiEnabled = localStorage.getItem(QUICK_AI_ENABLED_STORAGE_KEY);
+    setQuickAiEnabled(savedQuickAiEnabled !== "false");
+
+    const savedArchiveAutoDeleteDays = localStorage.getItem(ARCHIVE_AUTO_DELETE_STORAGE_KEY);
+    if (
+      savedArchiveAutoDeleteDays === "1" ||
+      savedArchiveAutoDeleteDays === "3" ||
+      savedArchiveAutoDeleteDays === "7" ||
+      savedArchiveAutoDeleteDays === "30" ||
+      savedArchiveAutoDeleteDays === "90" ||
+      savedArchiveAutoDeleteDays === "never"
+    ) {
+      setArchiveAutoDeleteDays(savedArchiveAutoDeleteDays);
+    }
 
     const savedThemeMode = localStorage.getItem(THEME_MODE_STORAGE_KEY);
     if (savedThemeMode === "light" || savedThemeMode === "dark") {
@@ -134,6 +169,51 @@ export function SettingsView() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadOpenAtStartup = async () => {
+      if (window.electronAPI?.platform !== "win32" || !window.electronAPI?.getOpenAtStartup) {
+        return;
+      }
+
+      try {
+        const enabled = await window.electronAPI.getOpenAtStartup();
+        if (!cancelled) {
+          setOpenAtStartupEnabled(Boolean(enabled));
+        }
+      } catch {
+        // Ignore startup preference read failures
+      }
+    };
+
+    void loadOpenAtStartup();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleToggleOpenAtStartup = async () => {
+    if (isUpdatingOpenAtStartup || window.electronAPI?.platform !== "win32" || !window.electronAPI?.setOpenAtStartup) {
+      return;
+    }
+
+    const previous = openAtStartupEnabled;
+    const next = !previous;
+    setOpenAtStartupEnabled(next);
+    setIsUpdatingOpenAtStartup(true);
+
+    try {
+      const applied = await window.electronAPI.setOpenAtStartup(next);
+      setOpenAtStartupEnabled(Boolean(applied));
+    } catch {
+      setOpenAtStartupEnabled(previous);
+    } finally {
+      setIsUpdatingOpenAtStartup(false);
+    }
+  };
+
+  useEffect(() => {
     if (!hydrated) {
       return;
     }
@@ -149,6 +229,53 @@ export function SettingsView() {
 
     localStorage.setItem(AUTOCORRECT_ENABLED_STORAGE_KEY, String(autocorrectEnabled));
   }, [autocorrectEnabled, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    localStorage.setItem(
+      TEAMS_CALL_TRANSCRIPTION_ENABLED_STORAGE_KEY,
+      String(teamsCallTranscriptionEnabled)
+    );
+    window.dispatchEvent(
+      new CustomEvent(TEAMS_CALL_TRANSCRIPTION_EVENT, {
+        detail: { enabled: teamsCallTranscriptionEnabled },
+      })
+    );
+  }, [teamsCallTranscriptionEnabled, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    localStorage.setItem(QUICK_NOTE_ENABLED_STORAGE_KEY, String(quickNoteEnabled));
+    localStorage.setItem(QUICK_AI_ENABLED_STORAGE_KEY, String(quickAiEnabled));
+
+    window.dispatchEvent(
+      new CustomEvent(QUICK_ACCESS_UPDATED_EVENT, {
+        detail: {
+          quickNoteEnabled,
+          quickAiEnabled,
+        },
+      })
+    );
+  }, [quickNoteEnabled, quickAiEnabled, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    localStorage.setItem(ARCHIVE_AUTO_DELETE_STORAGE_KEY, archiveAutoDeleteDays);
+    window.dispatchEvent(
+      new CustomEvent(ARCHIVE_AUTO_DELETE_EVENT, {
+        detail: { days: archiveAutoDeleteDays },
+      })
+    );
+  }, [archiveAutoDeleteDays, hydrated]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -220,8 +347,8 @@ export function SettingsView() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg text-[#e3e3e3] font-medium">Sidebar</h2>
-            <p className="text-sm text-[#9b9b9b]">Choose which sections and actions appear in the sidebar.</p>
+            <h2 className="text-lg text-[#e3e3e3] font-medium">Modules</h2>
+            <p className="text-sm text-[#9b9b9b]">Enable or disable modules and sidebar actions.</p>
             <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(Object.keys(sectionLabels) as SidebarVisibilityKey[]).map((section) => (
                 <label key={section} className="flex items-center gap-2 text-sm text-[#d1d1d1] cursor-pointer">
@@ -255,6 +382,75 @@ export function SettingsView() {
                 />
                 <span>Enable autocorrect</span>
               </label>
+              <label className="flex items-center gap-2 text-sm text-[#d1d1d1] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={teamsCallTranscriptionEnabled}
+                  onChange={() => setTeamsCallTranscriptionEnabled((prev) => !prev)}
+                  className="h-4 w-4 accent-[#7eb8f7]"
+                />
+                <span>Enable Teams call transcription & summaries</span>
+              </label>
+
+              <div className="space-y-1">
+                <label htmlFor="archive-auto-delete" className="text-sm text-[#d1d1d1]">
+                  Archive auto-delete
+                </label>
+                <select
+                  id="archive-auto-delete"
+                  value={archiveAutoDeleteDays}
+                  onChange={(event) => setArchiveAutoDeleteDays(event.target.value as ArchiveAutoDeleteDays)}
+                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                >
+                  <option value="never">Never</option>
+                  <option value="1">After 1 day</option>
+                  <option value="3">After 3 days</option>
+                  <option value="7">After 7 days</option>
+                  <option value="30">After 30 days</option>
+                  <option value="90">After 90 days</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg text-[#e3e3e3] font-medium">Quick Access</h2>
+            <p className="text-sm text-[#9b9b9b]">Control quick windows and their shortcuts.</p>
+            <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-3">
+              <label className="flex items-center gap-2 text-sm text-[#d1d1d1] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={quickNoteEnabled}
+                  onChange={() => setQuickNoteEnabled((prev) => !prev)}
+                  className="h-4 w-4 accent-[#7eb8f7]"
+                />
+                <span>Enable Quick Note</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-sm text-[#d1d1d1] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={quickAiEnabled}
+                  onChange={() => setQuickAiEnabled((prev) => !prev)}
+                  className="h-4 w-4 accent-[#7eb8f7]"
+                />
+                <span>Enable Quick AI Chat</span>
+              </label>
+
+              {window.electronAPI?.platform === "win32" && (
+                <label className={`flex items-center gap-2 text-sm text-[#d1d1d1] ${isUpdatingOpenAtStartup ? "opacity-70 cursor-wait" : "cursor-pointer"}`}>
+                  <input
+                    type="checkbox"
+                    checked={openAtStartupEnabled}
+                    disabled={isUpdatingOpenAtStartup}
+                    onChange={() => {
+                      void handleToggleOpenAtStartup();
+                    }}
+                    className="h-4 w-4 accent-[#7eb8f7]"
+                  />
+                  <span>Open Vault on Windows startup</span>
+                </label>
+              )}
             </div>
           </section>
 
@@ -337,6 +533,7 @@ export function SettingsView() {
                   type="text"
                   readOnly
                   value={quickNoteShortcut}
+                  disabled={!quickNoteEnabled}
                   onKeyDown={(event) => {
                     event.preventDefault();
                     const shortcut = formatShortcutFromEvent(event);
@@ -344,7 +541,7 @@ export function SettingsView() {
                       setQuickNoteShortcut(shortcut);
                     }
                   }}
-                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7] disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -357,6 +554,7 @@ export function SettingsView() {
                   type="text"
                   readOnly
                   value={quickAiShortcut}
+                  disabled={!quickAiEnabled}
                   onKeyDown={(event) => {
                     event.preventDefault();
                     const shortcut = formatShortcutFromEvent(event);
@@ -364,7 +562,7 @@ export function SettingsView() {
                       setQuickAiShortcut(shortcut);
                     }
                   }}
-                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7] disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
