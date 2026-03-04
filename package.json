@@ -70,6 +70,7 @@
   "build": {
     "appId": "com.vault.app",
     "productName": "Vault",
+    "artifactName": "Vault.Setup.${ext}",
     "directories": {
       "output": "dist"
     },
