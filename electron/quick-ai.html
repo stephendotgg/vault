@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
     <title>Quick AI Chat</title>
     <style>
       :root {
@@ -286,6 +286,110 @@
 
       .error:empty {
         display: none;
+      }
+
+      :root[data-theme="light"] {
+        color-scheme: light;
+        background: #f7f7f3;
+      }
+
+      :root[data-theme="light"] * {
+        scrollbar-color: #b9b9b2 transparent;
+      }
+
+      :root[data-theme="light"] *::-webkit-scrollbar-thumb {
+        background: #b9b9b2;
+      }
+
+      :root[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
+        background: #a9a9a1;
+      }
+
+      :root[data-theme="light"] html,
+      :root[data-theme="light"] body {
+        background: #f7f7f3;
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] .titlebar {
+        border-bottom-color: #d2d2cc;
+      }
+
+      :root[data-theme="light"] .title {
+        color: #696961;
+      }
+
+      :root[data-theme="light"] .icon-btn {
+        color: #78786f;
+      }
+
+      :root[data-theme="light"] .icon-btn:hover {
+        background: #e3e3dd;
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] .bubble-user {
+        color: #2a2a25;
+      }
+
+      :root[data-theme="light"] .assistant-text {
+        color: #2a2a25;
+      }
+
+      :root[data-theme="light"] .assistant-text code {
+        background: #ecece7;
+        color: #2f2f29;
+      }
+
+      :root[data-theme="light"] .assistant-text pre {
+        background: #ecece7;
+      }
+
+      :root[data-theme="light"] .assistant-text pre code {
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] .assistant-text strong {
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] .assistant-text blockquote {
+        border-left-color: #c9c9c2;
+        color: #6a6a63;
+      }
+
+      :root[data-theme="light"] .assistant-action {
+        color: #78786f;
+      }
+
+      :root[data-theme="light"] .assistant-action:hover {
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] .dot {
+        background: #8a8a82;
+      }
+
+      :root[data-theme="light"] .composer-inner {
+        background: #f0f0ed;
+        border-color: #d2d2cc;
+      }
+
+      :root[data-theme="light"] textarea {
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] textarea::placeholder {
+        color: #8b8b83;
+      }
+
+      :root[data-theme="light"] .send-btn {
+        background: #d3d3cc;
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] .send-btn:hover {
+        background: #c5c5be;
       }
     </style>
   </head>

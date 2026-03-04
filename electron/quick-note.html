@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
     <title>Quick Note</title>
     <style>
       :root {
@@ -118,6 +118,54 @@
 
       textarea::placeholder {
         color: #4a4a4a;
+      }
+
+      :root[data-theme="light"] {
+        color-scheme: light;
+        background: #f7f7f3;
+      }
+
+      :root[data-theme="light"] * {
+        scrollbar-color: #b9b9b2 transparent;
+      }
+
+      :root[data-theme="light"] *::-webkit-scrollbar-thumb {
+        background: #b9b9b2;
+      }
+
+      :root[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
+        background: #a9a9a1;
+      }
+
+      :root[data-theme="light"] html,
+      :root[data-theme="light"] body {
+        background: #f7f7f3;
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] .titlebar {
+        border-bottom-color: #d2d2cc;
+      }
+
+      :root[data-theme="light"] .title {
+        color: #696961;
+      }
+
+      :root[data-theme="light"] .close-btn {
+        color: #78786f;
+      }
+
+      :root[data-theme="light"] .close-btn:hover {
+        background: #e3e3dd;
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] textarea {
+        color: #1f1f1b;
+      }
+
+      :root[data-theme="light"] textarea::placeholder {
+        color: #8b8b83;
       }
 
     </style>

@@ -6,6 +6,16 @@ const saveBtn = document.getElementById("saveBtn");
 const trashBtn = document.getElementById("trashBtn");
 const errorEl = document.getElementById("error");
 
+async function applyThemeMode() {
+  try {
+    const mode = await window.electronAPI?.getThemeMode?.();
+    const nextMode = mode === "light" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", nextMode);
+  } catch {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+}
+
 const state = {
   messages: [],
   loading: false,
@@ -379,6 +389,14 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+window.addEventListener("focus", () => {
+  void applyThemeMode();
+});
+
+window.addEventListener("beforeunload", () => {
+  window.electronAPI.closeQuickAi();
+});
+
 sendBtn.addEventListener("click", () => {
   void sendMessage();
 });
@@ -395,3 +413,4 @@ setLoading(false);
 render();
 autoResizeInput();
 inputEl.focus();
+void applyThemeMode();

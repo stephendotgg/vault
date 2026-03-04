@@ -4,6 +4,16 @@ const saveBtn = document.getElementById("saveBtn");
 
 let actionInFlight = false;
 
+async function applyThemeMode() {
+  try {
+    const mode = await window.electronAPI?.getThemeMode?.();
+    const nextMode = mode === "light" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", nextMode);
+  } catch {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+}
+
 function setBusyState(busy) {
   actionInFlight = busy;
   if (archiveBtn) archiveBtn.disabled = busy;
@@ -79,6 +89,10 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+window.addEventListener("focus", () => {
+  void applyThemeMode();
+});
+
 archiveBtn?.addEventListener("click", () => {
   void handleArchive();
 });
@@ -92,3 +106,4 @@ window.addEventListener("beforeunload", () => {
 });
 
 input.focus();
+void applyThemeMode();
