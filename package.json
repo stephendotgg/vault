@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "version:push": "node scripts/release-version.js",
     "start": "next start",
     "lint": "eslint",
     "prepare-standalone": "node scripts/prepare-standalone.js",

@@ -117,6 +117,20 @@ npm run package
 
 Output goes to `dist/Vault-win32-x64/`.
 
+### Bump version + push tag (one command)
+
+```bash
+npm run version:push -- patch
+```
+
+You can use `patch`, `minor`, `major`, or an explicit version like:
+
+```bash
+npm run version:push -- 0.2.0
+```
+
+This command updates `package.json` (and `package-lock.json` if present), creates a release commit, creates the matching `vX.Y.Z` tag, and pushes both to GitHub.
+
 ## Contributing
 
 PRs and issues are welcome. This is a personal project so I may be opinionated about direction, but if you've found a bug or have a genuinely useful idea, open an issue and let's talk.
