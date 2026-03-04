@@ -12,13 +12,6 @@ interface SearchModalProps {
 }
 
 export function SearchModal({ isOpen, onClose, onSelectNote, onSelectVault, onSelectMemories }: SearchModalProps) {
-  const [selectedTypes, setSelectedTypes] = useState<Array<"note" | "vault" | "memory">>([
-    "note",
-    "vault",
-    "memory",
-  ]);
-  const [dateFilter, setDateFilter] = useState<"all" | "24h" | "7d" | "30d" | "365d">("all");
-  const [archiveFilter, setArchiveFilter] = useState<"active" | "archived" | "all">("active");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,9 +27,6 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectVault, onSe
       setQuery("");
       setResults([]);
       setSelectedIndex(0);
-      setSelectedTypes(["note", "vault", "memory"]);
-      setDateFilter("all");
-      setArchiveFilter("active");
     }
   }, [isOpen]);
 
@@ -49,14 +39,7 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectVault, onSe
 
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        q: searchQuery,
-        limit: "20",
-        types: selectedTypes.join(","),
-        date: dateFilter,
-        archive: archiveFilter,
-      });
-      const res = await fetch(`/api/search?${params.toString()}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=20`);
       if (res.ok) {
         const data = await res.json();
         setResults(data.results);
@@ -67,7 +50,7 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectVault, onSe
     } finally {
       setIsLoading(false);
     }
-  }, [archiveFilter, dateFilter, selectedTypes]);
+  }, []);
 
   // Debounced search
   useEffect(() => {
@@ -85,19 +68,6 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectVault, onSe
       }
     };
   }, [query, search]);
-
-  const toggleType = (type: "note" | "vault" | "memory") => {
-    setSelectedTypes((prev) => {
-      if (prev.includes(type)) {
-        if (prev.length === 1) {
-          return prev;
-        }
-        return prev.filter((entry) => entry !== type);
-      }
-
-      return [...prev, type];
-    });
-  };
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -187,50 +157,6 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectVault, onSe
           {isLoading && (
             <div className="w-4 h-4 border-2 border-[#6b6b6b] border-t-transparent rounded-full animate-spin" />
           )}
-        </div>
-
-        <div className="px-4 py-2 border-b border-[#3f3f3f] bg-[#1f1f1f] flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1">
-            {([
-              ["note", "Notes"],
-              ["vault", "Vault"],
-              ["memory", "Memories"],
-            ] as const).map(([type, label]) => {
-              const active = selectedTypes.includes(type);
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => toggleType(type)}
-                  className={`px-2 py-1 text-xs rounded border ${active ? "bg-[#3f3f3f] text-[#e3e3e3] border-[#5a5a5a]" : "bg-transparent text-[#9b9b9b] border-[#3f3f3f] hover:bg-[#2a2a2a]"}`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
-          <select
-            value={dateFilter}
-            onChange={(event) => setDateFilter(event.target.value as typeof dateFilter)}
-            className="bg-[#252525] border border-[#3f3f3f] rounded px-2 py-1 text-xs text-[#d1d1d1] outline-none"
-          >
-            <option value="all">Any date</option>
-            <option value="24h">Last 24 hours</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="365d">Last year</option>
-          </select>
-
-          <select
-            value={archiveFilter}
-            onChange={(event) => setArchiveFilter(event.target.value as typeof archiveFilter)}
-            className="bg-[#252525] border border-[#3f3f3f] rounded px-2 py-1 text-xs text-[#d1d1d1] outline-none"
-          >
-            <option value="active">Active notes</option>
-            <option value="archived">Archived notes</option>
-            <option value="all">All notes</option>
-          </select>
         </div>
 
         {hasResults && (

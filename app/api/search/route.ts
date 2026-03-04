@@ -67,13 +67,7 @@ function sheetContentToText(content: string): string {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim();
-  const types = searchParams
-    .get("types")
-    ?.split(",")
-    .map((value) => value.trim())
-    .filter(Boolean) || ["note", "vault", "memory"];
-  const archiveFilter = searchParams.get("archive") || "active";
-  const dateRange = searchParams.get("date") || "all";
+  const types = searchParams.get("types")?.split(",") || ["note", "vault", "memory"];
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
 
   if (!query || query.length < 2) {
@@ -82,34 +76,12 @@ export async function GET(request: NextRequest) {
 
   const results: SearchResult[] = [];
 
-  const now = Date.now();
-  let createdAtGte: Date | undefined;
-  if (dateRange === "24h") {
-    createdAtGte = new Date(now - 24 * 60 * 60 * 1000);
-  } else if (dateRange === "7d") {
-    createdAtGte = new Date(now - 7 * 24 * 60 * 60 * 1000);
-  } else if (dateRange === "30d") {
-    createdAtGte = new Date(now - 30 * 24 * 60 * 60 * 1000);
-  } else if (dateRange === "365d") {
-    createdAtGte = new Date(now - 365 * 24 * 60 * 60 * 1000);
-  }
-
-  const createdAtWhere = createdAtGte ? { createdAt: { gte: createdAtGte } } : {};
-
   try {
     // Search notes
     if (types.includes("note")) {
-      const archivedWhere =
-        archiveFilter === "archived"
-          ? { archived: true }
-          : archiveFilter === "all"
-            ? {}
-            : { archived: false };
-
       const notes = await prisma.note.findMany({
         where: {
-          ...archivedWhere,
-          ...createdAtWhere,
+          archived: false,
           OR: [
             { title: { contains: query } },
             { content: { contains: query } },
@@ -143,7 +115,6 @@ export async function GET(request: NextRequest) {
     if (types.includes("vault")) {
       const vaultItems = await prisma.vaultItem.findMany({
         where: {
-          ...createdAtWhere,
           OR: [
             { key: { contains: query } },
             { value: { contains: query } },
@@ -173,7 +144,6 @@ export async function GET(request: NextRequest) {
     if (types.includes("memory")) {
       const memories = await prisma.memory.findMany({
         where: {
-          ...createdAtWhere,
           content: { contains: query },
         },
         include: {
