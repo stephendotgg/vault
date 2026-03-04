@@ -23,7 +23,12 @@ const state = {
   savedSessionId: null,
   streamRequestId: null,
   streamCleanup: null,
+  shouldAutoScroll: true,
 };
+
+function isNearBottom(element) {
+  return element.scrollHeight - element.scrollTop - element.clientHeight < 96;
+}
 
 function makeId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -197,7 +202,9 @@ function render() {
   }
 
   messagesInnerEl.innerHTML = html.join("");
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+  if (state.shouldAutoScroll) {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
   sendBtn.disabled = state.loading || !inputEl.value.trim();
 }
 
@@ -211,6 +218,7 @@ async function generateAssistantReply(sourceMessages) {
   setError("");
 
   try {
+    state.shouldAutoScroll = true;
     const payload = sourceMessages.map((message) => ({ role: message.role, content: message.content }));
     const tempAssistantId = makeId();
     state.messages.push({ id: tempAssistantId, role: "assistant", content: "" });
@@ -284,6 +292,7 @@ async function sendMessage() {
   const content = inputEl.value.trim();
   if (!content) return;
 
+  state.shouldAutoScroll = true;
   state.messages.push({ id: makeId(), role: "user", content });
   inputEl.value = "";
   autoResizeInput();
@@ -297,6 +306,7 @@ async function redoAssistant(messageId) {
   const index = state.messages.findIndex((message) => message.id === messageId && message.role === "assistant");
   if (index === -1) return;
 
+  state.shouldAutoScroll = true;
   state.messages = state.messages.slice(0, index);
   render();
   await generateAssistantReply(state.messages);
@@ -399,6 +409,10 @@ window.addEventListener("beforeunload", () => {
 
 sendBtn.addEventListener("click", () => {
   void sendMessage();
+});
+
+messagesEl.addEventListener("scroll", () => {
+  state.shouldAutoScroll = isNearBottom(messagesEl);
 });
 
 saveBtn.addEventListener("click", () => {
