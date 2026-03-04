@@ -764,8 +764,13 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [copiedChatMessageId, setCopiedChatMessageId] = useState<string | null>(null);
+  const chatMessagesScrollRef = useRef<HTMLDivElement>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollChatRef = useRef(true);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const isNearBottom = (element: HTMLDivElement) =>
+    element.scrollHeight - element.scrollTop - element.clientHeight < 96;
 
   // Get current note's chat open state
   const showAIChat = chatOpenStates.get(note.id) || false;
@@ -1084,9 +1089,43 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     setChatError(null);
   }, [note.id]);
 
-  // Scroll to bottom of chat
+  // Track whether user is near bottom; only stick-scroll while they are.
   useEffect(() => {
-    chatMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = chatMessagesScrollRef.current;
+    if (!container) {
+      return;
+    }
+
+    const handleScroll = () => {
+      shouldAutoScrollChatRef.current = isNearBottom(container);
+    };
+
+    handleScroll();
+    container.addEventListener("scroll", handleScroll);
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+    };
+  }, [note.id, showAIChat]);
+
+  useEffect(() => {
+    shouldAutoScrollChatRef.current = true;
+    requestAnimationFrame(() => {
+      const container = chatMessagesScrollRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    });
+  }, [note.id, showAIChat]);
+
+  // Scroll to bottom of chat only if user hasn't scrolled away
+  useEffect(() => {
+    const container = chatMessagesScrollRef.current;
+    if (!container || !shouldAutoScrollChatRef.current) {
+      return;
+    }
+
+    container.scrollTop = container.scrollHeight;
   }, [chatMessages]);
 
   // Sync title when note changes externally (e.g., renamed from sidebar)
@@ -2033,7 +2072,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           </div>
 
           {/* Chat messages */}
-          <div className="flex-1 overflow-auto p-4 space-y-4">
+          <div ref={chatMessagesScrollRef} className="flex-1 overflow-auto p-4 space-y-4">
             {chatError && (
               <div className="bg-red-500/10 text-red-400 text-xs px-3 py-2 rounded-lg">
                 {chatError}

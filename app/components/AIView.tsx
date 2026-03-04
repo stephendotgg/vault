@@ -129,11 +129,16 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
       : "openai/gpt-4o-mini"
   );
   const [enabledModels, setEnabledModels] = useState<ModelInfo[]>([]);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const modelSelectorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingImagesRef = useRef<PendingImage[]>([]);
+
+  const isNearBottom = (element: HTMLDivElement) =>
+    element.scrollHeight - element.scrollTop - element.clientHeight < 96;
 
   // Get current session
   const currentSession = sessions.find((s) => s.id === currentSessionId);
@@ -309,9 +314,43 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
     }
   };
 
-  // Auto-scroll to bottom when new messages arrive
+  // Track whether user is near bottom; only stick-scroll while they are.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesScrollRef.current;
+    if (!container) {
+      return;
+    }
+
+    const handleScroll = () => {
+      shouldAutoScrollRef.current = isNearBottom(container);
+    };
+
+    handleScroll();
+    container.addEventListener("scroll", handleScroll);
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+    };
+  }, [currentSessionId]);
+
+  useEffect(() => {
+    shouldAutoScrollRef.current = true;
+    requestAnimationFrame(() => {
+      const container = messagesScrollRef.current;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    });
+  }, [currentSessionId]);
+
+  // Auto-scroll to bottom only if user hasn't scrolled away.
+  useEffect(() => {
+    const container = messagesScrollRef.current;
+    if (!container || !shouldAutoScrollRef.current) {
+      return;
+    }
+
+    container.scrollTop = container.scrollHeight;
   }, [messages]);
 
   // Focus input on mount
@@ -1006,7 +1045,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         )}
 
         {/* Messages area */}
-        <div className="flex-1 overflow-auto">
+        <div ref={messagesScrollRef} className="flex-1 overflow-auto">
           {messages.length === 0 ? (
             <div />
           ) : (
