@@ -129,6 +129,12 @@ You can use `patch`, `minor`, `major`, or an explicit version like:
 npm run version:push -- 0.2.0
 ```
 
+Or keep the bump type first and set an explicit version last:
+
+```bash
+npm run version:push -- patch --version 0.2.0
+```
+
 This command updates `package.json` (and `package-lock.json` if present), creates a release commit, creates the matching `vX.Y.Z` tag, and pushes both to GitHub.
 
 ## Contributing

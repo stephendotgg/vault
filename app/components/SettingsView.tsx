@@ -554,17 +554,6 @@ export function SettingsView() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg text-[#e3e3e3] font-medium">About</h2>
-            <p className="text-sm text-[#9b9b9b]">App metadata and release version.</p>
-            <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm text-[#d1d1d1]">Version</span>
-                <span className="text-sm text-[#9b9b9b]">{appVersion}</span>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-3">
             <h2 className="text-lg text-[#e3e3e3] font-medium">Keyboard Shortcuts</h2>
             <p className="text-sm text-[#9b9b9b]">Click a field and press the key combo you want to use.</p>
             <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-4">
@@ -624,6 +613,8 @@ export function SettingsView() {
               </div>
             </div>
           </section>
+
+          <p className="text-sm text-[#9b9b9b]">Vault version {appVersion}</p>
         </div>
       </div>
     </div>

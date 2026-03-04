@@ -15,13 +15,14 @@ function run(command, options = {}) {
 }
 
 function usage() {
-  console.log("Usage: npm run version:push -- <patch|minor|major|x.y.z>");
+  console.log("Usage: npm run version:push -- <patch|minor|major|x.y.z> [--version x.y.z]");
   console.log("Example: npm run version:push -- patch");
   console.log("Example: npm run version:push -- 0.2.0");
+  console.log("Example: npm run version:push -- patch --version 0.2.0");
 }
 
-const input = process.argv[2];
-if (!input || input === "--help" || input === "-h") {
+const args = process.argv.slice(2);
+if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
   usage();
   process.exit(0);
 }
@@ -29,7 +30,19 @@ if (!input || input === "--help" || input === "-h") {
 const bumpKinds = new Set(["patch", "minor", "major"]);
 const explicitVersionRegex = /^\d+\.\d+\.\d+$/;
 
-if (!bumpKinds.has(input) && !explicitVersionRegex.test(input)) {
+let bumpInput = args.find((arg) => !arg.startsWith("-")) || "patch";
+const versionFlagIndex = args.findIndex((arg) => arg === "--version" || arg === "-v");
+if (versionFlagIndex !== -1) {
+  const flaggedVersion = args[versionFlagIndex + 1];
+  if (!flaggedVersion || !explicitVersionRegex.test(flaggedVersion)) {
+    console.error("Invalid --version value. Expected x.y.z");
+    usage();
+    process.exit(1);
+  }
+  bumpInput = flaggedVersion;
+}
+
+if (!bumpKinds.has(bumpInput) && !explicitVersionRegex.test(bumpInput)) {
   console.error("Invalid version input.");
   usage();
   process.exit(1);
@@ -50,7 +63,7 @@ try {
 
   run("git fetch --tags origin");
 
-  run(`npm version ${input} --no-git-tag-version`);
+  run(`npm version ${bumpInput} --no-git-tag-version`);
 
   const packageJsonPath = path.join(rootDir, "package.json");
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
