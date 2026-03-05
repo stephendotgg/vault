@@ -2,7 +2,7 @@
 
 A note-taking desktop app with rich text, spreadsheet notes, and hierarchical organization. It also includes opinionated everyday extras like a key-value vault, voice log, dream journal, file cleaner, plus Quick Note and Quick AI Chat for busy moments. Everything runs locally. No cloud, no account, no subscription.
 
-<img width="2088" height="1258" alt="image" src="https://github.com/user-attachments/assets/836acb0c-905b-4c26-bf10-5f5abe9f18b5" />
+<img width="2075" height="1252" alt="image" src="https://github.com/user-attachments/assets/a043120f-ea05-496b-b884-a05eaa8973a5" />
 
 ## Why
 
