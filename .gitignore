@@ -46,11 +46,7 @@ next-env.d.ts
 
 savepoints/
 
-# Local data (except gitkeep files)
-/data/*
-!/data/icons/
-/data/icons/*
-!/data/icons/.gitkeep
-data/mothership.db
+# Local runtime data (never commit)
+/data/
 prisma/*.db
 .vscode/
