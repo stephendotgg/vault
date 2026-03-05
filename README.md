@@ -11,6 +11,8 @@ I built Vault because I was unsatisfied with existing apps. One app had features
 
 I also wanted total control, so Vault is local-first by design: everything is stored in a local SQLite database on your machine, AI uses your own API key, and voice transcription runs through your own Azure Speech credentials. Due to popular demand, I open-sourced it and modularized it so users can bend it to their own will.
 
+<img width="2013" height="1202" alt="image" src="https://github.com/user-attachments/assets/f182c04d-ef9b-4604-856c-eacdd91ee897" />
+
 ## Features
 
 ### Notes
