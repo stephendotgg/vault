@@ -2,6 +2,8 @@
 
 A note-taking desktop app with rich text, spreadsheet notes, and hierarchical organization. It also includes opinionated everyday extras like a key-value vault, voice log, dream journal, file cleaner, plus Quick Note and Quick AI Chat for busy moments. Everything runs locally. No cloud, no account, no subscription.
 
+<img width="2013" height="1202" alt="image" src="https://github.com/user-attachments/assets/f182c04d-ef9b-4604-856c-eacdd91ee897" />
+
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-lightgrey)
 
@@ -10,8 +12,6 @@ A note-taking desktop app with rich text, spreadsheet notes, and hierarchical or
 I built Vault because I was unsatisfied with existing apps. One app had features another didn’t, workflows were fragmented, and AI was often locked behind premium pricing. I wanted one place that covered my real daily workflow without subscriptions deciding what I could or couldn’t do.
 
 I also wanted total control, so Vault is local-first by design: everything is stored in a local SQLite database on your machine, AI uses your own API key, and voice transcription runs through your own Azure Speech credentials. Due to popular demand, I open-sourced it and modularized it so users can bend it to their own will.
-
-<img width="2013" height="1202" alt="image" src="https://github.com/user-attachments/assets/f182c04d-ef9b-4604-856c-eacdd91ee897" />
 
 ## Features
 
