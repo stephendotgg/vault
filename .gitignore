@@ -52,4 +52,5 @@ savepoints/
 /data/icons/*
 !/data/icons/.gitkeep
 data/mothership.db
+prisma/*.db
 .vscode/
