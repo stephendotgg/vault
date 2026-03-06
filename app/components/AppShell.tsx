@@ -619,8 +619,7 @@ export function AppShell() {
     setCurrentView("lists");
   };
 
-  // Compute available tags for lists (priority tags first, then others by usage count)
-  const priorityTags = ["shows", "music", "topics", "food", "youtube", "work"];
+  // Compute available tags for lists by usage count
   const availableListTags = (() => {
     const tagCounts = new Map<string, number>();
     listItems.forEach((item) => {
@@ -633,11 +632,15 @@ export function AppShell() {
         });
       }
     });
-    const existingPriority = priorityTags.filter((t) => tagCounts.has(t));
-    const remainingTags = [...tagCounts.keys()]
-      .filter((t) => !priorityTags.includes(t))
-      .sort((a, b) => (tagCounts.get(b) || 0) - (tagCounts.get(a) || 0));
-    return [...existingPriority, ...remainingTags];
+
+    return [...tagCounts.keys()].sort((a, b) => {
+      const countDiff = (tagCounts.get(b) || 0) - (tagCounts.get(a) || 0);
+      if (countDiff !== 0) {
+        return countDiff;
+      }
+
+      return a.localeCompare(b);
+    });
   })();
 
   // Open lists add modal

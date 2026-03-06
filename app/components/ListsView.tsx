@@ -14,8 +14,6 @@ export function ListsView({ listItems, onDeleteListItem, onOpenAddModal }: Lists
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const priorityTags = ["shows", "music", "topics", "food", "youtube", "work"];
-
   const allTags = (() => {
     const tagCounts = new Map<string, number>();
     listItems.forEach((item) => {
@@ -29,11 +27,14 @@ export function ListsView({ listItems, onDeleteListItem, onOpenAddModal }: Lists
       }
     });
 
-    const existingPriority = priorityTags.filter((t) => tagCounts.has(t));
-    const remainingTags = [...tagCounts.keys()]
-      .filter((t) => !priorityTags.includes(t))
-      .sort((a, b) => (tagCounts.get(b) || 0) - (tagCounts.get(a) || 0));
-    return [...existingPriority, ...remainingTags];
+    return [...tagCounts.keys()].sort((a, b) => {
+      const countDiff = (tagCounts.get(b) || 0) - (tagCounts.get(a) || 0);
+      if (countDiff !== 0) {
+        return countDiff;
+      }
+
+      return a.localeCompare(b);
+    });
   })();
 
   const filteredItems = listItems.filter((item) => {
