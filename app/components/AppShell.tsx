@@ -673,6 +673,8 @@ export function AppShell() {
         setSelectedNoteId(null);
         setCurrentView("home");
       }
+
+      void fetchNotes();
     } catch (error) {
       console.error("Failed to archive note:", error);
     }
@@ -732,6 +734,8 @@ export function AppShell() {
       if (selectedArchivedNoteId && descendantIds.includes(selectedArchivedNoteId)) {
         setSelectedArchivedNoteId(null);
       }
+
+      void fetchNotes();
     } catch (error) {
       console.error("Failed to restore note:", error);
     }
