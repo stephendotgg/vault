@@ -5,6 +5,7 @@ export interface Note {
   icon: string;
   order: number;
   archived: boolean;
+  isLocked: boolean;
   parentId: string | null;
   createdAt: string;
   updatedAt: string;

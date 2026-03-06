@@ -27,6 +27,16 @@ function initializeDatabase() {
   } else {
     console.info("[db-migrations] no table rename needed");
   }
+
+  const noteColumns = db
+    .prepare("PRAGMA table_info('Note')")
+    .all() as Array<{ name: string }>;
+  const hasNoteLockColumn = noteColumns.some((column) => column.name === "isLocked");
+  if (noteColumns.length > 0 && !hasNoteLockColumn) {
+    console.info("[db-migrations] adding Note.isLocked column");
+    db.exec('ALTER TABLE "Note" ADD COLUMN "isLocked" INTEGER NOT NULL DEFAULT 0;');
+    console.info("[db-migrations] Note.isLocked column added");
+  }
   
   // Create tables if they don't exist (for production where prisma db push hasn't run)
   db.exec(`
@@ -37,6 +47,7 @@ function initializeDatabase() {
       icon TEXT DEFAULT '📄',
       "order" INTEGER DEFAULT 0,
       archived INTEGER DEFAULT 0,
+      isLocked INTEGER DEFAULT 0,
       parentId TEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,

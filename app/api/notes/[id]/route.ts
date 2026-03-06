@@ -61,6 +61,7 @@ export async function PATCH(
         ...(body.parentId !== undefined && { parentId: body.parentId }),
         ...(body.order !== undefined && { order: body.order }),
         ...(body.archived !== undefined && { archived: body.archived }),
+        ...(body.isLocked !== undefined && { isLocked: body.isLocked }),
       },
     });
 

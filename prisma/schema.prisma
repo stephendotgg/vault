@@ -17,6 +17,7 @@ model Note {
   icon      String   @default("📄")
   order     Int      @default(0)
   archived  Boolean  @default(false)
+  isLocked  Boolean  @default(false)
   parentId  String?
   parent    Note?    @relation("NoteToNote", fields: [parentId], references: [id], onDelete: Cascade)
   children  Note[]   @relation("NoteToNote")
