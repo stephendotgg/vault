@@ -262,11 +262,16 @@ function SheetDataEditor({
   exitEditMode,
   row,
   column,
+  readOnly = false,
   onNavigateCell,
 }: DataEditorProps<SpreadsheetCell> & {
+  readOnly?: boolean;
   onNavigateCell?: (point: Point, direction: "up" | "down" | "left" | "right") => void;
 }) {
   const handleEditorChange = (nextValue: string) => {
+    if (readOnly) {
+      return;
+    }
     onChange({ value: nextValue });
   };
 
@@ -277,7 +282,16 @@ function SheetDataEditor({
       <input
         value={value}
         onChange={(e) => handleEditorChange(e.target.value)}
+        readOnly={readOnly}
         onKeyDown={(e) => {
+          if (readOnly) {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              exitEditMode();
+            }
+            return;
+          }
+
           const isMeta = e.ctrlKey || e.metaKey;
           if (isMeta && (e.key === "b" || e.key === "B" || e.key === "i" || e.key === "I" || e.key === "u" || e.key === "U")) {
             e.preventDefault();
@@ -708,6 +722,7 @@ interface NoteEditorProps {
 
 export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
+  const isLocked = Boolean(note.isLocked);
   const parentNote = useMemo(
     () => (note.parentId ? allNotes.find((entry) => entry.id === note.parentId) ?? null : null),
     [allNotes, note.parentId]
@@ -805,6 +820,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   );
 
   const queueSpreadsheetSave = useCallback((normalized: string[][]) => {
+    if (isLocked) {
+      return;
+    }
+
     const previousSerialized = lastSpreadsheetSerializedRef.current;
     const nextSerialized = serializeSpreadsheetContent(normalized);
 
@@ -839,7 +858,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         skipParentUpdate: true,
       });
     }, 1200);
-  }, [note, onUpdate]);
+  }, [isLocked, note, onUpdate]);
 
   const applyFormatToActiveSpreadsheetCell = useCallback((marker: "**" | "*" | "__") => {
     if (!activeSpreadsheetCell) {
@@ -885,9 +904,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const spreadsheetDataEditor = useCallback((props: DataEditorProps<SpreadsheetCell>) => (
     <SheetDataEditor
       {...props}
+      readOnly={isLocked}
       onNavigateCell={(point, direction) => moveSpreadsheetSelection(point, direction)}
     />
-  ), [moveSpreadsheetSelection]);
+  ), [isLocked, moveSpreadsheetSelection]);
 
   const clearSpreadsheetInteractionState = useCallback(() => {
     setSpreadsheetSelection(new EmptySelection());
@@ -898,6 +918,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   }, []);
 
   const beginSpreadsheetColumnResize = useCallback((column: number, event: React.MouseEvent) => {
+    if (isLocked) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
@@ -911,9 +935,13 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       startPosition: event.clientX,
       startSize: baseWidth,
     };
-  }, [clearSpreadsheetInteractionState, spreadsheetColumnWidths]);
+  }, [clearSpreadsheetInteractionState, isLocked, spreadsheetColumnWidths]);
 
   const beginSpreadsheetRowResize = useCallback((row: number, event: React.MouseEvent) => {
+    if (isLocked) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
@@ -927,7 +955,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       startPosition: event.clientY,
       startSize: baseHeight,
     };
-  }, [clearSpreadsheetInteractionState, spreadsheetRowHeights]);
+  }, [clearSpreadsheetInteractionState, isLocked, spreadsheetRowHeights]);
 
   const SpreadsheetColumnIndicator = useCallback(({
     column,
@@ -1368,6 +1396,25 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     }
   }, [note.id, onUpdate]);
 
+  const handleToggleLock = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/notes/${note.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isLocked: !isLocked }),
+      });
+
+      if (!res.ok) {
+        return;
+      }
+
+      const updatedNote = await res.json();
+      onUpdate(updatedNote);
+    } catch (error) {
+      console.error("Failed to toggle note lock:", error);
+    }
+  }, [isLocked, note.id, onUpdate]);
+
   useEffect(() => {
     saveNoteRef.current = saveNote;
   }, [saveNote]);
@@ -1416,12 +1463,16 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       AutoCorrect,
     ],
     content: isSpreadsheetNote ? "<p></p>" : note.content,
-    editable: !isSpreadsheetNote,
+    editable: !isSpreadsheetNote && !isLocked,
     editorProps: {
       attributes: {
         class: "prose prose-invert max-w-none focus:outline-none h-full min-h-[120px] text-[#e3e3e3] text-base leading-relaxed",
       },
       handleKeyDown: (view, event) => {
+        if (isLocked) {
+          return false;
+        }
+
         if (
           (event.ctrlKey || event.metaKey) &&
           !event.shiftKey &&
@@ -1498,6 +1549,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         return false;
       },
       handlePaste: (view, event) => {
+        if (isLocked) {
+          return false;
+        }
+
         const clipboard = event.clipboardData;
         if (!clipboard) {
           return false;
@@ -1530,6 +1585,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         return false;
       },
       handleDrop: (view, event) => {
+        if (isLocked) {
+          return false;
+        }
+
         const dataTransfer = event.dataTransfer;
         if (!dataTransfer) {
           return false;
@@ -1560,6 +1619,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       },
       handleDOMEvents: {
         mousedown: (view, event) => {
+          if (isLocked) {
+            return false;
+          }
+
           if (!(event instanceof MouseEvent) || event.button !== 0) {
             return false;
           }
@@ -1628,7 +1691,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       },
     },
     onUpdate: ({ editor }) => {
-      if (isSpreadsheetNote) {
+      if (isSpreadsheetNote || isLocked) {
         return;
       }
 
@@ -1645,7 +1708,15 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         void saveNoteRef.current(titleRef.current, html);
       }, 500);
     },
-  }, [insertImageWithParagraph, isSpreadsheetNote, note.id]);
+  }, [insertImageWithParagraph, isLocked, isSpreadsheetNote, note.content, note.id]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    editor.setEditable(!isSpreadsheetNote && !isLocked);
+  }, [editor, isLocked, isSpreadsheetNote]);
 
   // Update editor content when note changes, including external updates to same note
   useEffect(() => {
@@ -1676,6 +1747,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
   // Debounced auto-save on title change
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isLocked) {
+      return;
+    }
+
     const newTitle = e.target.value;
     setTitle(newTitle);
 
@@ -1964,6 +2039,23 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
             {!isSaving && lastSaved && (
               <span className="text-xs text-[#6b6b6b]">Saved</span>
             )}
+            <button
+              onClick={handleToggleLock}
+              className={`p-1.5 rounded transition-colors ${isLocked ? "bg-[#3f3f3f] text-[#e3e3e3]" : "text-[#6b6b6b] hover:text-[#e3e3e3] hover:bg-[#3f3f3f]"}`}
+              title={isLocked ? "Unlock editing" : "Lock editing"}
+            >
+              {isLocked ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="5" y="11" width="14" height="10" rx="2" strokeWidth="2" />
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="5" y="11" width="14" height="10" rx="2" strokeWidth="2" />
+                  <path d="M11 11V8a4 4 0 0 1 7 0" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
             {allowAIChat && (
               <button
                 onClick={() => {
@@ -1992,6 +2084,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                 type="text"
                 value={title}
                 onChange={handleTitleChange}
+                readOnly={isLocked}
                 onKeyDown={(e) => {
                   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
                     e.preventDefault();
@@ -2015,7 +2108,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                 }}
                 ref={titleInputRef}
                 placeholder="New page"
-                className="w-full text-4xl font-bold text-[#e3e3e3] bg-transparent border-none outline-none placeholder-[#4a4a4a] mb-4 leading-tight"
+                className={`w-full text-4xl font-bold text-[#e3e3e3] bg-transparent border-none outline-none placeholder-[#4a4a4a] mb-4 leading-tight ${isLocked ? "cursor-default" : ""}`}
               />
             )}
 
@@ -2058,18 +2151,28 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                   RowIndicator={SpreadsheetRowIndicator}
                   Row={SpreadsheetRow}
                   onSelect={(selection) => {
+                    if (isLocked) {
+                      return;
+                    }
                     if (isSpreadsheetResizing) {
                       return;
                     }
                     setSpreadsheetSelection(selection);
                   }}
                   onActivate={(active) => {
+                    if (isLocked) {
+                      return;
+                    }
                     if (isSpreadsheetResizing) {
                       return;
                     }
                     setActiveSpreadsheetCell(active);
                   }}
                   onKeyDown={(event) => {
+                    if (isLocked) {
+                      return;
+                    }
+
                     if (event.target instanceof HTMLInputElement) {
                       return;
                     }
@@ -2102,6 +2205,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                     }
                   }}
                   onChange={(nextData) => {
+                    if (isLocked) {
+                      return;
+                    }
+
                     const source = nextData ?? [];
                     const normalized = normalizeSpreadsheetData(
                       source.map((row) => row.map((cell) => cell?.value ?? ""))
