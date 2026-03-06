@@ -88,16 +88,52 @@ export function runStartupMigrations(): { appliedMigrations: string[] } {
   let currentVersion = getCurrentMigrationVersion();
   const appliedMigrations: string[] = [];
 
+  console.info("[startup-migrations] current version", currentVersion);
+
   const pendingMigrations = STARTUP_MIGRATIONS
     .filter((migration) => migration.version > currentVersion)
     .sort((a, b) => a.version - b.version);
 
-  for (const migration of pendingMigrations) {
-    migration.run();
-    currentVersion = migration.version;
-    setCurrentMigrationVersion(currentVersion);
-    appliedMigrations.push(migration.name);
+  if (pendingMigrations.length === 0) {
+    console.info("[startup-migrations] no pending migrations");
+    return { appliedMigrations };
   }
+
+  console.info(
+    "[startup-migrations] pending",
+    pendingMigrations.map((migration) => ({ version: migration.version, name: migration.name }))
+  );
+
+  for (const migration of pendingMigrations) {
+    try {
+      console.info("[startup-migrations] applying", {
+        version: migration.version,
+        name: migration.name,
+      });
+
+      migration.run();
+      currentVersion = migration.version;
+      setCurrentMigrationVersion(currentVersion);
+      appliedMigrations.push(migration.name);
+
+      console.info("[startup-migrations] applied", {
+        version: migration.version,
+        name: migration.name,
+      });
+    } catch (error) {
+      console.error("[startup-migrations] failed", {
+        version: migration.version,
+        name: migration.name,
+        error,
+      });
+      throw error;
+    }
+  }
+
+  console.info("[startup-migrations] complete", {
+    finalVersion: currentVersion,
+    appliedCount: appliedMigrations.length,
+  });
 
   return { appliedMigrations };
 }

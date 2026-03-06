@@ -9,6 +9,8 @@ const dbPath = getDatabasePath();
 function initializeDatabase() {
   const db = new Database(dbPath);
 
+  console.info("[db-migrations] startup check", { dbPath });
+
   const hasLegacyVaultItemTable = db
     .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='VaultItem'")
     .get() as { name: string } | undefined;
@@ -17,7 +19,13 @@ function initializeDatabase() {
     .get() as { name: string } | undefined;
 
   if (hasLegacyVaultItemTable && !hasListItemTable) {
+    console.info("[db-migrations] renaming table VaultItem -> ListItem");
     db.exec('ALTER TABLE "VaultItem" RENAME TO "ListItem";');
+    console.info("[db-migrations] table rename complete");
+  } else if (hasLegacyVaultItemTable && hasListItemTable) {
+    console.warn("[db-migrations] both VaultItem and ListItem tables found; skipping auto-rename");
+  } else {
+    console.info("[db-migrations] no table rename needed");
   }
   
   // Create tables if they don't exist (for production where prisma db push hasn't run)
