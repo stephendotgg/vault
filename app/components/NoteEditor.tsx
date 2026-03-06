@@ -2016,11 +2016,11 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             {headerActions}
             <button
               onClick={handleToggleLock}
-              className={`p-1.5 rounded transition-colors ${isLocked ? "text-[#7eb8f7] bg-[#3f3f3f]" : "text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f]"}`}
+              className={`p-1 rounded transition-colors ${isLocked ? "text-[#7eb8f7] bg-[#3f3f3f]" : "text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f]"}`}
               title={isLocked ? "Unlock editing" : "Lock editing"}
             >
               {isLocked ? (
@@ -2045,7 +2045,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                     setTimeout(() => chatInputRef.current?.focus(), 100);
                   }
                 }}
-                className={`p-1.5 rounded transition-colors ${showAIChat ? "bg-[#3f3f3f] text-[#e3e3e3]" : "text-[#6b6b6b] hover:text-[#e3e3e3] hover:bg-[#3f3f3f]"}`}
+                className={`p-1 rounded transition-colors ${showAIChat ? "text-[#7eb8f7] bg-[#3f3f3f]" : "text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f]"}`}
                 title="AI Chat"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
