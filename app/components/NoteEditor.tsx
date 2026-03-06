@@ -759,8 +759,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     | null
   >(null);
   const spreadsheetRef = useRef<{ activate: (point: Point) => void } | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isLightTheme, setIsLightTheme] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const spreadsheetSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1363,12 +1361,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
   // Auto-save function
   const saveNote = useCallback(async (newTitle: string, newContent: string, options?: SaveOptions) => {
-    const silent = options?.silent === true;
     const skipParentUpdate = options?.skipParentUpdate === true;
-
-    if (!silent) {
-      setIsSaving(true);
-    }
 
     try {
       const res = await fetch(`/api/notes/${note.id}`, {
@@ -1379,20 +1372,12 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
       if (res.ok) {
         const updatedNote = await res.json();
-        if (!silent) {
-          setLastSaved(new Date());
-        }
-
         if (!skipParentUpdate) {
           onUpdate(updatedNote);
         }
       }
     } catch (error) {
       console.error("Failed to save note:", error);
-    } finally {
-      if (!silent) {
-        setIsSaving(false);
-      }
     }
   }, [note.id, onUpdate]);
 
@@ -2033,12 +2018,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           </div>
           <div className="flex items-center gap-3">
             {headerActions}
-            {isSaving && (
-              <span className="text-xs text-[#6b6b6b]">Saving...</span>
-            )}
-            {!isSaving && lastSaved && (
-              <span className="text-xs text-[#6b6b6b]">Saved</span>
-            )}
             <button
               onClick={handleToggleLock}
               className={`p-1.5 rounded transition-colors ${isLocked ? "text-[#7eb8f7] bg-[#3f3f3f]" : "text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f]"}`}
