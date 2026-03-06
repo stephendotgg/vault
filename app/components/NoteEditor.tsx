@@ -700,9 +700,13 @@ interface NoteEditorProps {
   setChatOpenStates: React.Dispatch<React.SetStateAction<Map<string, boolean>>>;
   allChatMessages: Map<string, ChatMessage[]>;
   setAllChatMessages: React.Dispatch<React.SetStateAction<Map<string, ChatMessage[]>>>;
+  breadcrumbPrefixLabel?: string;
+  onBreadcrumbPrefixClick?: () => void;
+  headerActions?: React.ReactNode;
+  allowAIChat?: boolean;
 }
 
-export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages }: NoteEditorProps) {
+export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
   const parentNote = useMemo(
     () => (note.parentId ? allNotes.find((entry) => entry.id === note.parentId) ?? null : null),
@@ -773,7 +777,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     element.scrollHeight - element.scrollTop - element.clientHeight < 96;
 
   // Get current note's chat open state
-  const showAIChat = chatOpenStates.get(note.id) || false;
+  const showAIChat = allowAIChat && (chatOpenStates.get(note.id) || false);
   const setShowAIChat = (open: boolean) => {
     setChatOpenStates(prev => {
       const newMap = new Map(prev);
@@ -781,6 +785,12 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       return newMap;
     });
   };
+
+  useEffect(() => {
+    if (!allowAIChat && chatOpenStates.get(note.id)) {
+      setShowAIChat(false);
+    }
+  }, [allowAIChat, chatOpenStates, note.id]);
 
   // Get current note's chat messages
   const chatMessages = useMemo(() => allChatMessages.get(note.id) || [], [allChatMessages, note.id]);
@@ -1392,6 +1402,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         class: "prose prose-invert max-w-none focus:outline-none h-full min-h-[120px] text-[#e3e3e3] text-base leading-relaxed",
       },
       handleKeyDown: (_view, event) => {
+
         if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
           event.preventDefault();
 
@@ -1821,6 +1832,25 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         {/* Top bar */}
         <div className="flex items-center justify-between h-11 px-4 border-b border-[#2f2f2f] shrink-0">
           <div className="flex items-center gap-1 text-sm text-[#9b9b9b] overflow-hidden">
+            {breadcrumbPrefixLabel && (
+              <>
+                {onBreadcrumbPrefixClick ? (
+                  <button
+                    onClick={onBreadcrumbPrefixClick}
+                    className="hover:text-[#e3e3e3] transition-colors cursor-pointer"
+                  >
+                    <span className="truncate">{breadcrumbPrefixLabel}</span>
+                  </button>
+                ) : (
+                  <span className="truncate">{breadcrumbPrefixLabel}</span>
+                )}
+                {breadcrumbs.length > 0 && (
+                  <svg className="w-3 h-3 text-[#6b6b6b] shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </>
+            )}
             {breadcrumbs.map((crumb, index) => (
               <div key={crumb.id} className="flex items-center gap-1 min-w-0">
                 {index > 0 && (
@@ -1846,26 +1876,29 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
             ))}
           </div>
           <div className="flex items-center gap-3">
+            {headerActions}
             {isSaving && (
               <span className="text-xs text-[#6b6b6b]">Saving...</span>
             )}
             {!isSaving && lastSaved && (
               <span className="text-xs text-[#6b6b6b]">Saved</span>
             )}
-            <button
-              onClick={() => {
-                setShowAIChat(!showAIChat);
-                if (!showAIChat) {
-                  setTimeout(() => chatInputRef.current?.focus(), 100);
-                }
-              }}
-              className={`p-1.5 rounded transition-colors ${showAIChat ? "bg-[#3f3f3f] text-[#e3e3e3]" : "text-[#6b6b6b] hover:text-[#e3e3e3] hover:bg-[#3f3f3f]"}`}
-              title="AI Chat"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-              </svg>
-            </button>
+            {allowAIChat && (
+              <button
+                onClick={() => {
+                  setShowAIChat(!showAIChat);
+                  if (!showAIChat) {
+                    setTimeout(() => chatInputRef.current?.focus(), 100);
+                  }
+                }}
+                className={`p-1.5 rounded transition-colors ${showAIChat ? "bg-[#3f3f3f] text-[#e3e3e3]" : "text-[#6b6b6b] hover:text-[#e3e3e3] hover:bg-[#3f3f3f]"}`}
+                title="AI Chat"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 

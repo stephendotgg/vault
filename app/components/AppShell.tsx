@@ -1143,6 +1143,9 @@ export function AppShell() {
   const recentNotes = [...activeNotes]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
+  const selectedArchivedNote = selectedArchivedNoteId
+    ? notes.find((note) => note.id === selectedArchivedNoteId && note.archived)
+    : null;
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -1199,6 +1202,51 @@ export function AppShell() {
             onDeleteMemory={handleDeleteMemory}
             onUploadImages={handleUploadImages}
             onDeleteImage={handleDeleteImage}
+          />
+        ) : currentView === "archive" && selectedArchivedNote ? (
+          <NoteEditor
+            key={selectedArchivedNote.id}
+            note={selectedArchivedNote}
+            allNotes={notes}
+            onUpdate={handleUpdateNote}
+            allowAIChat={false}
+            breadcrumbPrefixLabel="Archive"
+            onBreadcrumbPrefixClick={() => setSelectedArchivedNoteId(null)}
+            headerActions={(
+              <>
+                <button
+                  onClick={() => {
+                    handleRestoreNote(selectedArchivedNote.id);
+                    setSelectedArchivedNoteId(null);
+                  }}
+                  className="px-2 py-1 text-xs text-[#9b9b9b] hover:text-[#e3e3e3] hover:bg-[#2f2f2f] rounded transition-colors cursor-pointer"
+                >
+                  Restore
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeletePermanently(selectedArchivedNote.id);
+                    setSelectedArchivedNoteId(null);
+                  }}
+                  className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-[#2f2f2f] rounded transition-colors cursor-pointer"
+                >
+                  Delete
+                </button>
+              </>
+            )}
+            onSelectNote={(noteId) => {
+              const targetNote = notes.find((note) => note.id === noteId);
+              if (!targetNote) return;
+              if (targetNote.archived) {
+                setSelectedArchivedNoteId(noteId);
+                return;
+              }
+              handleSelectNote(noteId);
+            }}
+            chatOpenStates={chatOpenStates}
+            setChatOpenStates={setChatOpenStates}
+            allChatMessages={allChatMessages}
+            setAllChatMessages={setAllChatMessages}
           />
         ) : currentView === "archive" ? (
           <ArchiveView
