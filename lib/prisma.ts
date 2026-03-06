@@ -8,6 +8,17 @@ const dbPath = getDatabasePath();
 // Initialize the database and create tables if they don't exist
 function initializeDatabase() {
   const db = new Database(dbPath);
+
+  const hasLegacyVaultItemTable = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='VaultItem'")
+    .get() as { name: string } | undefined;
+  const hasListItemTable = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='ListItem'")
+    .get() as { name: string } | undefined;
+
+  if (hasLegacyVaultItemTable && !hasListItemTable) {
+    db.exec('ALTER TABLE "VaultItem" RENAME TO "ListItem";');
+  }
   
   // Create tables if they don't exist (for production where prisma db push hasn't run)
   db.exec(`
@@ -24,7 +35,7 @@ function initializeDatabase() {
       FOREIGN KEY (parentId) REFERENCES Note(id) ON DELETE CASCADE
     );
 
-    CREATE TABLE IF NOT EXISTS VaultItem (
+    CREATE TABLE IF NOT EXISTS ListItem (
       id TEXT PRIMARY KEY,
       key TEXT NOT NULL,
       value TEXT DEFAULT '',

@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
 
-    const listItems = await prisma.vaultItem.findMany({
+    const listItems = await prisma.listItem.findMany({
       where: search
         ? {
             OR: [
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Key is required" }, { status: 400 });
     }
 
-    const listItem = await prisma.vaultItem.create({
+    const listItem = await prisma.listItem.create({
       data: {
         key,
         value: value || "",

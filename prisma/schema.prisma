@@ -24,8 +24,8 @@ model Note {
   updatedAt DateTime @updatedAt
 }
 
-// Vault items - K/V store for quick reference
-model VaultItem {
+// List items - K/V store for quick reference
+model ListItem {
   id        String   @id @default(cuid())
   key       String   
   value     String   @default("")

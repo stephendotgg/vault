@@ -57,7 +57,7 @@ async function getRelevantContext(query: string, limit: number = 5): Promise<str
   }
 
   // Search list items
-  const listItems = await prisma.vaultItem.findMany({
+  const listItems = await prisma.listItem.findMany({
     where: {
       OR: keywords.flatMap(kw => [
         { key: { contains: kw } },

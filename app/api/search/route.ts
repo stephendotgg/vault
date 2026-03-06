@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
 
     // Search list items
     if (types.includes("list")) {
-      const listItems = await prisma.vaultItem.findMany({
+      const listItems = await prisma.listItem.findMany({
         where: {
           OR: [
             { key: { contains: query } },

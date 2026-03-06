@@ -19,8 +19,6 @@ export interface ListItem {
   updatedAt: string;
 }
 
-export type VaultItem = ListItem;
-
 export interface Occasion {
   id: string;
   title: string;
