@@ -837,6 +837,9 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const [slashMenuState, setSlashMenuState] = useState<SlashMenuState | null>(null);
   const [slashMenuSelectedIndex, setSlashMenuSelectedIndex] = useState(0);
+  const slashMenuStateRef = useRef<SlashMenuState | null>(null);
+  const filteredSlashCommandsRef = useRef<SlashCommand[]>([]);
+  const slashMenuSelectedIndexRef = useRef(0);
 
   const isNearBottom = (element: HTMLDivElement) =>
     element.scrollHeight - element.scrollTop - element.clientHeight < 96;
@@ -899,16 +902,29 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     });
   }, [slashCommands, slashMenuState]);
 
+  useEffect(() => {
+    slashMenuStateRef.current = slashMenuState;
+  }, [slashMenuState]);
+
+  useEffect(() => {
+    filteredSlashCommandsRef.current = filteredSlashCommands;
+  }, [filteredSlashCommands]);
+
+  useEffect(() => {
+    slashMenuSelectedIndexRef.current = slashMenuSelectedIndex;
+  }, [slashMenuSelectedIndex]);
+
   const runSlashCommand = useCallback(async (command: SlashCommand) => {
     const currentEditor = editorRef.current;
-    if (!currentEditor || !slashMenuState) {
+    const currentSlashMenuState = slashMenuStateRef.current;
+    if (!currentEditor || !currentSlashMenuState) {
       return;
     }
 
     currentEditor
       .chain()
       .focus()
-      .deleteRange({ from: slashMenuState.from, to: slashMenuState.to })
+      .deleteRange({ from: currentSlashMenuState.from, to: currentSlashMenuState.to })
       .run();
 
     setSlashMenuState(null);
@@ -952,7 +968,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       const updated = await res.json();
       onUpdate(updated);
     }
-  }, [note.icon, note.id, onUpdate, slashMenuState]);
+  }, [note.icon, note.id, onUpdate]);
 
   const syncSlashMenu = useCallback((currentEditor: Editor | null) => {
     if (!currentEditor || isSpreadsheetNote || isLocked || showCallNoteView) {
@@ -1629,27 +1645,29 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           return false;
         }
 
-        if (slashMenuState) {
+        if (slashMenuStateRef.current) {
           if (event.key === "ArrowDown") {
             event.preventDefault();
-            if (filteredSlashCommands.length > 0) {
-              setSlashMenuSelectedIndex((prev) => (prev + 1) % filteredSlashCommands.length);
+            const commandCount = filteredSlashCommandsRef.current.length;
+            if (commandCount > 0) {
+              setSlashMenuSelectedIndex((prev) => (prev + 1) % commandCount);
             }
             return true;
           }
 
           if (event.key === "ArrowUp") {
             event.preventDefault();
-            if (filteredSlashCommands.length > 0) {
+            const commandCount = filteredSlashCommandsRef.current.length;
+            if (commandCount > 0) {
               setSlashMenuSelectedIndex((prev) =>
-                prev <= 0 ? filteredSlashCommands.length - 1 : prev - 1
+                prev <= 0 ? commandCount - 1 : prev - 1
               );
             }
             return true;
           }
 
           if (event.key === "Enter") {
-            const selectedCommand = filteredSlashCommands[slashMenuSelectedIndex];
+            const selectedCommand = filteredSlashCommandsRef.current[slashMenuSelectedIndexRef.current];
             if (selectedCommand) {
               event.preventDefault();
               void runSlashCommand(selectedCommand);
@@ -1902,7 +1920,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         void saveNoteRef.current(titleRef.current, html);
       }, 500);
     },
-  }, [filteredSlashCommands, insertImageWithParagraph, isLocked, isSpreadsheetNote, note.content, note.id, runSlashCommand, slashMenuSelectedIndex, slashMenuState, syncSlashMenu]);
+  }, [insertImageWithParagraph, isLocked, isSpreadsheetNote, note.content, note.id, runSlashCommand, syncSlashMenu]);
 
   useEffect(() => {
     if (!editor) {
