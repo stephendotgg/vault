@@ -710,7 +710,6 @@ type SlashCommand = {
   label: string;
   description: string;
   keywords: string[];
-  run: () => void | Promise<void>;
 };
 
 type SlashMenuState = {
@@ -871,55 +870,15 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         label: "Table",
         description: "Insert a simple 2-column table template",
         keywords: ["table", "grid", "columns"],
-        run: () => {
-          if (!editor) {
-            return;
-          }
-
-          editor
-            .chain()
-            .focus()
-            .insertContent([
-              { type: "paragraph", content: [{ type: "text", text: "| Column 1 | Column 2 |" }] },
-              { type: "paragraph", content: [{ type: "text", text: "| --- | --- |" }] },
-              { type: "paragraph", content: [{ type: "text", text: "| Value | Value |" }] },
-            ])
-            .run();
-        },
       },
       {
         id: "icon",
         label: "Icon",
         description: "Set this note icon with an emoji",
         keywords: ["icon", "emoji"],
-        run: async () => {
-          const currentEmoji = note.icon.startsWith("icon:") || note.icon === "sheet" ? "" : note.icon;
-          const next = window.prompt("Set note emoji icon", currentEmoji || "");
-          if (!next) {
-            return;
-          }
-
-          const trimmed = next.trim();
-          if (!trimmed) {
-            return;
-          }
-
-          const res = await fetch(`/api/notes/${note.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ icon: trimmed }),
-          });
-
-          if (!res.ok) {
-            return;
-          }
-
-          const updated = await res.json();
-          onUpdate(updated);
-        },
       },
     ];
-  }, [editor, note.icon, note.id, onUpdate]);
+  }, []);
 
   const filteredSlashCommands = useMemo(() => {
     if (!slashMenuState) {
@@ -953,8 +912,45 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     setSlashMenuState(null);
     setSlashMenuSelectedIndex(0);
 
-    await command.run();
-  }, [editor, slashMenuState]);
+    if (command.id === "table") {
+      editor
+        .chain()
+        .focus()
+        .insertContent([
+          { type: "paragraph", content: [{ type: "text", text: "| Column 1 | Column 2 |" }] },
+          { type: "paragraph", content: [{ type: "text", text: "| --- | --- |" }] },
+          { type: "paragraph", content: [{ type: "text", text: "| Value | Value |" }] },
+        ])
+        .run();
+      return;
+    }
+
+    if (command.id === "icon") {
+      const currentEmoji = note.icon.startsWith("icon:") || note.icon === "sheet" ? "" : note.icon;
+      const next = window.prompt("Set note emoji icon", currentEmoji || "");
+      if (!next) {
+        return;
+      }
+
+      const trimmed = next.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      const res = await fetch(`/api/notes/${note.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ icon: trimmed }),
+      });
+
+      if (!res.ok) {
+        return;
+      }
+
+      const updated = await res.json();
+      onUpdate(updated);
+    }
+  }, [editor, note.icon, note.id, onUpdate, slashMenuState]);
 
   const syncSlashMenu = useCallback((currentEditor: Editor | null) => {
     if (!currentEditor || isSpreadsheetNote || isLocked || showCallNoteView) {
