@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
-import { AISettingsModal, getEnabledModelIds } from "./AISettingsModal";
+import { AISettingsModal } from "./AISettingsModal";
 
 interface PendingImage {
   file: File;
@@ -32,6 +32,8 @@ interface AIViewProps {
 // Storage keys
 const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
 const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
+const AZURE_FOUNDRY_API_KEY_STORAGE_KEY = "vault-azure-foundry-api-key";
+const AZURE_FOUNDRY_ENDPOINT_STORAGE_KEY = "vault-azure-foundry-endpoint";
 const SELECTED_MODEL_STORAGE_KEY = "vault-ai-model";
 const LEGACY_SELECTED_MODEL_STORAGE_KEY = "mothership-ai-model";
 const CURRENT_SESSION_STORAGE_KEY = "vault-ai-current-session";
@@ -47,6 +49,12 @@ interface ModelInfo {
   provider: string;
   vision?: boolean;
 }
+
+type ProviderConfig = {
+  provider: "openrouter" | "azure-foundry";
+  apiKey: string;
+  endpoint?: string;
+};
 
 // Format relative time
 function formatRelativeTime(date: Date): string {
@@ -128,7 +136,9 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
       ? localStorage.getItem(SELECTED_MODEL_STORAGE_KEY) || localStorage.getItem(LEGACY_SELECTED_MODEL_STORAGE_KEY) || "openai/gpt-4o-mini"
       : "openai/gpt-4o-mini"
   );
-  const [enabledModels, setEnabledModels] = useState<ModelInfo[]>([]);
+  const [availableModels, setAvailableModels] = useState<ModelInfo[]>([]);
+  const [modelSelectorSearch, setModelSelectorSearch] = useState("");
+  const [modelsError, setModelsError] = useState<string | null>(null);
   const messagesScrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -144,29 +154,57 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   const currentSession = sessions.find((s) => s.id === currentSessionId);
   const messages = useMemo(() => currentSession?.messages || [], [currentSession?.messages]);
 
-  // Get API key from localStorage
-  const getApiKey = () => localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY) || "";
+  const getProviderConfig = (): ProviderConfig | null => {
+    const openRouterApiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY) || "";
+    const azureFoundryApiKey = localStorage.getItem(AZURE_FOUNDRY_API_KEY_STORAGE_KEY) || "";
+    const azureFoundryEndpoint = localStorage.getItem(AZURE_FOUNDRY_ENDPOINT_STORAGE_KEY) || "";
 
-  // Fetch enabled models from API
-  const fetchEnabledModels = useCallback(async () => {
-    const modelIds = getEnabledModelIds();
+    if (azureFoundryApiKey && azureFoundryEndpoint) {
+      return {
+        provider: "azure-foundry",
+        apiKey: azureFoundryApiKey,
+        endpoint: azureFoundryEndpoint,
+      };
+    }
+
+    if (openRouterApiKey) {
+      return {
+        provider: "openrouter",
+        apiKey: openRouterApiKey,
+      };
+    }
+
+    return null;
+  };
+
+  // Fetch provider models from API
+  const fetchAvailableModels = useCallback(async () => {
+    const providerConfig = getProviderConfig();
+    if (!providerConfig) {
+      setAvailableModels([]);
+      setModelsError(null);
+      return;
+    }
+
     try {
-      const res = await fetch("/api/ai/models");
+      const params = new URLSearchParams({ provider: providerConfig.provider });
+      const headers: HeadersInit = {
+        "x-provider-api-key": providerConfig.apiKey,
+      };
+
+      if (providerConfig.provider === "azure-foundry" && providerConfig.endpoint) {
+        headers["x-provider-endpoint"] = providerConfig.endpoint;
+      }
+
+      const res = await fetch(`/api/ai/models?${params.toString()}`, { headers });
       const data = await res.json();
-      const allModels = data.models || [];
-      // Filter to only enabled models, maintaining order from settings
-      const enabled = modelIds
-        .map((id: string) => allModels.find((m: ModelInfo) => m.id === id))
-        .filter(Boolean) as ModelInfo[];
-      setEnabledModels(enabled.length > 0 ? enabled : allModels.slice(0, 5));
+      const models = Array.isArray(data.models) ? data.models : [];
+      setAvailableModels(models);
+      setModelsError(models.length === 0 ? "No models returned for the active provider." : null);
     } catch (err) {
       console.error("Failed to fetch models:", err);
-      // Fallback to basic model info
-      setEnabledModels(modelIds.map((id: string) => ({
-        id,
-        name: id.split("/")[1] || id,
-        provider: id.split("/")[0] || "Unknown",
-      })));
+      setAvailableModels([]);
+      setModelsError("Failed to load models for the active provider.");
     }
   }, []);
 
@@ -181,14 +219,43 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
     }
   };
 
+  const filteredModels = useMemo(() => {
+    if (!modelSelectorSearch.trim()) {
+      return availableModels;
+    }
+
+    const query = modelSelectorSearch.trim().toLowerCase();
+    return availableModels.filter((model) => {
+      return (
+        model.id.toLowerCase().includes(query) ||
+        model.name.toLowerCase().includes(query) ||
+        model.provider.toLowerCase().includes(query)
+      );
+    });
+  }, [availableModels, modelSelectorSearch]);
+
   // Get currently selected model
-  const selectedModel = enabledModels.find(m => m.id === selectedModelId) || enabledModels[0] || { id: selectedModelId, name: selectedModelId.split("/")[1] || selectedModelId, provider: selectedModelId.split("/")[0] || "Unknown" };
+  const selectedModel = availableModels.find(m => m.id === selectedModelId) || availableModels[0] || { id: selectedModelId, name: selectedModelId.split("/")[1] || selectedModelId, provider: selectedModelId.split("/")[0] || "Unknown" };
+
+  useEffect(() => {
+    if (availableModels.length === 0) {
+      return;
+    }
+
+    const exists = availableModels.some((model) => model.id === selectedModelId);
+    if (!exists) {
+      const nextModel = availableModels[0];
+      setSelectedModelId(nextModel.id);
+      localStorage.setItem(SELECTED_MODEL_STORAGE_KEY, nextModel.id);
+    }
+  }, [availableModels, selectedModelId]);
 
   // Handle model selection - switch to a new chat
   const handleSelectModel = (modelId: string) => {
     setSelectedModelId(modelId);
     localStorage.setItem(SELECTED_MODEL_STORAGE_KEY, modelId);
     setShowModelSelector(false);
+    setModelSelectorSearch("");
     // Start fresh with a new chat
     setCurrentSessionId(null);
     localStorage.removeItem(CURRENT_SESSION_STORAGE_KEY);
@@ -199,6 +266,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
     const handleClickOutside = (e: MouseEvent) => {
       if (modelSelectorRef.current && !modelSelectorRef.current.contains(e.target as Node)) {
         setShowModelSelector(false);
+        setModelSelectorSearch("");
       }
     };
     if (showModelSelector) {
@@ -210,8 +278,8 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   // Fetch instructions and models on mount
   useEffect(() => {
     fetchInstructions();
-    fetchEnabledModels();
-  }, [fetchEnabledModels]);
+    fetchAvailableModels();
+  }, [fetchAvailableModels]);
 
   // Load sessions from database
   const loadSessions = useCallback(async () => {
@@ -473,10 +541,10 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   const handleSend = async () => {
     if ((!input.trim() && pendingImages.length === 0) || isLoading) return;
 
-    // Check for API key
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setError("Please set your OpenRouter API key in Settings > API Keys.");
+    // Check provider config
+    const providerConfig = getProviderConfig();
+    if (!providerConfig) {
+      setError("Please set either an OpenRouter API key or Azure Foundry key + endpoint in Settings > API Keys.");
       return;
     }
 
@@ -594,7 +662,9 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: apiMessages,
-          apiKey,
+          apiKey: providerConfig.apiKey,
+          provider: providerConfig.provider,
+          endpoint: providerConfig.endpoint,
           model: selectedModel.id,
           instructions: cachedInstructions,
         }),
@@ -694,7 +764,11 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
         fetch(`/api/ai/sessions/${targetSessionId}/generate-title`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ apiKey }),
+          body: JSON.stringify({
+            apiKey: providerConfig.apiKey,
+            provider: providerConfig.provider,
+            endpoint: providerConfig.endpoint,
+          }),
         }).then(() => loadSessions()).catch(() => {});
       } else {
         loadSessions();
@@ -717,9 +791,9 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
   const handleRedo = async (messageId: string) => {
     if (isLoading || !currentSessionId) return;
 
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      setError("Please set your OpenRouter API key in Settings > API Keys.");
+    const providerConfig = getProviderConfig();
+    if (!providerConfig) {
+      setError("Please set either an OpenRouter API key or Azure Foundry key + endpoint in Settings > API Keys.");
       return;
     }
 
@@ -776,7 +850,14 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
       const aiResponse = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, apiKey, model: selectedModel.id, instructions: cachedInstructions }),
+        body: JSON.stringify({
+          messages: apiMessages,
+          apiKey: providerConfig.apiKey,
+          provider: providerConfig.provider,
+          endpoint: providerConfig.endpoint,
+          model: selectedModel.id,
+          instructions: cachedInstructions,
+        }),
       });
 
       if (!aiResponse.ok) {
@@ -991,26 +1072,44 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                 </svg>
               </button>
               {showModelSelector && (
-                <div className="absolute top-full left-0 mt-1 bg-[#252525] border border-[#3f3f3f] rounded-lg shadow-xl py-1 w-max z-50">
-                  {enabledModels.map((model) => (
-                    <button
-                      key={model.id}
-                      onClick={() => handleSelectModel(model.id)}
-                      className={`w-full px-3 py-1.5 text-left text-sm hover:bg-[#3f3f3f] transition-colors flex items-center gap-1.5 whitespace-nowrap ${
-                        model.id === selectedModelId ? "text-[#7eb8f7]" : "text-[#e3e3e3]"
-                      }`}
-                    >
-                      {model.name}
-                      {model.vision && (
-                        <span title="Supports image input">
-                          <svg className="w-3.5 h-3.5 text-[#6b6b6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </span>
-                      )}
-                    </button>
-                  ))}
+                <div className="absolute top-full left-0 mt-1 bg-[#252525] border border-[#3f3f3f] rounded-lg shadow-xl p-2 w-[320px] z-50">
+                  <input
+                    type="text"
+                    value={modelSelectorSearch}
+                    onChange={(event) => setModelSelectorSearch(event.target.value)}
+                    placeholder="Search models..."
+                    className="w-full bg-[#1a1a1a] text-[#ebebeb] text-sm px-3 py-1.5 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b]"
+                  />
+                  <div className="mt-2 max-h-56 overflow-auto">
+                    {modelsError ? (
+                      <div className="px-2 py-2 text-xs text-[#a97f7f]">{modelsError}</div>
+                    ) : filteredModels.length === 0 ? (
+                      <div className="px-2 py-2 text-xs text-[#6b6b6b]">No models found</div>
+                    ) : (
+                      filteredModels.map((model) => (
+                        <button
+                          key={model.id}
+                          onClick={() => handleSelectModel(model.id)}
+                          className={`w-full px-2 py-1.5 text-left text-sm hover:bg-[#3f3f3f] rounded transition-colors flex items-center justify-between gap-2 ${
+                            model.id === selectedModelId ? "text-[#7eb8f7]" : "text-[#e3e3e3]"
+                          }`}
+                        >
+                          <span className="truncate">{model.name}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[10px] uppercase tracking-wide text-[#6b6b6b]">{model.provider}</span>
+                            {model.vision && (
+                              <span title="Supports image input">
+                                <svg className="w-3.5 h-3.5 text-[#6b6b6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1018,7 +1117,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="p-1 text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f] rounded transition-colors"
-            title="Settings"
+            title="Instructions"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -1033,7 +1132,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
           onClose={() => {
             setShowSettings(false);
             fetchInstructions(); // Refresh instructions after settings change
-            fetchEnabledModels(); // Refresh models after settings change
+            fetchAvailableModels(); // Refresh models after settings change
           }}
         />
 

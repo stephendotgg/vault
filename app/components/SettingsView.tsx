@@ -24,6 +24,8 @@ const QUICK_AI_SHORTCUT_STORAGE_KEY = "vault-shortcut-quick-ai";
 const SHORTCUTS_UPDATED_EVENT = "vault-shortcuts-updated";
 const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
 const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
+const AZURE_FOUNDRY_API_KEY_STORAGE_KEY = "vault-azure-foundry-api-key";
+const AZURE_FOUNDRY_ENDPOINT_STORAGE_KEY = "vault-azure-foundry-endpoint";
 const AZURE_SPEECH_KEY_STORAGE_KEY = "vault-azure-speech-key";
 const LEGACY_AZURE_SPEECH_KEY_STORAGE_KEY = "mothership-azure-speech-key";
 const AZURE_SPEECH_REGION_STORAGE_KEY = "vault-azure-speech-region";
@@ -86,6 +88,8 @@ export function SettingsView() {
   const [quickNoteShortcut, setQuickNoteShortcut] = useState(DEFAULT_QUICK_NOTE_SHORTCUT);
   const [quickAiShortcut, setQuickAiShortcut] = useState(DEFAULT_QUICK_AI_SHORTCUT);
   const [openRouterApiKey, setOpenRouterApiKey] = useState("");
+  const [azureFoundryApiKey, setAzureFoundryApiKey] = useState("");
+  const [azureFoundryEndpoint, setAzureFoundryEndpoint] = useState("");
   const [azureSpeechKey, setAzureSpeechKey] = useState("");
   const [azureSpeechRegion, setAzureSpeechRegion] = useState("");
   const [azureSpeechLanguage, setAzureSpeechLanguage] = useState("en-US");
@@ -177,6 +181,12 @@ export function SettingsView() {
       localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY) ||
       "";
     setOpenRouterApiKey(savedOpenRouterApiKey);
+
+    const savedAzureFoundryApiKey = localStorage.getItem(AZURE_FOUNDRY_API_KEY_STORAGE_KEY) || "";
+    setAzureFoundryApiKey(savedAzureFoundryApiKey);
+
+    const savedAzureFoundryEndpoint = localStorage.getItem(AZURE_FOUNDRY_ENDPOINT_STORAGE_KEY) || "";
+    setAzureFoundryEndpoint(savedAzureFoundryEndpoint);
 
     const savedAzureSpeechKey =
       localStorage.getItem(AZURE_SPEECH_KEY_STORAGE_KEY) ||
@@ -340,10 +350,20 @@ export function SettingsView() {
     }
 
     localStorage.setItem(OPENROUTER_API_KEY_STORAGE_KEY, openRouterApiKey);
+    localStorage.setItem(AZURE_FOUNDRY_API_KEY_STORAGE_KEY, azureFoundryApiKey);
+    localStorage.setItem(AZURE_FOUNDRY_ENDPOINT_STORAGE_KEY, azureFoundryEndpoint);
     localStorage.setItem(AZURE_SPEECH_KEY_STORAGE_KEY, azureSpeechKey);
     localStorage.setItem(AZURE_SPEECH_REGION_STORAGE_KEY, azureSpeechRegion);
     localStorage.setItem(AZURE_SPEECH_LANGUAGE_STORAGE_KEY, azureSpeechLanguage || "en-US");
-  }, [openRouterApiKey, azureSpeechKey, azureSpeechRegion, azureSpeechLanguage, hydrated]);
+  }, [
+    openRouterApiKey,
+    azureFoundryApiKey,
+    azureFoundryEndpoint,
+    azureSpeechKey,
+    azureSpeechRegion,
+    azureSpeechLanguage,
+    hydrated,
+  ]);
 
   return (
     <div className="flex flex-col h-full">
@@ -495,6 +515,10 @@ export function SettingsView() {
             <h2 className="text-lg text-[#e3e3e3] font-medium">API Keys</h2>
             <p className="text-sm text-[#9b9b9b]">Manage credentials for AI chat and live transcription.</p>
             <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-4">
+              <p className="text-xs text-[#8b8b8b]">
+                AI Chats use either Azure Foundry or OpenRouter — only one needs to be configured. Live transcription requires Azure Speech.
+              </p>
+
               <div className="space-y-1">
                 <label htmlFor="openrouter-api-key" className="text-sm text-[#d1d1d1]">
                   OpenRouter API key
@@ -508,6 +532,37 @@ export function SettingsView() {
                   placeholder="sk-or-..."
                   className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label htmlFor="azure-foundry-api-key" className="text-sm text-[#d1d1d1]">
+                    Azure Foundry API key
+                  </label>
+                  <input
+                    id="azure-foundry-api-key"
+                    type="password"
+                    autoComplete="off"
+                    value={azureFoundryApiKey}
+                    onChange={(event) => setAzureFoundryApiKey(event.target.value)}
+                    placeholder="Azure Foundry key"
+                    className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="azure-foundry-endpoint" className="text-sm text-[#d1d1d1]">
+                    Azure Foundry endpoint
+                  </label>
+                  <input
+                    id="azure-foundry-endpoint"
+                    type="text"
+                    value={azureFoundryEndpoint}
+                    onChange={(event) => setAzureFoundryEndpoint(event.target.value)}
+                    placeholder="https://your-endpoint.models.ai.azure.com"
+                    className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7]"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">

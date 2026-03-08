@@ -34,6 +34,8 @@ import { Note } from "@/types/models";
 // Storage keys
 const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
 const LEGACY_OPENROUTER_API_KEY_STORAGE_KEY = "mothership-openrouter-api-key";
+const AZURE_FOUNDRY_API_KEY_STORAGE_KEY = "vault-azure-foundry-api-key";
+const AZURE_FOUNDRY_ENDPOINT_STORAGE_KEY = "vault-azure-foundry-endpoint";
 const THEME_MODE_EVENT = "vault-theme-updated";
 const SPREADSHEET_CONTENT_PREFIX = "vault:sheet:v1:";
 const DEFAULT_SPREADSHEET_ROWS = 30;
@@ -2386,12 +2388,36 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   }, []);
 
   // Send chat message with note as context
+  const getProviderConfig = () => {
+    const openRouterApiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY) || "";
+    const azureFoundryApiKey = localStorage.getItem(AZURE_FOUNDRY_API_KEY_STORAGE_KEY) || "";
+    const azureFoundryEndpoint = localStorage.getItem(AZURE_FOUNDRY_ENDPOINT_STORAGE_KEY) || "";
+
+    if (azureFoundryApiKey && azureFoundryEndpoint) {
+      return {
+        provider: "azure-foundry" as const,
+        apiKey: azureFoundryApiKey,
+        endpoint: azureFoundryEndpoint,
+      };
+    }
+
+    if (openRouterApiKey) {
+      return {
+        provider: "openrouter" as const,
+        apiKey: openRouterApiKey,
+        endpoint: undefined,
+      };
+    }
+
+    return null;
+  };
+
   const handleSendChat = async () => {
     if (!chatInput.trim() || isChatLoading) return;
 
-    const apiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY);
-    if (!apiKey) {
-      setChatError("Please set your OpenRouter API key in Settings > API Keys.");
+    const providerConfig = getProviderConfig();
+    if (!providerConfig) {
+      setChatError("Please set either an OpenRouter API key or Azure Foundry key + endpoint in Settings > API Keys.");
       return;
     }
 
@@ -2434,8 +2460,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: apiMessages,
-          apiKey,
-          model: "openai/gpt-4o-mini",
+          apiKey: providerConfig.apiKey,
+          provider: providerConfig.provider,
+          endpoint: providerConfig.endpoint,
+          model: providerConfig.provider === "azure-foundry" ? "gpt-4o-mini" : "openai/gpt-4o-mini",
           noteContext: {
             title: title || getUntitledLabel(note),
             type: isSpreadsheetNote ? "spreadsheet" : "note",
@@ -2503,9 +2531,9 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const handleRedoChat = async (messageId: string) => {
     if (isChatLoading) return;
 
-    const apiKey = localStorage.getItem(OPENROUTER_API_KEY_STORAGE_KEY) || localStorage.getItem(LEGACY_OPENROUTER_API_KEY_STORAGE_KEY);
-    if (!apiKey) {
-      setChatError("Please set your OpenRouter API key in Settings > API Keys.");
+    const providerConfig = getProviderConfig();
+    if (!providerConfig) {
+      setChatError("Please set either an OpenRouter API key or Azure Foundry key + endpoint in Settings > API Keys.");
       return;
     }
 
@@ -2541,8 +2569,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: apiMessages,
-          apiKey,
-          model: "openai/gpt-4o-mini",
+          apiKey: providerConfig.apiKey,
+          provider: providerConfig.provider,
+          endpoint: providerConfig.endpoint,
+          model: providerConfig.provider === "azure-foundry" ? "gpt-4o-mini" : "openai/gpt-4o-mini",
           noteContext: {
             title: title || getUntitledLabel(note),
             type: isSpreadsheetNote ? "spreadsheet" : "note",

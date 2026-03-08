@@ -9,10 +9,14 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { apiKey } = body;
+    const { apiKey, provider = "openrouter", endpoint } = body;
 
     if (!apiKey) {
       return NextResponse.json({ error: "API key required" }, { status: 400 });
+    }
+
+    if (provider === "azure-foundry" && !endpoint) {
+      return NextResponse.json({ error: "Azure Foundry endpoint required" }, { status: 400 });
     }
 
     // Get session with messages
@@ -38,24 +42,35 @@ export async function POST(
 
 ${conversationSnippet}`;
 
-    // Call OpenRouter API to generate title (use a fast cheap model)
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const isAzureFoundry = provider === "azure-foundry";
+    const targetUrl = isAzureFoundry
+      ? `${String(endpoint).trim().replace(/\/+$/, "")}/chat/completions?api-version=2024-05-01-preview`
+      : "https://openrouter.ai/api/v1/chat/completions";
+
+    const targetHeaders: Record<string, string> = isAzureFoundry
+      ? {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+        }
+      : {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://vault.app",
+          "X-Title": "Vault",
+        };
+
+    const response = await fetch(targetUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://vault.app",
-        "X-Title": "Vault",
-      },
+      headers: targetHeaders,
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
+        model: isAzureFoundry ? "gpt-4o-mini" : "openai/gpt-4o-mini",
         messages: [{ role: "user", content: titlePrompt }],
         max_tokens: 20,
       }),
     });
 
     if (!response.ok) {
-      throw new Error("OpenRouter API error");
+      throw new Error(`${provider} API error`);
     }
 
     const data = await response.json();

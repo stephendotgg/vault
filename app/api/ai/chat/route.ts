@@ -165,7 +165,15 @@ async function normaliseMessagesForProvider(messages: Array<{ role: string; cont
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { messages, apiKey, model = "openai/gpt-4o-mini", instructions = [], noteContext } = body;
+    const {
+      messages,
+      apiKey,
+      model = "openai/gpt-4o-mini",
+      instructions = [],
+      noteContext,
+      provider = "openrouter",
+      endpoint,
+    } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 });
@@ -174,7 +182,14 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       return NextResponse.json({ 
         error: "API key required",
-        message: "Please set your OpenRouter API key in Settings." 
+        message: "Please configure an AI provider API key in Settings." 
+      }, { status: 400 });
+    }
+
+    if (provider === "azure-foundry" && !endpoint) {
+      return NextResponse.json({
+        error: "Azure Foundry endpoint required",
+        message: "Please set your Azure Foundry endpoint in Settings.",
       }, { status: 400 });
     }
 
@@ -238,32 +253,45 @@ ${contextSection}
 
 ${userInstructions}`;
 
-    // Call OpenRouter API (OpenAI-compatible format) with streaming
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const requestBody = {
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...providerMessages,
+      ],
+      max_tokens: 1024,
+      stream: true,
+    };
+
+    const isAzureFoundry = provider === "azure-foundry";
+    const targetUrl = isAzureFoundry
+      ? `${String(endpoint).trim().replace(/\/+$/, "")}/chat/completions?api-version=2024-05-01-preview`
+      : "https://openrouter.ai/api/v1/chat/completions";
+
+    const targetHeaders: Record<string, string> = isAzureFoundry
+      ? {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+        }
+      : {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://vault.app",
+          "X-Title": "Vault",
+        };
+
+    const response = await fetch(targetUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://vault.app",
-        "X-Title": "Vault",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...providerMessages,
-        ],
-        max_tokens: 1024,
-        stream: true,
-      }),
+      headers: targetHeaders,
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("OpenRouter API error:", error);
+      console.error("AI provider API error:", { provider, error });
       return NextResponse.json({ 
         error: "AI request failed",
-        message: `API error: ${response.status}` 
+        message: `${provider} API error: ${response.status}` 
       }, { status: response.status });
     }
 

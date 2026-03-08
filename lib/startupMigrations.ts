@@ -59,6 +59,11 @@ function migrateSidebarSectionsVaultToLists(): void {
   localStorage.setItem(key, JSON.stringify(parsed));
 }
 
+function removeDeprecatedEnabledModelsStorage(): void {
+  localStorage.removeItem("vault-enabled-models");
+  localStorage.removeItem("mothership-enabled-models");
+}
+
 const STARTUP_MIGRATIONS: StartupMigration[] = [
   {
     version: 1,
@@ -66,6 +71,13 @@ const STARTUP_MIGRATIONS: StartupMigration[] = [
     run: () => {
       migrateSidebarVisibilityVaultToLists();
       migrateSidebarSectionsVaultToLists();
+    },
+  },
+  {
+    version: 2,
+    name: "remove-enabled-models-local-storage",
+    run: () => {
+      removeDeprecatedEnabledModelsStorage();
     },
   },
 ];

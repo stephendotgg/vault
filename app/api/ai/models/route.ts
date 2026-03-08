@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Cache models for 1 hour to avoid hitting OpenRouter too often
-let cachedModels: OpenRouterModel[] | null = null;
+// Cache OpenRouter models for 1 hour to avoid hitting OpenRouter too often
+let cachedOpenRouterModels: OpenRouterModel[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
@@ -36,6 +36,21 @@ interface TransformedModel {
   pricing: {
     prompt: number;
     completion: number;
+  };
+}
+
+interface AzureFoundryModel {
+  id?: string;
+  name?: string;
+  description?: string;
+  context_length?: number;
+  max_context_length?: number;
+  capabilities?: {
+    vision?: boolean;
+  };
+  modalities?: {
+    input?: string[];
+    output?: string[];
   };
 }
 
@@ -114,14 +129,87 @@ function transformModel(model: OpenRouterModel): TransformedModel {
   };
 }
 
+function transformAzureFoundryModel(model: AzureFoundryModel): TransformedModel {
+  const modelId = model.id || model.name || "unknown-model";
+  const displayName = model.name || model.id || "Unknown model";
+
+  const inputModalities = model.modalities?.input || [];
+  const hasVisionByModality = inputModalities.some((entry) => entry.toLowerCase().includes("image"));
+
+  return {
+    id: modelId,
+    name: displayName,
+    provider: "Azure Foundry",
+    description: model.description,
+    contextLength: model.context_length || model.max_context_length || 0,
+    vision: Boolean(model.capabilities?.vision) || hasVisionByModality,
+    imageGeneration: false,
+    pricing: {
+      prompt: 0,
+      completion: 0,
+    },
+  };
+}
+
+function normaliseEndpoint(endpoint: string): string {
+  return endpoint.trim().replace(/\/+$/, "");
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const search = searchParams.get("search") || "";
   const forceRefresh = searchParams.get("refresh") === "true";
+  const provider = searchParams.get("provider") || "openrouter";
+
+  if (provider === "azure-foundry") {
+    const apiKey = request.headers.get("x-provider-api-key") || "";
+    const endpoint = request.headers.get("x-provider-endpoint") || "";
+
+    if (!apiKey || !endpoint) {
+      return NextResponse.json(
+        { error: "Azure Foundry API key and endpoint are required" },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const baseUrl = normaliseEndpoint(endpoint);
+      const response = await fetch(`${baseUrl}/models?api-version=2024-05-01-preview`, {
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": apiKey,
+        },
+      });
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        throw new Error(`Azure Foundry models API error: ${response.status} ${body}`);
+      }
+
+      const data = await response.json();
+      const sourceModels: AzureFoundryModel[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data?.models)
+            ? data.models
+            : [];
+
+      const filtered = filterAzureFoundryModels(sourceModels, search);
+      const transformed = filtered.map(transformAzureFoundryModel);
+      return NextResponse.json({ models: transformed });
+    } catch (error) {
+      console.error("Failed to fetch Azure Foundry models:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch models from Azure Foundry" },
+        { status: 500 }
+      );
+    }
+  }
 
   // Check cache
-  if (!forceRefresh && cachedModels && Date.now() - cacheTimestamp < CACHE_DURATION) {
-    const filtered = filterModels(cachedModels, search);
+  if (!forceRefresh && cachedOpenRouterModels && Date.now() - cacheTimestamp < CACHE_DURATION) {
+    const filtered = filterOpenRouterModels(cachedOpenRouterModels, search);
     const transformed = filtered.map(transformModel).filter(m => !m.imageGeneration);
     return NextResponse.json({ models: transformed });
   }
@@ -138,22 +226,22 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    cachedModels = data.data as OpenRouterModel[];
+  cachedOpenRouterModels = data.data as OpenRouterModel[];
     cacheTimestamp = Date.now();
 
-    const filtered = filterModels(cachedModels, search);
+  const filtered = filterOpenRouterModels(cachedOpenRouterModels, search);
     const transformed = filtered.map(transformModel).filter(m => !m.imageGeneration);
     return NextResponse.json({ models: transformed });
   } catch (error) {
     console.error("Failed to fetch models:", error);
     return NextResponse.json(
-      { error: "Failed to fetch models from OpenRouter" },
+        { error: "Failed to fetch models from OpenRouter" },
       { status: 500 }
     );
   }
 }
 
-function filterModels(models: OpenRouterModel[], search: string): OpenRouterModel[] {
+function filterOpenRouterModels(models: OpenRouterModel[], search: string): OpenRouterModel[] {
   if (!search) return models;
   
   const lowerSearch = search.toLowerCase();
@@ -162,4 +250,16 @@ function filterModels(models: OpenRouterModel[], search: string): OpenRouterMode
       m.id.toLowerCase().includes(lowerSearch) ||
       m.name.toLowerCase().includes(lowerSearch)
   );
+}
+
+function filterAzureFoundryModels(models: AzureFoundryModel[], search: string): AzureFoundryModel[] {
+  if (!search) return models;
+
+  const lowerSearch = search.toLowerCase();
+  return models.filter((model) => {
+    const id = (model.id || "").toLowerCase();
+    const name = (model.name || "").toLowerCase();
+    const description = (model.description || "").toLowerCase();
+    return id.includes(lowerSearch) || name.includes(lowerSearch) || description.includes(lowerSearch);
+  });
 }
