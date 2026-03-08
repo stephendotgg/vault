@@ -4,6 +4,9 @@ import Database from "better-sqlite3";
 import { getDatabasePath } from "./paths";
 
 const dbPath = getDatabasePath();
+const globalForDbInit = globalThis as unknown as {
+  __mothershipDbInitialized?: boolean;
+};
 
 // Initialize the database and create tables if they don't exist
 function initializeDatabase() {
@@ -117,8 +120,11 @@ function initializeDatabase() {
   db.close();
 }
 
-// Ensure tables exist before Prisma connects
-initializeDatabase();
+// Ensure tables exist before Prisma connects (once per process)
+if (!globalForDbInit.__mothershipDbInitialized) {
+  initializeDatabase();
+  globalForDbInit.__mothershipDbInitialized = true;
+}
 
 const adapter = new PrismaBetterSqlite3({
   url: `file:${dbPath}`,
