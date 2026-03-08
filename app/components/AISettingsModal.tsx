@@ -75,19 +75,19 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
       onClick={handleSave}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
       
       {/* Modal */}
       <div 
-        className="relative bg-[#252525] border border-[#3f3f3f] rounded-lg shadow-2xl w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto"
+        className="relative bg-[#202020] border border-[#2f2f2f] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#3f3f3f]">
+        <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <h2 className="text-sm font-medium text-[#ebebeb]">Instructions</h2>
           <button
             onClick={handleSave}
-            className="p-1 text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f] rounded transition-colors"
+            className="p-1.5 text-[#7b7b7b] hover:text-[#ebebeb] hover:bg-[#2b2b2b] rounded-md transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -96,12 +96,12 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-5">
+        <div className="px-5 pb-4 space-y-5">
           {/* Instructions */}
           <div>
             <div className="space-y-2">
               {instructions.map((instruction, index) => (
-                <div key={index} className="flex items-start gap-2 bg-[#1a1a1a] rounded-md px-3 py-2 group">
+                <div key={index} className="flex items-start gap-2 bg-[#171717] border border-[#2a2a2a] rounded-lg px-3 py-2.5 group">
                   <span className="flex-1 text-sm text-[#e3e3e3]">{instruction}</span>
                   <button
                     onClick={() => removeInstruction(index)}
@@ -121,12 +121,12 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
                   onChange={(e) => setNewInstruction(e.target.value)}
                   onKeyDown={handleNewInstructionKeyDown}
                   placeholder="Add instruction..."
-                  className="flex-1 bg-[#1a1a1a] text-[#ebebeb] text-sm px-3 py-2 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b]"
+                  className="flex-1 bg-[#171717] text-[#ebebeb] text-sm px-3 py-2.5 rounded-lg outline-none border border-[#2f2f2f] focus:border-[#5a5a5a] placeholder-[#6b6b6b]"
                 />
                 <button
                   onClick={addInstruction}
                   disabled={!newInstruction.trim()}
-                  className="px-3 py-2 bg-[#3f3f3f] hover:bg-[#4f4f4f] disabled:opacity-50 disabled:hover:bg-[#3f3f3f] text-[#ebebeb] text-sm rounded-md transition-colors"
+                  className="px-3 py-2.5 bg-[#3f3f3f] hover:bg-[#4c4c4c] disabled:opacity-50 disabled:hover:bg-[#3f3f3f] text-[#ebebeb] text-sm rounded-lg transition-colors"
                 >
                   Add
                 </button>
@@ -136,7 +136,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-[#3f3f3f]">
+        <div className="flex items-center justify-end gap-2 px-5 pb-4">
           <button
             onClick={onClose}
             className="px-3 py-1.5 text-sm text-[#9b9b9b] hover:text-[#ebebeb] transition-colors"
@@ -147,7 +147,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
           <button
             onClick={handleSave}
             disabled={loading}
-            className="px-3 py-1.5 bg-[#4f4f4f] hover:bg-[#5f5f5f] disabled:opacity-50 text-sm text-[#ebebeb] rounded-md transition-colors"
+            className="px-3 py-1.5 bg-[#4f4f4f] hover:bg-[#5c5c5c] disabled:opacity-50 text-sm text-[#ebebeb] rounded-lg transition-colors"
           >
             {loading ? "Saving..." : "Save"}
           </button>

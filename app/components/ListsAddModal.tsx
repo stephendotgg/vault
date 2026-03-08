@@ -131,17 +131,17 @@ export function ListsAddModal({ isOpen, onClose, onAdd, initialTag, availableTag
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={handleClose}
     >
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
 
       <div
-        className="relative bg-[#252525] border border-[#3f3f3f] rounded-lg shadow-2xl w-full max-w-md mx-4"
+        className="relative bg-[#202020] border border-[#2f2f2f] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] w-full max-w-md mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#3f3f3f]">
+        <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <h2 className="text-sm font-medium text-[#ebebeb]">Add to Lists</h2>
           <button
             onClick={handleClose}
-            className="p-1 text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f] rounded transition-colors"
+            className="p-1.5 text-[#7b7b7b] hover:text-[#ebebeb] hover:bg-[#2b2b2b] rounded-md transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -149,7 +149,7 @@ export function ListsAddModal({ isOpen, onClose, onAdd, initialTag, availableTag
           </button>
         </div>
 
-        <div className="p-4 space-y-3">
+        <div className="px-5 pb-4 space-y-3">
           <div>
             <label className="block text-xs text-[#9b9b9b] mb-1.5">
               Key
@@ -162,7 +162,7 @@ export function ListsAddModal({ isOpen, onClose, onAdd, initialTag, availableTag
               value={key}
               onChange={(e) => setKey(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full bg-[#1a1a1a] text-[#ebebeb] text-sm px-3 py-2 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b]"
+              className="w-full bg-[#171717] text-[#ebebeb] text-sm px-3 py-2.5 rounded-lg outline-none border border-[#2f2f2f] focus:border-[#5a5a5a] placeholder-[#6b6b6b]"
             />
           </div>
           <div>
@@ -174,7 +174,7 @@ export function ListsAddModal({ isOpen, onClose, onAdd, initialTag, availableTag
               onChange={(e) => setValue(e.target.value)}
               onPaste={handleValuePaste}
               onKeyDown={handleKeyDown}
-              className="w-full bg-[#1a1a1a] text-[#ebebeb] text-sm px-3 py-2 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b] font-mono"
+              className="w-full bg-[#171717] text-[#ebebeb] text-sm px-3 py-2.5 rounded-lg outline-none border border-[#2f2f2f] focus:border-[#5a5a5a] placeholder-[#6b6b6b] font-mono"
             />
           </div>
           <div>
@@ -185,7 +185,7 @@ export function ListsAddModal({ isOpen, onClose, onAdd, initialTag, availableTag
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full bg-[#1a1a1a] text-[#ebebeb] text-sm px-3 py-2 rounded-md outline-none border border-[#3f3f3f] focus:border-[#5f5f5f] placeholder-[#6b6b6b]"
+              className="w-full bg-[#171717] text-[#ebebeb] text-sm px-3 py-2.5 rounded-lg outline-none border border-[#2f2f2f] focus:border-[#5a5a5a] placeholder-[#6b6b6b]"
             />
             <div className="flex flex-wrap gap-1.5 mt-2">
               {availableTags.map((tag) => {
@@ -218,7 +218,7 @@ export function ListsAddModal({ isOpen, onClose, onAdd, initialTag, availableTag
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#3f3f3f]">
+        <div className="flex justify-end gap-2 px-5 pb-4">
           <button
             onClick={handleClose}
             className="px-3 py-1.5 text-sm text-[#9b9b9b] hover:text-[#ebebeb] rounded-md transition-colors"
@@ -228,7 +228,7 @@ export function ListsAddModal({ isOpen, onClose, onAdd, initialTag, availableTag
           <button
             onClick={handleSubmit}
             disabled={!key.trim() || isSubmitting}
-            className="px-3 py-1.5 text-sm bg-[#4f4f4f] hover:bg-[#5f5f5f] disabled:bg-[#3f3f3f] disabled:text-[#6b6b6b] text-[#ebebeb] rounded-md transition-colors"
+            className="px-3 py-1.5 text-sm bg-[#4f4f4f] hover:bg-[#5f5f5f] disabled:bg-[#3f3f3f] disabled:text-[#6b6b6b] text-[#ebebeb] rounded-lg transition-colors"
           >
             {isSubmitting ? "Adding..." : "Add"}
           </button>
