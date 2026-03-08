@@ -928,6 +928,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const inlineInsertPickerPositionRef = useRef<number | null>(null);
   const inlineInsertPickerContainerRef = useRef<HTMLDivElement | null>(null);
   const inlineInsertPickerInputRef = useRef<HTMLInputElement | null>(null);
+  const inlineInsertPickerModeRef = useRef<"emoji" | "icon" | null>(null);
 
   const isNearBottom = (element: HTMLDivElement) =>
     element.scrollHeight - element.scrollTop - element.clientHeight < 96;
@@ -1042,15 +1043,19 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     slashMenuSelectedIndexRef.current = slashMenuSelectedIndex;
   }, [slashMenuSelectedIndex]);
 
+  useEffect(() => {
+    inlineInsertPickerModeRef.current = inlineInsertPickerState?.mode ?? null;
+  }, [inlineInsertPickerState]);
+
   const closeInlineInsertPicker = useCallback(() => {
     console.log("[slash-insert] picker:close", {
       noteId: note.id,
-      mode: inlineInsertPickerState?.mode ?? null,
+      mode: inlineInsertPickerModeRef.current,
     });
     setInlineInsertPickerState(null);
     setInlineInsertPickerSelectedIndex(0);
     inlineInsertPickerPositionRef.current = null;
-  }, [inlineInsertPickerState?.mode, note.id]);
+  }, [note.id]);
 
   const openInlineInsertPicker = useCallback((
     mode: "emoji" | "icon",
@@ -2005,54 +2010,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           return false;
         }
 
-        if (inlineInsertPickerState) {
-          const options = inlineInsertPickerState.mode === "emoji"
-            ? filteredEmojiInsertOptions
-            : filteredUploadedIcons;
-
-          if (event.key === "ArrowDown") {
-            event.preventDefault();
-            if (options.length > 0) {
-              setInlineInsertPickerSelectedIndex((prev) => (prev + 1) % options.length);
-            }
-            return true;
-          }
-
-          if (event.key === "ArrowUp") {
-            event.preventDefault();
-            if (options.length > 0) {
-              setInlineInsertPickerSelectedIndex((prev) => (prev <= 0 ? options.length - 1 : prev - 1));
-            }
-            return true;
-          }
-
-          if (event.key === "Enter") {
-            event.preventDefault();
-            if (options.length === 0) {
-              return true;
-            }
-
-            if (inlineInsertPickerState.mode === "emoji") {
-              const option = options[inlineInsertPickerSelectedIndex] as EmojiInsertOption | undefined;
-              if (option) {
-                insertEmojiFromPicker(option.emoji);
-              }
-            } else {
-              const filename = options[inlineInsertPickerSelectedIndex] as string | undefined;
-              if (filename) {
-                insertUploadedIconFromPicker(filename);
-              }
-            }
-            return true;
-          }
-
-          if (event.key === "Escape") {
-            event.preventDefault();
-            closeInlineInsertPicker();
-            return true;
-          }
-        }
-
         if (slashMenuStateRef.current) {
           if (event.key === "ArrowDown") {
             event.preventDefault();
@@ -2336,7 +2293,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         });
       }, 500);
     },
-  }, [closeInlineInsertPicker, filteredEmojiInsertOptions, filteredUploadedIcons, inlineInsertPickerSelectedIndex, inlineInsertPickerState, insertEmojiFromPicker, insertImageWithParagraph, insertUploadedIconFromPicker, isLocked, isSpreadsheetNote, note.content, note.id, runSlashCommand, syncSlashMenu]);
+  }, [insertImageWithParagraph, isLocked, isSpreadsheetNote, note.content, note.id, runSlashCommand, syncSlashMenu]);
 
   useEffect(() => {
     if (!editor) {
