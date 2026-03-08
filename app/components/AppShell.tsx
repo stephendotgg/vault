@@ -1319,9 +1319,7 @@ export function AppShell() {
                   <section className="space-y-2">
                     <h2 className="text-sm uppercase tracking-wider text-[#7a7a7a]">Controls</h2>
                     <p className="text-xs text-[#6b6b6b] leading-relaxed flex flex-wrap gap-x-2 gap-y-1 items-center">
-                      <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">Ctrl</kbd>
-                      <span>+</span>
-                      <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">F</kbd>
+                      <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">Ctrl+F</kbd>
                       <span>search</span>
                       <span>•</span>
                       <kbd className="px-1.5 py-0.5 bg-[#2f2f2f] rounded text-[#9b9b9b]">{quickNoteShortcut}</kbd>

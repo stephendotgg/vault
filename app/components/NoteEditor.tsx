@@ -1075,7 +1075,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       left: anchor.left,
       top: anchor.top,
     });
-    setInlineInsertPickerSelectedIndex(mode === "emoji" ? 0 : -1);
+    setInlineInsertPickerSelectedIndex(0);
     if (mode === "emoji") {
       requestAnimationFrame(() => {
         inlineInsertPickerInputRef.current?.focus();
@@ -1330,7 +1330,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       return;
     }
 
-    if (inlineInsertPickerState.mode === "emoji" && inlineInsertPickerSelectedIndex < 0) {
+    if (inlineInsertPickerSelectedIndex < 0) {
       setInlineInsertPickerSelectedIndex(0);
       return;
     }
