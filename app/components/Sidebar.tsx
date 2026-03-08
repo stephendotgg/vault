@@ -854,38 +854,40 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
     <aside className="flex flex-col w-64 h-full bg-[#202020] border-r border-[#2f2f2f] shrink-0 select-none">
       {/* Search and quick actions */}
       <div className="px-2 pt-2 pb-2">
-        <div 
-          className="sidebar-action-row flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
-          onClick={onOpenSearch}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <span>Search</span>
-        </div>
-        <div
-          className={`sidebar-action-row flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
-            currentView === "ai"
-              ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
-              : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
-          }`}
-          onClick={onOpenAI}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-          <span>AI Chat</span>
-        </div>
-        <div 
-          className="sidebar-action-row flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
-          onClick={(e) => {
-            setCreateMenu({ x: e.clientX, y: e.clientY });
-          }}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          <span>New</span>
+        <div className="flex flex-col gap-[1px]">
+          <div 
+            className="sidebar-action-row flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
+            onClick={onOpenSearch}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <span>Search</span>
+          </div>
+          <div
+            className={`sidebar-action-row flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
+              currentView === "ai"
+                ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
+                : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
+            }`}
+            onClick={onOpenAI}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            <span>AI Chat</span>
+          </div>
+          <div 
+            className="sidebar-action-row flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
+            onClick={(e) => {
+              setCreateMenu({ x: e.clientX, y: e.clientY });
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            <span>New</span>
+          </div>
         </div>
       </div>
 
@@ -1070,80 +1072,82 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
 
       {/* Bottom section */}
       <div className="px-2 py-2">
-        {visibleSections.fileCleaner && (
+        <div className="flex flex-col gap-[1px]">
+          {visibleSections.fileCleaner && (
+            <button
+              onClick={onOpenFileCleaner}
+              className={`sidebar-action-row w-full flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
+                currentView === "fileCleaner"
+                  ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
+                  : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              <span>File Cleaner</span>
+            </button>
+          )}
           <button
-            onClick={onOpenFileCleaner}
+            onClick={onOpenArchive}
             className={`sidebar-action-row w-full flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
-              currentView === "fileCleaner"
+              currentView === "archive"
                 ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
                 : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
             }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
             </svg>
-            <span>File Cleaner</span>
+            <span>Archive</span>
           </button>
-        )}
-        <button
-          onClick={onOpenArchive}
-          className={`sidebar-action-row w-full flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
-            currentView === "archive"
-              ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
-              : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-          </svg>
-          <span>Archive</span>
-        </button>
-        <button
-          disabled={isExporting}
-          onClick={async () => {
-            if (isExporting) return;
-            setIsExporting(true);
-            try {
-              const response = await fetch("/api/export");
-              if (!response.ok) throw new Error("Export failed");
-              const blob = await response.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = response.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "vault-backup.zip";
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-            } catch (error) {
-              console.error("Export failed:", error);
-              alert("Failed to export data");
-            } finally {
-              setIsExporting(false);
-            }
-          }}
-          className={`sidebar-action-row w-full flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] rounded text-sm ${isExporting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#2f2f2f] cursor-pointer'}`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          <span>{isExporting ? "Exporting..." : "Export"}</span>
-        </button>
+          <button
+            disabled={isExporting}
+            onClick={async () => {
+              if (isExporting) return;
+              setIsExporting(true);
+              try {
+                const response = await fetch("/api/export");
+                if (!response.ok) throw new Error("Export failed");
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = response.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "vault-backup.zip";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              } catch (error) {
+                console.error("Export failed:", error);
+                alert("Failed to export data");
+              } finally {
+                setIsExporting(false);
+              }
+            }}
+            className={`sidebar-action-row w-full flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] rounded text-sm ${isExporting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#2f2f2f] cursor-pointer'}`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>{isExporting ? "Exporting..." : "Export"}</span>
+          </button>
 
-        <button
-          onClick={onOpenSettings}
-          className={`sidebar-action-row w-full flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
-            currentView === "settings"
-              ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
-              : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.757.426 1.757 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.757-2.924 1.757-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.757-.426-1.757-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span>Settings</span>
-        </button>
+          <button
+            onClick={onOpenSettings}
+            className={`sidebar-action-row w-full flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
+              currentView === "settings"
+                ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
+                : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.757.426 1.757 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.757-2.924 1.757-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.757-.426-1.757-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Settings</span>
+          </button>
+        </div>
       </div>
 
       {/* Context Menu */}
