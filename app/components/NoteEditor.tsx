@@ -816,6 +816,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   );
   const lastSpreadsheetNoteIdRef = useRef(note.id);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<Editor | null>(null);
   const saveNoteRef = useRef<(newTitle: string, newContent: string, options?: SaveOptions) => Promise<void>>(async () => {});
   const uploadNoteImageRef = useRef<(file: File) => Promise<string | null>>(async () => null);
   const lastLocalEditorHtmlRef = useRef(note.content || "");
@@ -899,11 +900,12 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   }, [slashCommands, slashMenuState]);
 
   const runSlashCommand = useCallback(async (command: SlashCommand) => {
-    if (!editor || !slashMenuState) {
+    const currentEditor = editorRef.current;
+    if (!currentEditor || !slashMenuState) {
       return;
     }
 
-    editor
+    currentEditor
       .chain()
       .focus()
       .deleteRange({ from: slashMenuState.from, to: slashMenuState.to })
@@ -913,7 +915,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     setSlashMenuSelectedIndex(0);
 
     if (command.id === "table") {
-      editor
+      currentEditor
         .chain()
         .focus()
         .insertContent([
@@ -950,7 +952,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       const updated = await res.json();
       onUpdate(updated);
     }
-  }, [editor, note.icon, note.id, onUpdate, slashMenuState]);
+  }, [note.icon, note.id, onUpdate, slashMenuState]);
 
   const syncSlashMenu = useCallback((currentEditor: Editor | null) => {
     if (!currentEditor || isSpreadsheetNote || isLocked || showCallNoteView) {
@@ -1904,9 +1906,11 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
   useEffect(() => {
     if (!editor) {
+      editorRef.current = null;
       return;
     }
 
+    editorRef.current = editor;
     editor.setEditable(!isSpreadsheetNote && !isLocked);
   }, [editor, isLocked, isSpreadsheetNote]);
 
