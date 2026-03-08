@@ -718,7 +718,7 @@ a {
   margin: 0.5rem 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .ProseMirror.prose th,
@@ -730,6 +730,26 @@ a {
   line-height: 1.1 !important;
   vertical-align: top;
   min-width: 1rem;
+  position: relative;
+}
+
+.ProseMirror .tableWrapper {
+  overflow-x: auto;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -1px;
+  top: 0;
+  bottom: -1px;
+  width: 8px;
+  background-color: transparent;
+  pointer-events: auto;
+  cursor: col-resize;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
 }
 
 .ProseMirror.prose th,
