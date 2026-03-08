@@ -1076,11 +1076,16 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       return;
     }
 
-    const chain = currentEditor.chain().focus();
-    if (typeof insertPos === "number") {
-      chain.setTextSelection(insertPos);
-    }
-    chain.insertContent(`${emoji} `).run();
+    const fallbackPos = currentEditor.state.selection.from;
+    const rawPos = typeof insertPos === "number" ? insertPos : fallbackPos;
+    const docSize = currentEditor.state.doc.content.size;
+    const targetPos = Math.max(1, Math.min(rawPos, docSize));
+
+    currentEditor
+      .chain()
+      .focus()
+      .insertContentAt(targetPos, `${emoji} `)
+      .run();
 
     closeInlineInsertPicker();
   }, [closeInlineInsertPicker]);
@@ -1093,19 +1098,29 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       return;
     }
 
-    const chain = currentEditor.chain().focus();
-    if (typeof insertPos === "number") {
-      chain.setTextSelection(insertPos);
-    }
+    const fallbackPos = currentEditor.state.selection.from;
+    const rawPos = typeof insertPos === "number" ? insertPos : fallbackPos;
+    const docSize = currentEditor.state.doc.content.size;
+    const targetPos = Math.max(1, Math.min(rawPos, docSize));
 
-    chain
-      .setImage({
-        src: `/api/icons/${filename}`,
-        alt: filename,
-        width: 22,
-        inlineIcon: true,
-      })
-      .insertContent(" ")
+    currentEditor
+      .chain()
+      .focus()
+      .insertContentAt(targetPos, [
+        {
+          type: "image",
+          attrs: {
+            src: `/api/icons/${filename}`,
+            alt: filename,
+            width: 22,
+            inlineIcon: true,
+          },
+        },
+        {
+          type: "text",
+          text: " ",
+        },
+      ])
       .run();
 
     closeInlineInsertPicker();
