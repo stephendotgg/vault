@@ -18,7 +18,7 @@ interface ContextMenuState {
 }
 
 interface SidebarProps {
-  currentView: "home" | "note" | "lists" | "memories" | "archive" | "fileCleaner" | "ai" | "settings";
+  currentView: "home" | "note" | "lists" | "memories" | "archive" | "fileCleaner" | "ai" | "settings" | "health";
   selectedNoteId?: string | null;
   onSelectNote: (id: string) => void;
   onCreateNote: (parentId?: string, kind?: "note" | "spreadsheet") => void;
@@ -33,6 +33,7 @@ interface SidebarProps {
   onOpenArchive: () => void;
   onOpenFileCleaner: () => void;
   onOpenAI: () => void;
+  onOpenHealth: () => void;
   onOpenSearch: () => void;
   onOpenSettings: () => void;
   onUpdateNote: (note: Note) => void;
@@ -456,7 +457,7 @@ const defaultSidebarVisibility: SidebarVisibilityState = {
   fileCleaner: true,
 };
 
-export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onDeletePermanently, onRenameNote, onMoveNote, onOpenLists, onOpenListsAddModal, onOpenMemories, onOpenMemoryAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onOpenSettings, onUpdateNote, notes }: SidebarProps) {
+export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onDeletePermanently, onRenameNote, onMoveNote, onOpenLists, onOpenListsAddModal, onOpenMemories, onOpenMemoryAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenHealth, onOpenSearch, onOpenSettings, onUpdateNote, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
     lists: true,
@@ -876,6 +877,20 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </svg>
             <span>AI Chat</span>
+          </div>
+          <div
+            className={`sidebar-action-row flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
+              currentView === "health"
+                ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
+                : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
+            }`}
+            onClick={onOpenHealth}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 21c4.97-2.95 8-6.3 8-10a4 4 0 00-7-2.65A4 4 0 004 11c0 3.7 3.03 7.05 8 10z" />
+            </svg>
+            <span>Health Quest</span>
           </div>
           <div 
             className="sidebar-action-row flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"

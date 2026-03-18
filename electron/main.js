@@ -8,6 +8,19 @@ if (process.platform === "win32") {
   app.setAppUserModelId("com.vault.app");
 }
 
+// Enforce single instance — if another instance is already running, focus it and quit this one
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
 // Set NODE_ENV early to prevent TypeScript installation attempts
 const isDev = !app.isPackaged;
 if (!isDev) {
@@ -122,6 +135,7 @@ function notifyCallsChanged() {
   notifyQuickNotesChanged();
 }
 let server;
+let isQuitting = false;
 
 const PORT = isDev ? 3000 : 51333;
 const QUICK_NOTE_ENABLED_STORAGE_KEY = "vault-setting-quick-note-enabled";
@@ -2267,6 +2281,11 @@ function createWindow() {
 
   mainWindow.on("closed", () => {
     mainWindow = null;
+    // When the main window is closed, quit the app.
+    // Hidden warm windows would otherwise keep the process alive indefinitely.
+    if (!isQuitting) {
+      app.quit();
+    }
   });
 }
 
@@ -2334,19 +2353,70 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  if (server) {
-    server.close();
-  }
   if (process.platform !== "darwin") {
     app.quit();
   }
 });
 
-app.on("before-quit", () => {
+// Destroy every open BrowserWindow so window-all-closed actually fires
+function destroyAllWindows() {
+  // Destroy warm (hidden) quick windows
+  if (warmQuickNoteWindow && !warmQuickNoteWindow.isDestroyed()) {
+    warmQuickNoteWindow.destroy();
+    warmQuickNoteWindow = null;
+  }
+  if (warmQuickAiWindow && !warmQuickAiWindow.isDestroyed()) {
+    warmQuickAiWindow.destroy();
+    warmQuickAiWindow = null;
+  }
+
+  // Destroy any open quick-note / quick-ai windows
+  for (const w of quickNoteWindows) {
+    if (!w.isDestroyed()) w.destroy();
+  }
+  quickNoteWindows.clear();
+  for (const w of quickAiWindows) {
+    if (!w.isDestroyed()) w.destroy();
+  }
+  quickAiWindows.clear();
+
+  // Destroy calls transcriber window
+  if (callsTranscriberWindow && !callsTranscriberWindow.isDestroyed()) {
+    callsTranscriberWindow.destroy();
+    callsTranscriberWindow = null;
+  }
+
+  // Destroy any remaining windows (safety net)
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.destroy();
+  }
+}
+
+app.on("before-quit", async (event) => {
+  if (isQuitting) return;
+  isQuitting = true;
+  event.preventDefault();
+
   globalShortcut.unregisterAll();
   stopCallsMonitor();
-  void stopCallsSpeechRecognizer();
-  if (server) {
-    server.close();
+
+  try {
+    await stopCallsSpeechRecognizer();
+  } catch {
+    // best-effort
   }
+
+  if (server) {
+    try { server.close(); } catch { /* ignore */ }
+  }
+
+  destroyAllWindows();
+
+  app.quit();
+
+  // Safety net: if the process is still alive after 5s, force-exit
+  setTimeout(() => {
+    console.error("Force-exiting after cleanup timeout");
+    process.exit(0);
+  }, 5000).unref();
 });

@@ -40,6 +40,18 @@ async function startServer() {
     process.env.PORT = port.toString();
     process.env.HOSTNAME = hostname;
     
+    // Intercept the http module so we can capture the server instance created by
+    // the Next.js standalone server.js in order to close it cleanly on quit.
+    const http = require("http");
+    const originalListen = http.Server.prototype.listen;
+    let capturedServer = null;
+    http.Server.prototype.listen = function (...args) {
+      capturedServer = this;
+      // Restore immediately so we only intercept the first call
+      http.Server.prototype.listen = originalListen;
+      return originalListen.apply(this, args);
+    };
+
     // Load and run the standalone server
     // The standalone server.js does process.chdir(__dirname) internally
     require(path.join(standaloneDir, "server.js"));
@@ -54,7 +66,13 @@ async function startServer() {
         fetch(`http://${hostname}:${port}`)
           .then(() => {
             console.log(`> Production server ready on http://${hostname}:${port}`);
-            resolve({ close: () => {} });
+            resolve({
+              close: () => {
+                if (capturedServer) {
+                  try { capturedServer.close(); } catch { /* ignore */ }
+                }
+              },
+            });
           })
           .catch(() => {
             if (attempts >= maxAttempts) {

@@ -12,10 +12,11 @@ import { FileCleanerView } from "./FileCleanerView";
 import { AIView } from "./AIView";
 import { SearchModal } from "./SearchModal";
 import { SettingsView } from "./SettingsView";
+import { HealthQuestView } from "./HealthQuestView";
 import { Note, ListItem, Occasion } from "@/types/models";
 import { runStartupMigrations } from "@/lib/startupMigrations";
 
-type ViewType = "home" | "note" | "lists" | "memories" | "archive" | "fileCleaner" | "ai" | "settings";
+type ViewType = "home" | "note" | "lists" | "memories" | "archive" | "fileCleaner" | "ai" | "settings" | "health";
 
 const THEME_MODE_STORAGE_KEY = "vault-theme-mode";
 const THEME_MODE_EVENT = "vault-theme-updated";
@@ -876,6 +877,12 @@ export function AppShell() {
     setCurrentView("ai");
   };
 
+  // Open Health Quest view
+  const handleOpenHealth = () => {
+    setSelectedNoteId(null);
+    setCurrentView("health");
+  };
+
   // Open search modal
   const handleOpenSearch = () => {
     setIsSearchModalOpen(true);
@@ -1228,6 +1235,7 @@ export function AppShell() {
         onOpenArchive={handleOpenArchive}
         onOpenFileCleaner={handleOpenFileCleaner}
         onOpenAI={handleOpenAI}
+        onOpenHealth={handleOpenHealth}
         onOpenSearch={handleOpenSearch}
         onOpenSettings={handleOpenSettings}
         onUpdateNote={handleUpdateNote}
@@ -1327,6 +1335,8 @@ export function AppShell() {
           <AIView
             onBack={() => setCurrentView("home")}
           />
+        ) : currentView === "health" ? (
+          <HealthQuestView />
         ) : currentView === "settings" ? (
           <SettingsView />
         ) : (
