@@ -1,6 +1,6 @@
 # Vault
 
-A note-taking desktop app with rich text, spreadsheet notes, and hierarchical organization. It also includes opinionated everyday extras like a key-value vault, voice log, dream journal, file cleaner, plus Quick Note and Quick AI Chat for busy moments. Everything runs locally. No cloud, no account, no subscription.
+A note-taking desktop app with rich text, spreadsheet notes, and hierarchical organization. It also includes opinionated everyday extras like a key-value vault, voice log, dream journal, file cleaner, plus Quick Note and Quick AI Chat for busy moments. Everything runs locally. No account, no subscription.
 
 <img width="2068" height="1239" alt="image" src="https://github.com/user-attachments/assets/f8e978cd-1042-4a38-a033-29c0e25a2583" />
 
