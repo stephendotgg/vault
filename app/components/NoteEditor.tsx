@@ -943,11 +943,22 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     if (!container || !scrollPositions) return;
 
     const saved = scrollPositions.get(note.id);
-    if (saved != null) {
-      container.scrollTop = saved;
+    let observer: ResizeObserver | null = null;
+
+    if (saved != null && saved > 0) {
+      // Wait for content to render so the container becomes scrollable
+      observer = new ResizeObserver(() => {
+        if (container.scrollHeight > container.clientHeight) {
+          container.scrollTop = saved;
+          observer?.disconnect();
+          observer = null;
+        }
+      });
+      observer.observe(container);
     }
 
     return () => {
+      observer?.disconnect();
       scrollPositions.set(note.id, container.scrollTop);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
