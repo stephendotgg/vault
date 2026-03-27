@@ -853,9 +853,10 @@ interface NoteEditorProps {
   onBreadcrumbPrefixClick?: () => void;
   headerActions?: React.ReactNode;
   allowAIChat?: boolean;
+  scrollPositions?: Map<string, number>;
 }
 
-export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true }: NoteEditorProps) {
+export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true, scrollPositions }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
   const isLocked = Boolean(note.isLocked);
   const parentNote = useMemo(
@@ -916,6 +917,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [copiedChatMessageId, setCopiedChatMessageId] = useState<string | null>(null);
+  const editorScrollRef = useRef<HTMLDivElement>(null);
   const chatMessagesScrollRef = useRef<HTMLDivElement>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollChatRef = useRef(true);
@@ -934,6 +936,21 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
   const isNearBottom = (element: HTMLDivElement) =>
     element.scrollHeight - element.scrollTop - element.clientHeight < 96;
+
+  // Save scroll position on unmount, restore on mount
+  useEffect(() => {
+    const container = editorScrollRef.current;
+    if (!container || !scrollPositions) return;
+
+    const saved = scrollPositions.get(note.id);
+    if (saved != null) {
+      container.scrollTop = saved;
+    }
+
+    return () => {
+      scrollPositions.set(note.id, container.scrollTop);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get current note's chat open state
   const showAIChat = allowAIChat && (chatOpenStates.get(note.id) || false);
@@ -2767,7 +2784,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         </div>
 
         {/* Editor content */}
-        <div className="flex-1 overflow-auto">
+        <div ref={editorScrollRef} className="flex-1 overflow-auto">
           <div className={isSpreadsheetNote ? "h-full flex flex-col" : "max-w-3xl mx-auto px-16 py-12 h-full flex flex-col"}>
             {/* Title */}
             {!isSpreadsheetNote && (
