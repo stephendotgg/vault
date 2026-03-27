@@ -916,6 +916,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [copiedChatMessageId, setCopiedChatMessageId] = useState<string | null>(null);
+  const allNotesRef = useRef(allNotes);
+  allNotesRef.current = allNotes;
+  const onSelectNoteRef = useRef(onSelectNote);
+  onSelectNoteRef.current = onSelectNote;
   const chatMessagesScrollRef = useRef<HTMLDivElement>(null);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollChatRef = useRef(true);
@@ -2185,6 +2189,35 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         }
 
         const plainText = clipboard.getData("text/plain").trim();
+
+        // Handle pasting a note deep link — insert as a clickable link with note title
+        const noteLinkMatch = plainText.match(/^\[([^\]]+)\]\(vault:\/\/note\/([a-zA-Z0-9_-]+)\)$/);
+        if (noteLinkMatch) {
+          event.preventDefault();
+          const [, linkTitle, noteId] = noteLinkMatch;
+          const { state, dispatch } = view;
+          const { from, to } = state.selection;
+          const linkMark = state.schema.marks.link.create({ href: `vault://note/${noteId}` });
+          const textNode = state.schema.text(linkTitle, [linkMark]);
+          dispatch(state.tr.replaceWith(from, to, textNode));
+          return true;
+        }
+
+        // Handle pasting a plain vault://note/id URL
+        const plainNoteLinkMatch = plainText.match(/^vault:\/\/note\/([a-zA-Z0-9_-]+)$/);
+        if (plainNoteLinkMatch) {
+          event.preventDefault();
+          const noteId = plainNoteLinkMatch[1];
+          const linkedNote = allNotesRef.current.find(n => n.id === noteId);
+          const linkTitle = linkedNote?.title || "Untitled";
+          const { state, dispatch } = view;
+          const { from, to } = state.selection;
+          const linkMark = state.schema.marks.link.create({ href: `vault://note/${noteId}` });
+          const textNode = state.schema.text(linkTitle, [linkMark]);
+          dispatch(state.tr.replaceWith(from, to, textNode));
+          return true;
+        }
+
         if (isImageUrl(plainText)) {
           event.preventDefault();
           insertImageWithParagraph(view, plainText);
@@ -2226,6 +2259,22 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         })();
 
         return true;
+      },
+      handleClick: (view, _pos, event) => {
+        const target = event.target as HTMLElement | null;
+        const anchor = target?.closest("a") as HTMLAnchorElement | null;
+        if (!anchor) return false;
+
+        const href = anchor.getAttribute("href") || "";
+        const noteMatch = href.match(/^vault:\/\/note\/([a-zA-Z0-9_-]+)$/);
+        if (noteMatch) {
+          event.preventDefault();
+          event.stopPropagation();
+          onSelectNoteRef.current(noteMatch[1]);
+          return true;
+        }
+
+        return false;
       },
       handleDOMEvents: {
         mousedown: (view, event) => {

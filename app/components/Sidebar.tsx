@@ -1093,6 +1093,20 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
           <button
             className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
             onClick={() => {
+              const noteForLink = notes.find(n => n.id === contextMenu.noteId);
+              const label = noteForLink?.title || "Untitled";
+              navigator.clipboard.writeText(`[${label}](vault://note/${contextMenu.noteId})`);
+              setContextMenu(null);
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            Copy Link
+          </button>
+          <button
+            className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
+            onClick={() => {
               setIconPickerNoteId(contextMenu.noteId);
               setIconPickerPosition(getClampedIconPickerPosition(contextMenu.x, contextMenu.y));
               setContextMenu(null);

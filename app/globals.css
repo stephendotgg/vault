@@ -396,6 +396,26 @@ a {
   outline: none;
 }
 
+/* Note deep links (vault://note/...) styled as @mentions */
+.tiptap a[href^="vault://note/"] {
+  color: #7eb8f7;
+  background: rgba(126, 184, 247, 0.1);
+  padding: 1px 4px;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.tiptap a[href^="vault://note/"]:hover {
+  background: rgba(126, 184, 247, 0.2);
+}
+:root[data-theme="light"] .tiptap a[href^="vault://note/"] {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+}
+:root[data-theme="light"] .tiptap a[href^="vault://note/"]:hover {
+  background: rgba(37, 99, 235, 0.15);
+}
+
 .tiptap p {
   margin: 0.75em 0 !important;
 }
