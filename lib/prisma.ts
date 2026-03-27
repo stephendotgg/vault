@@ -37,23 +37,6 @@ function initializeDatabase() {
 
   logDbMigrationInfo("[db-migrations] startup check", { dbPath });
 
-  const hasLegacyVaultItemTable = db
-    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='VaultItem'")
-    .get() as { name: string } | undefined;
-  const hasListItemTable = db
-    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='ListItem'")
-    .get() as { name: string } | undefined;
-
-  if (hasLegacyVaultItemTable && !hasListItemTable) {
-    logDbMigrationInfo("[db-migrations] renaming table VaultItem -> ListItem");
-    db.exec('ALTER TABLE "VaultItem" RENAME TO "ListItem";');
-    logDbMigrationInfo("[db-migrations] table rename complete");
-  } else if (hasLegacyVaultItemTable && hasListItemTable) {
-    logDbMigrationWarn("[db-migrations] both VaultItem and ListItem tables found; skipping auto-rename");
-  } else {
-    logDbMigrationInfo("[db-migrations] no table rename needed");
-  }
-
   const noteColumns = db
     .prepare("PRAGMA table_info('Note')")
     .all() as Array<{ name: string }>;
@@ -78,43 +61,6 @@ function initializeDatabase() {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (parentId) REFERENCES Note(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS ListItem (
-      id TEXT PRIMARY KEY,
-      key TEXT NOT NULL,
-      value TEXT DEFAULT '',
-      tags TEXT DEFAULT '',
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS Occasion (
-      id TEXT PRIMARY KEY,
-      title TEXT DEFAULT 'Untitled',
-      icon TEXT DEFAULT '📸',
-      "order" INTEGER DEFAULT 0,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS Memory (
-      id TEXT PRIMARY KEY,
-      content TEXT DEFAULT '',
-      "order" INTEGER DEFAULT 0,
-      occasionId TEXT NOT NULL,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (occasionId) REFERENCES Occasion(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS OccasionImage (
-      id TEXT PRIMARY KEY,
-      filename TEXT NOT NULL,
-      "order" INTEGER DEFAULT 0,
-      occasionId TEXT NOT NULL,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (occasionId) REFERENCES Occasion(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS ChatSession (

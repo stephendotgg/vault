@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export interface SearchResult {
-  type: "note" | "list" | "memory";
+  type: "note";
   noteKind?: "note" | "sheet";
   id: string;
   title: string;
   snippet: string;
-  parentTitle?: string; // For memories, the occasion title
   createdAt: string;
 }
 
@@ -149,7 +148,7 @@ function sheetContentToText(content: string): string {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim();
-  const types = searchParams.get("types")?.split(",") || ["note", "list", "memory"];
+  const types = searchParams.get("types")?.split(",") || ["note"];
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
 
   if (!query || query.length < 2) {
@@ -196,73 +195,6 @@ export async function GET(request: NextRequest) {
             ? snippetSource.slice(0, 150) + (snippetSource.length > 150 ? "..." : "")
             : createSnippet(snippetSource, query),
           createdAt: note.createdAt.toISOString(),
-          score,
-        });
-      }
-    }
-
-    // Search list items
-    if (types.includes("list")) {
-      const listItems = await prisma.listItem.findMany({
-        where: {
-          OR: [
-            ...queryCandidates.map((token) => ({ key: { contains: token } })),
-            ...queryCandidates.map((token) => ({ value: { contains: token } })),
-            ...queryCandidates.map((token) => ({ tags: { contains: token } })),
-          ],
-        },
-        orderBy: { updatedAt: "desc" },
-        take: candidateLimit,
-      });
-
-      for (const item of listItems) {
-        const matchInKey = item.key.toLowerCase().includes(query.toLowerCase());
-        
-        const score = scoreResult(item.key, `${item.value} ${item.tags}`, normalisedQuery, queryTokens);
-        if (score <= 0) continue;
-
-        results.push({
-          type: "list",
-          id: item.id,
-          title: item.key,
-          snippet: matchInKey 
-            ? item.value.slice(0, 150) + (item.value.length > 150 ? "..." : "")
-            : createSnippet(item.value, query),
-          createdAt: item.createdAt.toISOString(),
-          score,
-        });
-      }
-    }
-
-    // Search memories (with occasion info)
-    if (types.includes("memory")) {
-      const memories = await prisma.memory.findMany({
-        where: {
-          OR: [
-            ...queryCandidates.map((token) => ({ content: { contains: token } })),
-            ...queryCandidates.map((token) => ({ occasion: { title: { contains: token } } })),
-          ],
-        },
-        include: {
-          occasion: {
-            select: { title: true },
-          },
-        },
-        orderBy: { updatedAt: "desc" },
-        take: candidateLimit,
-      });
-
-      for (const memory of memories) {
-        const score = scoreResult(memory.occasion.title || "", memory.content, normalisedQuery, queryTokens);
-        if (score <= 0) continue;
-
-        results.push({
-          type: "memory",
-          id: memory.id,
-          title: memory.occasion.title || "Memory",
-          parentTitle: memory.occasion.title,
-          snippet: createSnippet(memory.content, query),
-          createdAt: memory.createdAt.toISOString(),
           score,
         });
       }

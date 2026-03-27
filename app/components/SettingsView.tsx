@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type SectionKey = "notes" | "lists" | "memories" | "dreamJournal" | "voiceLog";
+type SectionKey = "notes";
 type SidebarVisibilityKey = SectionKey | "fileCleaner";
 
 type SidebarVisibilityState = Record<SidebarVisibilityKey, boolean>;
@@ -60,19 +60,11 @@ function formatShortcutFromEvent(event: ShortcutKeyboardEvent): string | null {
 
 const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
-  lists: false,
-  memories: false,
-  dreamJournal: false,
-  voiceLog: false,
   fileCleaner: true,
 };
 
 const sectionLabels: Record<SidebarVisibilityKey, string> = {
   notes: "Notes",
-  lists: "Lists",
-  memories: "Memories (WIP)",
-  dreamJournal: "Dream Journal (WIP)",
-  voiceLog: "Voice Log (WIP)",
   fileCleaner: "File Cleaner",
 };
 
@@ -137,7 +129,6 @@ export function SettingsView() {
         const parsedRaw = JSON.parse(savedSidebar) as Record<string, boolean>;
         const migrated: Partial<SidebarVisibilityState> = {
           ...parsedRaw,
-          lists: parsedRaw.lists ?? parsedRaw.vault,
         };
         setSidebarVisibility({ ...defaultSidebarVisibility, ...migrated });
       } catch {

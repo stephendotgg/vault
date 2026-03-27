@@ -25,49 +25,6 @@ model Note {
   updatedAt DateTime @updatedAt
 }
 
-// List items - K/V store for quick reference
-model ListItem {
-  id        String   @id @default(cuid())
-  key       String   
-  value     String   @default("")
-  tags      String   @default("") // comma-separated tags for filtering
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// Occasions - groups of memories (e.g., "Festival 2025", "Amsterdam 2025")
-model Occasion {
-  id        String          @id @default(cuid())
-  title     String          @default("Untitled")
-  icon      String          @default("📸")
-  order     Int             @default(0)
-  memories  Memory[]
-  images    OccasionImage[]
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-}
-
-// Memories - text entries under an occasion
-model Memory {
-  id         String   @id @default(cuid())
-  content    String   @default("")
-  order      Int      @default(0)
-  occasionId String
-  occasion   Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-// Images attached to occasions - stored on disk, paths in DB
-model OccasionImage {
-  id         String   @id @default(cuid())
-  filename   String   // filename on disk (uuid.ext)
-  order      Int      @default(0)
-  occasionId String
-  occasion   Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-}
-
 // AI Chat Sessions
 model ChatSession {
   id        String        @id @default(cuid())

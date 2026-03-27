@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Note } from "@/types/models";
 import { IconPicker } from "./IconPicker";
 
-type SectionKey = "notes" | "lists" | "memories" | "dreamJournal" | "voiceLog";
+type SectionKey = "notes";
 type SidebarVisibilityKey = SectionKey | "fileCleaner";
 
 interface NoteWithChildren extends Note {
@@ -18,7 +18,7 @@ interface ContextMenuState {
 }
 
 interface SidebarProps {
-  currentView: "home" | "note" | "lists" | "memories" | "archive" | "fileCleaner" | "ai" | "settings";
+  currentView: "home" | "note" | "archive" | "fileCleaner" | "ai" | "settings";
   selectedNoteId?: string | null;
   onSelectNote: (id: string) => void;
   onCreateNote: (parentId?: string, kind?: "note" | "spreadsheet") => void;
@@ -26,10 +26,6 @@ interface SidebarProps {
   onDeletePermanently: (id: string) => void;
   onRenameNote: (id: string, newTitle: string) => void;
   onMoveNote: (noteId: string, newParentId: string | null, newOrder: number) => void;
-  onOpenLists: () => void;
-  onOpenListsAddModal: (tag?: string) => void;
-  onOpenMemories: () => void;
-  onOpenMemoryAddModal: () => void;
   onOpenArchive: () => void;
   onOpenFileCleaner: () => void;
   onOpenAI: () => void;
@@ -449,20 +445,12 @@ const QUICK_ACCESS_UPDATED_EVENT = "vault-quick-access-updated";
 
 const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
-  lists: false,
-  memories: false,
-  dreamJournal: false,
-  voiceLog: false,
   fileCleaner: true,
 };
 
-export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onDeletePermanently, onRenameNote, onMoveNote, onOpenLists, onOpenListsAddModal, onOpenMemories, onOpenMemoryAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onOpenSettings, onUpdateNote, notes }: SidebarProps) {
+export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onDeletePermanently, onRenameNote, onMoveNote, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onOpenSettings, onUpdateNote, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
-    lists: true,
-    memories: true,
-    dreamJournal: true,
-    voiceLog: true,
   });
   const [visibleSections, setVisibleSections] = useState<SidebarVisibilityState>(defaultSidebarVisibility);
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
@@ -512,7 +500,6 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
       const parsedRaw = JSON.parse(savedVisibleSections) as Record<string, boolean>;
       const parsed: Partial<SidebarVisibilityState> = {
         ...parsedRaw,
-        lists: parsedRaw.lists ?? parsedRaw.vault,
       };
       setVisibleSections({
         ...defaultSidebarVisibility,
@@ -968,103 +955,6 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
           </>
         )}
 
-        {visibleSections.lists && (
-          <>
-            {/* LISTS Section */}
-            <div className="flex items-center justify-between mt-5">
-              <div
-                className="sidebar-section-label flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors"
-                onClick={() => onOpenLists()}
-              >
-                <span>Lists</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenListsAddModal();
-                }}
-                className="p-1 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.055)] rounded transition-all"
-                title="Add to lists"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </button>
-            </div>
-          </>
-        )}
-
-        {visibleSections.memories && (
-          <>
-            {/* MEMORIES Section */}
-            <div className="flex items-center justify-between mt-5">
-              <div
-                className="sidebar-section-label flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors"
-                onClick={() => onOpenMemories()}
-              >
-                <span>Memories</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenMemoryAddModal();
-                }}
-                className="p-1 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.055)] rounded transition-all"
-                title="Add memory"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </button>
-            </div>
-          </>
-        )}
-
-        {visibleSections.dreamJournal && (
-          <>
-            {/* DREAM JOURNAL Section */}
-            <div className="flex items-center justify-between mt-5">
-              <div className="sidebar-section-label flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider rounded transition-colors">
-                <span>Dream Journal</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCreateMenu({ x: e.clientX, y: e.clientY });
-                }}
-                className="p-1 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.055)] rounded transition-all"
-                title="Add dream journal"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </button>
-            </div>
-          </>
-        )}
-
-        {visibleSections.voiceLog && (
-          <>
-            {/* VOICE LOG Section */}
-            <div className="flex items-center justify-between mt-5">
-              <div className="sidebar-section-label flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider rounded transition-colors">
-                <span>Voice Log</span>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCreateMenu({ x: e.clientX, y: e.clientY });
-                }}
-                className="p-1 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.055)] rounded transition-all"
-                title="Add voice log"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </button>
-            </div>
-          </>
-        )}
       </div>
 
       {/* Divider */}
@@ -1290,68 +1180,6 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
             </>
           )}
 
-          {visibleSections.lists && (
-            <button
-              className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
-              onClick={() => {
-                onOpenListsAddModal();
-                setCreateMenu(null);
-              }}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <path d="M12 8v8"/>
-                <path d="M8 12h8"/>
-              </svg>
-              List Item
-            </button>
-          )}
-
-          {visibleSections.memories && (
-            <button
-              className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
-              onClick={() => {
-                setCreateMenu(null);
-              }}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-                <path d="M12 6v6l4 2"/>
-              </svg>
-              Memory
-            </button>
-          )}
-
-          {visibleSections.dreamJournal && (
-            <button
-              className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
-              onClick={() => {
-                setCreateMenu(null);
-              }}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-              </svg>
-              Dream Journal
-            </button>
-          )}
-
-          {visibleSections.voiceLog && (
-            <button
-              className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
-              onClick={() => {
-                setCreateMenu(null);
-              }}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="23"/>
-                <line x1="8" y1="23" x2="16" y2="23"/>
-              </svg>
-              Voice Log
-            </button>
-          )}
         </div>
       )}
 

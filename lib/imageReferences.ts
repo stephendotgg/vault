@@ -24,11 +24,7 @@ export async function isImageReferencedAnywhere(filename: string): Promise<boole
   const safeFilename = path.basename(filename);
   const imageUrl = `/api/images/${safeFilename}`;
 
-  const [occasionReference, noteReference, chatReference] = await Promise.all([
-    prisma.occasionImage.findFirst({
-      where: { filename: safeFilename },
-      select: { id: true },
-    }),
+  const [noteReference, chatReference] = await Promise.all([
     prisma.note.findFirst({
       where: {
         content: {
@@ -47,7 +43,7 @@ export async function isImageReferencedAnywhere(filename: string): Promise<boole
     }),
   ]);
 
-  return Boolean(occasionReference || noteReference || chatReference);
+  return Boolean(noteReference || chatReference);
 }
 
 export async function deleteImageFileIfUnused(filename: string): Promise<void> {

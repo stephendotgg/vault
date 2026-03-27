@@ -3,19 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Sidebar } from "./Sidebar";
 import { NoteEditor, ChatMessage } from "./NoteEditor";
-import { ListsView } from "./ListsView";
-import { ListsAddModal } from "./ListsAddModal";
-import { MemoriesView } from "./MemoriesView";
-import { MemoryAddModal } from "./MemoryAddModal";
 import { ArchiveView } from "./ArchiveView";
 import { FileCleanerView } from "./FileCleanerView";
 import { AIView } from "./AIView";
 import { SearchModal } from "./SearchModal";
 import { SettingsView } from "./SettingsView";
-import { Note, ListItem, Occasion } from "@/types/models";
+import { Note } from "@/types/models";
 import { runStartupMigrations } from "@/lib/startupMigrations";
 
-type ViewType = "home" | "note" | "lists" | "memories" | "archive" | "fileCleaner" | "ai" | "settings";
+type ViewType = "home" | "note" | "archive" | "fileCleaner" | "ai" | "settings";
 
 const THEME_MODE_STORAGE_KEY = "vault-theme-mode";
 const THEME_MODE_EVENT = "vault-theme-updated";
@@ -198,13 +194,9 @@ function getDescendantNoteIds(notes: Note[], rootId: string): string[] {
 
 export function AppShell() {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [listItems, setListItems] = useState<ListItem[]>([]);
-  const [occasions, setOccasions] = useState<Occasion[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>("home");
-  const [selectedOccasionId, setSelectedOccasionId] = useState<string | null>(null);
   const [selectedArchivedNoteId, setSelectedArchivedNoteId] = useState<string | null>(null);
-  const [isListsModalOpen, setIsListsModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
@@ -253,7 +245,6 @@ export function AppShell() {
   useEffect(() => {
     const savedNoteId = localStorage.getItem("selected-note-id");
     const savedView = localStorage.getItem("current-view") as ViewType | null;
-    const savedOccasionId = localStorage.getItem("selected-occasion-id");
     const savedQuickNoteShortcut = localStorage.getItem(QUICK_NOTE_SHORTCUT_STORAGE_KEY);
     const savedQuickAiShortcut = localStorage.getItem(QUICK_AI_SHORTCUT_STORAGE_KEY);
     const savedQuickNoteEnabled = localStorage.getItem(QUICK_NOTE_ENABLED_STORAGE_KEY);
@@ -265,9 +256,6 @@ export function AppShell() {
     }
     if (savedNoteId) {
       setSelectedNoteId(savedNoteId);
-    }
-    if (savedOccasionId) {
-      setSelectedOccasionId(savedOccasionId);
     }
     if (savedQuickNoteShortcut?.trim()) {
       setQuickNoteShortcut(savedQuickNoteShortcut);
@@ -363,13 +351,8 @@ export function AppShell() {
         localStorage.removeItem("selected-note-id");
       }
       
-      if (selectedOccasionId) {
-        localStorage.setItem("selected-occasion-id", selectedOccasionId);
-      } else {
-        localStorage.removeItem("selected-occasion-id");
-      }
     }
-  }, [currentView, selectedNoteId, selectedOccasionId, hydrated]);
+  }, [currentView, selectedNoteId, hydrated]);
 
   // Fetch all notes (including archived)
   const fetchNotes = useCallback(async () => {
@@ -449,37 +432,9 @@ export function AppShell() {
     }
   }, [archiveAutoDeleteDays, fetchNotes, selectedArchivedNoteId]);
 
-  // Fetch all list items
-  const fetchListItems = useCallback(async () => {
-    try {
-      const res = await fetch("/api/lists");
-      if (res.ok) {
-        const data = await res.json();
-        setListItems(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch list items:", error);
-    }
-  }, []);
-
-  // Fetch all occasions with memories
-  const fetchOccasions = useCallback(async () => {
-    try {
-      const res = await fetch("/api/occasions");
-      if (res.ok) {
-        const data = await res.json();
-        setOccasions(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch occasions:", error);
-    }
-  }, []);
-
   useEffect(() => {
     fetchNotes();
-    fetchListItems();
-    fetchOccasions();
-  }, [fetchNotes, fetchListItems, fetchOccasions]);
+  }, [fetchNotes]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -623,63 +578,6 @@ export function AppShell() {
     } catch (error) {
       console.error("Failed to refresh selected note:", error);
     }
-  };
-
-  // Open lists view
-  const handleOpenLists = () => {
-    setSelectedNoteId(null);
-    setCurrentView("lists");
-  };
-
-  // Compute available tags for lists by usage count
-  const availableListTags = (() => {
-    const tagCounts = new Map<string, number>();
-    listItems.forEach((item) => {
-      if (item.tags) {
-        item.tags.split(",").forEach((t) => {
-          const trimmed = t.trim().toLowerCase();
-          if (trimmed) {
-            tagCounts.set(trimmed, (tagCounts.get(trimmed) || 0) + 1);
-          }
-        });
-      }
-    });
-
-    return [...tagCounts.keys()].sort((a, b) => {
-      const countDiff = (tagCounts.get(b) || 0) - (tagCounts.get(a) || 0);
-      if (countDiff !== 0) {
-        return countDiff;
-      }
-
-      return a.localeCompare(b);
-    });
-  })();
-
-  // Open lists add modal
-  const [listsModalMode, setListsModalMode] = useState<"add" | "edit">("add");
-  const [listsModalEditingItemId, setListsModalEditingItemId] = useState<string | null>(null);
-  const [listsModalInitialKey, setListsModalInitialKey] = useState<string | undefined>(undefined);
-  const [listsModalInitialValue, setListsModalInitialValue] = useState<string | undefined>(undefined);
-  const [listsModalInitialTags, setListsModalInitialTags] = useState<string | undefined>(undefined);
-  const [listsModalInitialTag, setListsModalInitialTag] = useState<string | undefined>(undefined);
-  const handleOpenListsAddModal = (tag?: string) => {
-    setListsModalMode("add");
-    setListsModalEditingItemId(null);
-    setListsModalInitialKey(undefined);
-    setListsModalInitialValue(undefined);
-    setListsModalInitialTags(undefined);
-    setListsModalInitialTag(tag);
-    setIsListsModalOpen(true);
-  };
-
-  const handleOpenListsEditModal = (item: ListItem) => {
-    setListsModalMode("edit");
-    setListsModalEditingItemId(item.id);
-    setListsModalInitialKey(item.key);
-    setListsModalInitialValue(item.value || "");
-    setListsModalInitialTags(item.tags || "");
-    setListsModalInitialTag(undefined);
-    setIsListsModalOpen(true);
   };
 
   // Update note in list
@@ -917,62 +815,6 @@ export function AppShell() {
     }
   };
 
-  // Create list item
-  const handleCreateListItem = async (key: string, value: string, tags?: string) => {
-    try {
-      const res = await fetch("/api/lists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value, tags: tags || "" }),
-      });
-
-      if (res.ok) {
-        const newItem = await res.json();
-        setListItems((prev) => [newItem, ...prev]);
-        return newItem;
-      }
-    } catch (error) {
-      console.error("Failed to create list item:", error);
-    }
-  };
-
-  // Delete list item
-  const handleDeleteListItem = async (id: string) => {
-    try {
-      const res = await fetch(`/api/lists/${id}`, {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        setListItems((prev) => prev.filter((item) => item.id !== id));
-      }
-    } catch (error) {
-      console.error("Failed to delete list item:", error);
-    }
-  };
-
-  // Update list item
-  const handleUpdateListItem = async (id: string, key: string, value: string, tags: string) => {
-    try {
-      const res = await fetch(`/api/lists/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key,
-          value,
-          tags,
-        }),
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setListItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
-      }
-    } catch (error) {
-      console.error("Failed to update list item:", error);
-    }
-  };
-
   // Move note (drag and drop)
   const handleMoveNote = async (noteId: string, newParentId: string | null, newOrder: number) => {
     // Optimistic update
@@ -1014,183 +856,6 @@ export function AppShell() {
     }
   };
 
-  // Open memories view
-  const handleOpenMemories = () => {
-    setSelectedNoteId(null);
-    setCurrentView("memories");
-  };
-
-  // Memory add modal state (global, like Vault)
-  const [isMemoryModalOpen, setIsMemoryModalOpen] = useState(false);
-
-  const handleOpenMemoryAddModal = () => {
-    setIsMemoryModalOpen(true);
-  };
-
-  // Create occasion and memory together
-  const handleCreateOccasionAndMemory = async (title: string, memoryContent: string) => {
-    try {
-      // First create the occasion
-      const occasionRes = await fetch("/api/occasions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
-      });
-      if (occasionRes.ok) {
-        const newOccasion = await occasionRes.json();
-        // Then add the memory
-        const memoryRes = await fetch(`/api/occasions/${newOccasion.id}/memories`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: memoryContent }),
-        });
-        if (memoryRes.ok) {
-          const newMemory = await memoryRes.json();
-          setOccasions((prev) => [...prev, { ...newOccasion, memories: [newMemory] }]);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to create occasion and memory:", error);
-    }
-  };
-
-  // Update occasion
-  const handleUpdateOccasion = async (id: string, title: string) => {
-    try {
-      const res = await fetch(`/api/occasions/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setOccasions((prev) => prev.map((o) => (o.id === id ? updated : o)));
-      }
-    } catch (error) {
-      console.error("Failed to update occasion:", error);
-    }
-  };
-
-  // Delete occasion
-  const handleDeleteOccasion = async (id: string) => {
-    try {
-      const res = await fetch(`/api/occasions/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setOccasions((prev) => prev.filter((o) => o.id !== id));
-      }
-    } catch (error) {
-      console.error("Failed to delete occasion:", error);
-    }
-  };
-
-  // Create memory
-  const handleCreateMemory = async (occasionId: string, content: string) => {
-    try {
-      const res = await fetch(`/api/occasions/${occasionId}/memories`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-      if (res.ok) {
-        const newMemory = await res.json();
-        setOccasions((prev) =>
-          prev.map((o) =>
-            o.id === occasionId
-              ? { ...o, memories: [...(o.memories || []), newMemory] }
-              : o
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Failed to create memory:", error);
-    }
-  };
-
-  // Update memory
-  const handleUpdateMemory = async (occasionId: string, memoryId: string, content: string) => {
-    try {
-      const res = await fetch(`/api/occasions/${occasionId}/memories/${memoryId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setOccasions((prev) =>
-          prev.map((o) =>
-            o.id === occasionId
-              ? { ...o, memories: (o.memories || []).map((m) => (m.id === memoryId ? updated : m)) }
-              : o
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Failed to update memory:", error);
-    }
-  };
-
-  // Delete memory
-  const handleDeleteMemory = async (occasionId: string, memoryId: string) => {
-    try {
-      const res = await fetch(`/api/occasions/${occasionId}/memories/${memoryId}`, { method: "DELETE" });
-      if (res.ok) {
-        setOccasions((prev) =>
-          prev.map((o) =>
-            o.id === occasionId
-              ? { ...o, memories: (o.memories || []).filter((m) => m.id !== memoryId) }
-              : o
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Failed to delete memory:", error);
-    }
-  };
-
-  // Upload images to occasion
-  const handleUploadImages = async (occasionId: string, files: File[]) => {
-    try {
-      const formData = new FormData();
-      files.forEach((file) => formData.append("images", file));
-      
-      const res = await fetch(`/api/occasions/${occasionId}/images`, {
-        method: "POST",
-        body: formData,
-      });
-      
-      if (res.ok) {
-        const newImages = await res.json();
-        setOccasions((prev) =>
-          prev.map((o) =>
-            o.id === occasionId
-              ? { ...o, images: [...(o.images || []), ...newImages] }
-              : o
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Failed to upload images:", error);
-    }
-  };
-
-  // Delete image from occasion
-  const handleDeleteImage = async (occasionId: string, imageId: string) => {
-    try {
-      const res = await fetch(`/api/occasions/${occasionId}/images/${imageId}`, { method: "DELETE" });
-      if (res.ok) {
-        setOccasions((prev) =>
-          prev.map((o) =>
-            o.id === occasionId
-              ? { ...o, images: (o.images || []).filter((img) => img.id !== imageId) }
-              : o
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Failed to delete image:", error);
-    }
-  };
-
   // Don't render until hydrated to prevent flash of wrong content
   if (!hydrated || !migrationsReady) {
     return (
@@ -1221,10 +886,6 @@ export function AppShell() {
         onDeletePermanently={handleDeletePermanently}
         onRenameNote={handleRenameNote}
         onMoveNote={handleMoveNote}
-        onOpenLists={handleOpenLists}
-        onOpenListsAddModal={handleOpenListsAddModal}
-        onOpenMemories={handleOpenMemories}
-        onOpenMemoryAddModal={handleOpenMemoryAddModal}
         onOpenArchive={handleOpenArchive}
         onOpenFileCleaner={handleOpenFileCleaner}
         onOpenAI={handleOpenAI}
@@ -1244,27 +905,6 @@ export function AppShell() {
             setChatOpenStates={setChatOpenStates}
             allChatMessages={allChatMessages}
             setAllChatMessages={setAllChatMessages}
-          />
-        ) : currentView === "lists" ? (
-          <ListsView
-            listItems={listItems}
-            onDeleteListItem={handleDeleteListItem}
-            onOpenAddModal={handleOpenListsAddModal}
-            onOpenEditModal={handleOpenListsEditModal}
-          />
-        ) : currentView === "memories" ? (
-          <MemoriesView
-            occasions={occasions}
-            selectedOccasionId={selectedOccasionId}
-            onSelectOccasion={setSelectedOccasionId}
-            onCreateOccasionAndMemory={handleCreateOccasionAndMemory}
-            onCreateMemory={handleCreateMemory}
-            onUpdateOccasion={handleUpdateOccasion}
-            onDeleteOccasion={handleDeleteOccasion}
-            onUpdateMemory={handleUpdateMemory}
-            onDeleteMemory={handleDeleteMemory}
-            onUploadImages={handleUploadImages}
-            onDeleteImage={handleDeleteImage}
           />
         ) : currentView === "archive" && selectedArchivedNote ? (
           <NoteEditor
@@ -1414,43 +1054,6 @@ export function AppShell() {
         )}
       </main>
       
-      {/* Lists Add Modal */}
-      <ListsAddModal
-        isOpen={isListsModalOpen}
-        onClose={() => {
-          setIsListsModalOpen(false);
-          setListsModalInitialTag(undefined);
-          setListsModalEditingItemId(null);
-          setListsModalInitialKey(undefined);
-          setListsModalInitialValue(undefined);
-          setListsModalInitialTags(undefined);
-          setListsModalMode("add");
-        }}
-        onSubmit={async (key, value, tags) => {
-          if (listsModalMode === "edit" && listsModalEditingItemId) {
-            await handleUpdateListItem(listsModalEditingItemId, key, value, tags || "");
-            return;
-          }
-
-          await handleCreateListItem(key, value, tags);
-        }}
-        mode={listsModalMode}
-        initialKey={listsModalInitialKey}
-        initialValue={listsModalInitialValue}
-        initialTags={listsModalInitialTags}
-        initialTag={listsModalInitialTag}
-        availableTags={availableListTags}
-      />
-
-      {/* Memory Add Modal */}
-      <MemoryAddModal
-        isOpen={isMemoryModalOpen}
-        onClose={() => setIsMemoryModalOpen(false)}
-        occasions={occasions}
-        onCreateOccasionAndMemory={handleCreateOccasionAndMemory}
-        onCreateMemory={handleCreateMemory}
-      />
-
       {/* Search Modal */}
       <SearchModal
         isOpen={isSearchModalOpen}
@@ -1459,14 +1062,6 @@ export function AppShell() {
           setIsSearchModalOpen(false);
           setSelectedNoteId(id);
           setCurrentView("note");
-        }}
-        onSelectLists={() => {
-          setIsSearchModalOpen(false);
-          setCurrentView("lists");
-        }}
-        onSelectMemories={() => {
-          setIsSearchModalOpen(false);
-          setCurrentView("memories");
         }}
       />
     </div>
