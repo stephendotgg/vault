@@ -161,7 +161,8 @@ export function ListsView({ listItems, onDeleteListItem, onOpenAddModal, onOpenE
               {filteredItems.map((item) => {
                 const hasValue = Boolean(item.value?.trim());
                 const hasTags = Boolean(item.tags?.trim());
-                const isKeyOnly = !hasValue && !hasTags;
+                const tagsVisible = hasTags && !activeTag;
+                const isKeyOnly = !hasValue && !tagsVisible;
 
                 return (
                 <div
