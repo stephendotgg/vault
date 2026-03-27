@@ -960,6 +960,32 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
           </>
         )}
 
+        {visibleSections.lists && (
+          <>
+            {/* LISTS Section */}
+            <div className="flex items-center justify-between mt-5">
+              <div
+                className="sidebar-section-label flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#91918e] uppercase tracking-wider cursor-pointer hover:text-[#aeaeae] rounded transition-colors"
+                onClick={() => onOpenLists()}
+              >
+                <span>Lists</span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenListsAddModal();
+                }}
+                className="p-1 text-[#6b6b6b] hover:text-[#aeaeae] hover:bg-[rgba(255,255,255,0.055)] rounded transition-all"
+                title="Add to lists"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </button>
+            </div>
+          </>
+        )}
+
       </div>
 
       {/* Divider */}
