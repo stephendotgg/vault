@@ -447,7 +447,7 @@ const QUICK_ACCESS_UPDATED_EVENT = "vault-quick-access-updated";
 
 const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
-  lists: false,
+  lists: true,
   fileCleaner: true,
 };
 
