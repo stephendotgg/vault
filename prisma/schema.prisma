@@ -25,6 +25,16 @@ model Note {
   updatedAt DateTime @updatedAt
 }
 
+// List items - K/V store for quick reference
+model ListItem {
+  id        String   @id @default(cuid())
+  key       String   
+  value     String   @default("")
+  tags      String   @default("") // comma-separated tags for filtering
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // AI Chat Sessions
 model ChatSession {
   id        String        @id @default(cuid())

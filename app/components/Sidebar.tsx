@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Note } from "@/types/models";
 import { IconPicker } from "./IconPicker";
 
-type SectionKey = "notes";
+type SectionKey = "notes" | "lists";
 type SidebarVisibilityKey = SectionKey | "fileCleaner";
 
 interface NoteWithChildren extends Note {
@@ -18,7 +18,7 @@ interface ContextMenuState {
 }
 
 interface SidebarProps {
-  currentView: "home" | "note" | "archive" | "fileCleaner" | "ai" | "settings";
+  currentView: "home" | "note" | "lists" | "archive" | "fileCleaner" | "ai" | "settings";
   selectedNoteId?: string | null;
   onSelectNote: (id: string) => void;
   onCreateNote: (parentId?: string, kind?: "note" | "spreadsheet") => void;
@@ -26,6 +26,8 @@ interface SidebarProps {
   onDeletePermanently: (id: string) => void;
   onRenameNote: (id: string, newTitle: string) => void;
   onMoveNote: (noteId: string, newParentId: string | null, newOrder: number) => void;
+  onOpenLists: () => void;
+  onOpenListsAddModal: (tag?: string) => void;
   onOpenArchive: () => void;
   onOpenFileCleaner: () => void;
   onOpenAI: () => void;
@@ -445,12 +447,14 @@ const QUICK_ACCESS_UPDATED_EVENT = "vault-quick-access-updated";
 
 const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
+  lists: false,
   fileCleaner: true,
 };
 
-export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onDeletePermanently, onRenameNote, onMoveNote, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onOpenSettings, onUpdateNote, notes }: SidebarProps) {
+export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onDeletePermanently, onRenameNote, onMoveNote, onOpenLists, onOpenListsAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onOpenSettings, onUpdateNote, notes }: SidebarProps) {
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     notes: true,
+    lists: true,
   });
   const [visibleSections, setVisibleSections] = useState<SidebarVisibilityState>(defaultSidebarVisibility);
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
@@ -500,6 +504,7 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
       const parsedRaw = JSON.parse(savedVisibleSections) as Record<string, boolean>;
       const parsed: Partial<SidebarVisibilityState> = {
         ...parsedRaw,
+        lists: parsedRaw.lists ?? parsedRaw.vault,
       };
       setVisibleSections({
         ...defaultSidebarVisibility,
@@ -1178,6 +1183,23 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
                 Quick Note
               </button>
             </>
+          )}
+
+          {visibleSections.lists && (
+            <button
+              className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
+              onClick={() => {
+                onOpenListsAddModal();
+                setCreateMenu(null);
+              }}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <path d="M12 8v8"/>
+                <path d="M8 12h8"/>
+              </svg>
+              List Item
+            </button>
           )}
 
         </div>

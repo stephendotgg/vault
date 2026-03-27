@@ -10,3 +10,12 @@ export interface Note {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ListItem {
+  id: string;
+  key: string;
+  value: string;
+  tags: string;
+  createdAt: string;
+  updatedAt: string;
+}

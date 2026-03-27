@@ -7,9 +7,10 @@ interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectNote: (id: string) => void;
+  onSelectLists: () => void;
 }
 
-export function SearchModal({ isOpen, onClose, onSelectNote }: SearchModalProps) {
+export function SearchModal({ isOpen, onClose, onSelectNote, onSelectLists }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -100,6 +101,8 @@ export function SearchModal({ isOpen, onClose, onSelectNote }: SearchModalProps)
     
     if (result.type === "note") {
       onSelectNote(result.id);
+    } else if (result.type === "list") {
+      onSelectLists();
     }
   };
 
@@ -112,6 +115,7 @@ export function SearchModal({ isOpen, onClose, onSelectNote }: SearchModalProps)
     const type = result.type;
     switch (type) {
       case "note": return "Note";
+      case "list": return "List";
     }
   };
 

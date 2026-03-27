@@ -63,6 +63,15 @@ function initializeDatabase() {
       FOREIGN KEY (parentId) REFERENCES Note(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS ListItem (
+      id TEXT PRIMARY KEY,
+      key TEXT NOT NULL,
+      value TEXT DEFAULT '',
+      tags TEXT DEFAULT '',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS ChatSession (
       id TEXT PRIMARY KEY,
       title TEXT DEFAULT 'New Chat',
