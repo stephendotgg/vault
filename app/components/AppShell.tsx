@@ -216,9 +216,6 @@ export function AppShell() {
   const [chatOpenStates, setChatOpenStates] = useState<Map<string, boolean>>(new Map());
   const [allChatMessages, setAllChatMessages] = useState<Map<string, ChatMessage[]>>(new Map());
 
-  // Scroll position state - persisted across note switches
-  const scrollPositionsRef = useRef<Map<string, number>>(new Map());
-
   // Load saved state from localStorage after hydration
   useEffect(() => {
     const { appliedMigrations } = runStartupMigrations();
@@ -1041,7 +1038,6 @@ export function AppShell() {
             setChatOpenStates={setChatOpenStates}
             allChatMessages={allChatMessages}
             setAllChatMessages={setAllChatMessages}
-            scrollPositions={scrollPositionsRef.current}
           />
         ) : currentView === "lists" ? (
           <ListsView
