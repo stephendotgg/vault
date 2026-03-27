@@ -944,28 +944,43 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
     const noteId = note.id;
     const saved = scrollPositions.get(noteId);
+    let restoring = saved != null && saved > 0;
     let observer: ResizeObserver | null = null;
+    let restoreTimer: ReturnType<typeof setTimeout> | null = null;
 
-    if (saved != null && saved > 0) {
-      // Wait for content to render so the container becomes scrollable
-      observer = new ResizeObserver(() => {
+    if (restoring) {
+      // Keep re-applying scroll position as content renders (TipTap, images, etc.)
+      // for a short window, then stop.
+      const applyScroll = () => {
         if (container.scrollHeight > container.clientHeight) {
           container.scrollTop = saved;
-          observer?.disconnect();
-          observer = null;
         }
-      });
+      };
+
+      observer = new ResizeObserver(applyScroll);
       observer.observe(container);
+      applyScroll();
+
+      // Stop restoring after 500ms to avoid fighting with user scrolls
+      restoreTimer = setTimeout(() => {
+        restoring = false;
+        observer?.disconnect();
+        observer = null;
+      }, 500);
     }
 
-    // Continuously track scroll position so it's always up to date
+    // Continuously track scroll position so it's always up to date,
+    // but skip saves during the restore window
     const handleScroll = () => {
-      scrollPositions.set(noteId, container.scrollTop);
+      if (!restoring) {
+        scrollPositions.set(noteId, container.scrollTop);
+      }
     };
     container.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       observer?.disconnect();
+      if (restoreTimer) clearTimeout(restoreTimer);
       container.removeEventListener("scroll", handleScroll);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
