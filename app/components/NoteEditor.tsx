@@ -937,12 +937,13 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const isNearBottom = (element: HTMLDivElement) =>
     element.scrollHeight - element.scrollTop - element.clientHeight < 96;
 
-  // Save scroll position on unmount, restore on mount
+  // Save scroll position on scroll, restore on mount
   useEffect(() => {
     const container = editorScrollRef.current;
     if (!container || !scrollPositions) return;
 
-    const saved = scrollPositions.get(note.id);
+    const noteId = note.id;
+    const saved = scrollPositions.get(noteId);
     let observer: ResizeObserver | null = null;
 
     if (saved != null && saved > 0) {
@@ -957,9 +958,15 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       observer.observe(container);
     }
 
+    // Continuously track scroll position so it's always up to date
+    const handleScroll = () => {
+      scrollPositions.set(noteId, container.scrollTop);
+    };
+    container.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => {
       observer?.disconnect();
-      scrollPositions.set(note.id, container.scrollTop);
+      container.removeEventListener("scroll", handleScroll);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
