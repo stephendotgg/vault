@@ -1848,6 +1848,37 @@ ipcMain.on("quick-note-open", () => {
   })();
 });
 
+ipcMain.on("popout-note", (_event, payload) => {
+  const noteId = typeof payload?.noteId === "string" ? payload.noteId : "";
+  if (!noteId) return;
+
+  const popoutWindow = new BrowserWindow({
+    width: 800,
+    height: 700,
+    minWidth: 500,
+    minHeight: 400,
+    backgroundColor: "#191919",
+    autoHideMenuBar: true,
+    frame: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  installStandardZoomShortcuts(popoutWindow);
+  popoutWindow.setBackgroundColor("#191919");
+
+  const popoutUrl = `http://localhost:${PORT}/?noteId=${encodeURIComponent(noteId)}&popout=true`;
+  popoutWindow.loadURL(popoutUrl);
+
+  popoutWindow.once("ready-to-show", () => {
+    popoutWindow.show();
+  });
+});
+
 ipcMain.handle("quick-get-theme-mode", async () => {
   return getThemeModeFromMainWindow();
 });
@@ -2254,26 +2285,6 @@ function createWindow() {
 
   // Open external links in the default browser, not in the app
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // Allow pop-out note windows to open as new Electron windows
-    if (url.startsWith(`http://localhost:${PORT}`) && url.includes("popout=true")) {
-      return {
-        action: "allow",
-        overrideBrowserWindowOptions: {
-          width: 800,
-          height: 700,
-          minWidth: 500,
-          minHeight: 400,
-          backgroundColor: "#191919",
-          autoHideMenuBar: true,
-          frame: false,
-          webPreferences: {
-            preload: path.join(__dirname, "preload.js"),
-            nodeIntegration: false,
-            contextIsolation: true,
-          },
-        },
-      };
-    }
     // Only open http/https URLs in external browser
     if (url.startsWith("http://") || url.startsWith("https://")) {
       shell.openExternal(url);

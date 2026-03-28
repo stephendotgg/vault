@@ -30,6 +30,7 @@ export interface ElectronAPI {
   callsTranscriberLog: (message: string, data?: unknown) => void;
   onCallsTranscriberStart: (callback: (payload: { chunkMs?: number }) => void) => () => void;
   onCallsTranscriberStop: (callback: () => void) => () => void;
+  popoutNote: (noteId: string) => void;
 }
 
 declare global {
