@@ -3139,7 +3139,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                                     });
                                     insertUploadedIconFromPicker(filename);
                                   }}
-                                  className={`w-8 h-8 flex items-center justify-center rounded transition-colors focus:outline-none ${selected ? "bg-[#3f3f3f] shadow-[inset_0_0_0_2px_#7eb8f7]" : "hover:bg-[#3f3f3f]"}`}
+                                  className={`w-8 h-8 flex items-center justify-center rounded-sm transition-colors focus:outline-none ${selected ? "bg-[#3f3f3f] shadow-[inset_0_0_0_2px_#7eb8f7]" : "hover:bg-[#3f3f3f]"}`}
                                   title="Insert icon"
                                 >
                                   <img
