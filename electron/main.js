@@ -1860,7 +1860,6 @@ ipcMain.on("popout-note", (_event, payload) => {
     backgroundColor: "#191919",
     autoHideMenuBar: true,
     frame: false,
-    show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -1869,14 +1868,9 @@ ipcMain.on("popout-note", (_event, payload) => {
   });
 
   installStandardZoomShortcuts(popoutWindow);
-  popoutWindow.setBackgroundColor("#191919");
 
   const popoutUrl = `http://localhost:${PORT}/?noteId=${encodeURIComponent(noteId)}&popout=true`;
   popoutWindow.loadURL(popoutUrl);
-
-  popoutWindow.once("ready-to-show", () => {
-    popoutWindow.show();
-  });
 });
 
 ipcMain.handle("quick-get-theme-mode", async () => {
