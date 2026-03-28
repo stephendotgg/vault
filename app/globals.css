@@ -396,23 +396,26 @@ a {
   outline: none;
 }
 
-/* Note deep links (vault://note/...) styled as @mentions */
-.tiptap a[href^="vault://note/"] {
+/* Note deep links styled as @mentions */
+.note-link {
   color: #7eb8f7;
   background: rgba(126, 184, 247, 0.1);
-  padding: 1px 4px;
+  padding: 1px 6px;
   border-radius: 4px;
   text-decoration: none;
   cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+  user-select: none;
 }
-.tiptap a[href^="vault://note/"]:hover {
+.note-link:hover {
   background: rgba(126, 184, 247, 0.2);
 }
-:root[data-theme="light"] .tiptap a[href^="vault://note/"] {
+:root[data-theme="light"] .note-link {
   color: #2563eb;
   background: rgba(37, 99, 235, 0.08);
 }
-:root[data-theme="light"] .tiptap a[href^="vault://note/"]:hover {
+:root[data-theme="light"] .note-link:hover {
   background: rgba(37, 99, 235, 0.15);
 }
 

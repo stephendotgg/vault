@@ -29,6 +29,7 @@ import type {
 import { EmptySelection } from "react-spreadsheet";
 import ReactMarkdown from "react-markdown";
 import { AutoCorrect } from "@/app/extensions/AutoCorrect";
+import { NoteLink } from "@/app/extensions/NoteLink";
 import { Note } from "@/types/models";
 
 // Storage keys
@@ -2035,6 +2036,11 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         },
       }),
       AutoCorrect,
+      NoteLink.configure({
+        onNavigate: (noteId: string) => {
+          onSelectNoteRef.current(noteId);
+        },
+      }),
     ],
     content: isSpreadsheetNote ? "<p></p>" : note.content,
     editable: !isSpreadsheetNote && !isLocked,
@@ -2190,16 +2196,14 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
         const plainText = clipboard.getData("text/plain").trim();
 
-        // Handle pasting a note deep link — insert as a clickable link with note title
+        // Handle pasting a note deep link — insert as a NoteLink node
         const noteLinkMatch = plainText.match(/^\[([^\]]+)\]\(vault:\/\/note\/([a-zA-Z0-9_-]+)\)$/);
         if (noteLinkMatch) {
           event.preventDefault();
           const [, linkTitle, noteId] = noteLinkMatch;
-          const { state, dispatch } = view;
-          const { from, to } = state.selection;
-          const linkMark = state.schema.marks.link.create({ href: `vault://note/${noteId}` });
-          const textNode = state.schema.text(linkTitle, [linkMark]);
-          dispatch(state.tr.replaceWith(from, to, textNode));
+          const noteLinkNode = view.state.schema.nodes.noteLink.create({ noteId, title: linkTitle });
+          const { from, to } = view.state.selection;
+          view.dispatch(view.state.tr.replaceWith(from, to, noteLinkNode));
           return true;
         }
 
@@ -2210,11 +2214,9 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           const noteId = plainNoteLinkMatch[1];
           const linkedNote = allNotesRef.current.find(n => n.id === noteId);
           const linkTitle = linkedNote?.title || "Untitled";
-          const { state, dispatch } = view;
-          const { from, to } = state.selection;
-          const linkMark = state.schema.marks.link.create({ href: `vault://note/${noteId}` });
-          const textNode = state.schema.text(linkTitle, [linkMark]);
-          dispatch(state.tr.replaceWith(from, to, textNode));
+          const noteLinkNode = view.state.schema.nodes.noteLink.create({ noteId, title: linkTitle });
+          const { from, to } = view.state.selection;
+          view.dispatch(view.state.tr.replaceWith(from, to, noteLinkNode));
           return true;
         }
 
@@ -2259,22 +2261,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         })();
 
         return true;
-      },
-      handleClick: (view, _pos, event) => {
-        const target = event.target as HTMLElement | null;
-        const anchor = target?.closest("a") as HTMLAnchorElement | null;
-        if (!anchor) return false;
-
-        const href = anchor.getAttribute("href") || "";
-        const noteMatch = href.match(/^vault:\/\/note\/([a-zA-Z0-9_-]+)$/);
-        if (noteMatch) {
-          event.preventDefault();
-          event.stopPropagation();
-          onSelectNoteRef.current(noteMatch[1]);
-          return true;
-        }
-
-        return false;
       },
       handleDOMEvents: {
         mousedown: (view, event) => {
