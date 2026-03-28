@@ -452,7 +452,7 @@ export function FileCleanerView({ onBack: _onBack }: FileCleanerViewProps) {
       {/* Top bar */}
       <div className="flex items-center justify-between h-11 px-4 border-b border-[#2f2f2f] shrink-0">
         <div className="flex items-center gap-1 text-sm text-[#9b9b9b]">
-          <span>File Cleander</span>
+          <span>File Cleaner</span>
         </div>
         {files.length > 0 && !isComplete && (
           <div className="text-xs text-[#6b6b6b]">
