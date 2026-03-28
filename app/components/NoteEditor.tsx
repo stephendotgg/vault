@@ -2735,7 +2735,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         </div>
 
         {/* Editor content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <div className={isSpreadsheetNote ? "h-full flex flex-col" : "max-w-3xl mx-auto px-16 py-12 h-full flex flex-col"}>
             {/* Title */}
             {!isSpreadsheetNote && (

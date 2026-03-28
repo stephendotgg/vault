@@ -394,6 +394,8 @@ a {
 /* TipTap Editor Styles - outside @layer to override prose */
 .tiptap {
   outline: none;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Note deep links styled as @mentions */
