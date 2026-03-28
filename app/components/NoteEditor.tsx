@@ -30,6 +30,8 @@ import { EmptySelection } from "react-spreadsheet";
 import ReactMarkdown from "react-markdown";
 import { AutoCorrect } from "@/app/extensions/AutoCorrect";
 import { NoteLink } from "@/app/extensions/NoteLink";
+import { EMOJI_INSERT_OPTIONS } from "@/app/data/emojis";
+import type { EmojiInsertOption } from "@/app/data/emojis";
 import { Note } from "@/types/models";
 
 // Storage keys
@@ -727,77 +729,12 @@ type SlashCommand = {
   keywords: string[];
 };
 
-type EmojiInsertOption = {
-  emoji: string;
-  name: string;
-  keywords: string[];
-};
-
 type InlineInsertPickerState = {
   mode: "emoji" | "icon";
   query: string;
   left: number;
   top: number;
 };
-
-const EMOJI_INSERT_OPTIONS: EmojiInsertOption[] = [
-  { emoji: "😀", name: "grinning face", keywords: ["happy", "smile"] },
-  { emoji: "😂", name: "face with tears of joy", keywords: ["lol", "laugh"] },
-  { emoji: "🙂", name: "slightly smiling face", keywords: ["smile", "friendly"] },
-  { emoji: "😊", name: "smiling face with smiling eyes", keywords: ["happy", "warm"] },
-  { emoji: "😉", name: "winking face", keywords: ["wink"] },
-  { emoji: "😍", name: "smiling face with heart eyes", keywords: ["love", "heart"] },
-  { emoji: "🤔", name: "thinking face", keywords: ["think", "hmm"] },
-  { emoji: "😎", name: "smiling face with sunglasses", keywords: ["cool"] },
-  { emoji: "😭", name: "loudly crying face", keywords: ["sad", "cry"] },
-  { emoji: "😴", name: "sleeping face", keywords: ["sleep", "tired"] },
-  { emoji: "🔥", name: "fire", keywords: ["hot", "lit"] },
-  { emoji: "✨", name: "sparkles", keywords: ["magic", "shine"] },
-  { emoji: "⭐", name: "star", keywords: ["favorite"] },
-  { emoji: "✅", name: "check mark", keywords: ["done", "task"] },
-  { emoji: "❌", name: "cross mark", keywords: ["no", "fail"] },
-  { emoji: "⚠️", name: "warning", keywords: ["alert", "caution"] },
-  { emoji: "💡", name: "light bulb", keywords: ["idea", "brainstorm"] },
-  { emoji: "📌", name: "pushpin", keywords: ["pin", "important"] },
-  { emoji: "📎", name: "paperclip", keywords: ["attachment"] },
-  { emoji: "📝", name: "memo", keywords: ["note", "write"] },
-  { emoji: "📄", name: "page", keywords: ["document", "file"] },
-  { emoji: "📁", name: "folder", keywords: ["directory"] },
-  { emoji: "🗂️", name: "card index dividers", keywords: ["organize", "folder"] },
-  { emoji: "📚", name: "books", keywords: ["read", "library"] },
-  { emoji: "📅", name: "calendar", keywords: ["date", "schedule"] },
-  { emoji: "🗓️", name: "spiral calendar", keywords: ["calendar", "plan"] },
-  { emoji: "⏰", name: "alarm clock", keywords: ["time", "reminder"] },
-  { emoji: "🎯", name: "direct hit", keywords: ["goal", "target"] },
-  { emoji: "🚀", name: "rocket", keywords: ["launch", "ship"] },
-  { emoji: "🧠", name: "brain", keywords: ["thinking", "smart"] },
-  { emoji: "💬", name: "speech balloon", keywords: ["chat", "message"] },
-  { emoji: "📢", name: "loudspeaker", keywords: ["announce", "alert"] },
-  { emoji: "📷", name: "camera", keywords: ["photo", "image"] },
-  { emoji: "🖼️", name: "framed picture", keywords: ["image", "art"] },
-  { emoji: "🎨", name: "artist palette", keywords: ["design", "art"] },
-  { emoji: "🎵", name: "musical note", keywords: ["music", "audio"] },
-  { emoji: "🎬", name: "clapper board", keywords: ["video", "movie"] },
-  { emoji: "💻", name: "laptop", keywords: ["computer", "code"] },
-  { emoji: "📱", name: "mobile phone", keywords: ["phone", "device"] },
-  { emoji: "🔧", name: "wrench", keywords: ["tool", "fix"] },
-  { emoji: "🛠️", name: "hammer and wrench", keywords: ["build", "repair"] },
-  { emoji: "🔒", name: "locked", keywords: ["secure", "private"] },
-  { emoji: "🔓", name: "unlocked", keywords: ["open"] },
-  { emoji: "❤️", name: "red heart", keywords: ["love", "like"] },
-  { emoji: "👍", name: "thumbs up", keywords: ["yes", "approve"] },
-  { emoji: "👎", name: "thumbs down", keywords: ["no", "dislike"] },
-  { emoji: "🙏", name: "folded hands", keywords: ["thanks", "please"] },
-  { emoji: "👀", name: "eyes", keywords: ["look", "review"] },
-  { emoji: "🏠", name: "house", keywords: ["home"] },
-  { emoji: "🌍", name: "globe showing europe-africa", keywords: ["world", "global"] },
-  { emoji: "🌱", name: "seedling", keywords: ["growth", "new"] },
-  { emoji: "🍀", name: "four leaf clover", keywords: ["lucky"] },
-  { emoji: "☕", name: "hot beverage", keywords: ["coffee", "break"] },
-  { emoji: "🍕", name: "pizza", keywords: ["food"] },
-  { emoji: "🎉", name: "party popper", keywords: ["celebrate", "success"] },
-  { emoji: "🏆", name: "trophy", keywords: ["win", "achievement"] },
-];
 
 type SlashMenuState = {
   query: string;
