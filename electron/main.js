@@ -1853,9 +1853,9 @@ ipcMain.on("popout-note", (_event, payload) => {
   if (!noteId) return;
 
   const popoutWindow = new BrowserWindow({
-    width: 800,
-    height: 700,
-    minWidth: 500,
+    width: 700,
+    height: 850,
+    minWidth: 420,
     minHeight: 400,
     backgroundColor: "#191919",
     autoHideMenuBar: true,
@@ -2231,20 +2231,21 @@ function createWindow() {
   });
 
   // Handle window control IPC events
-  ipcMain.on("window-minimize", () => {
-    mainWindow?.minimize();
+  ipcMain.on("window-minimize", (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize();
   });
 
-  ipcMain.on("window-maximize", () => {
-    if (mainWindow?.isMaximized()) {
-      mainWindow.unmaximize();
+  ipcMain.on("window-maximize", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win?.isMaximized()) {
+      win.unmaximize();
     } else {
-      mainWindow?.maximize();
+      win?.maximize();
     }
   });
 
-  ipcMain.on("window-close", () => {
-    mainWindow?.close();
+  ipcMain.on("window-close", (event) => {
+    BrowserWindow.fromWebContents(event.sender)?.close();
   });
 
   // Handle folder selection dialog

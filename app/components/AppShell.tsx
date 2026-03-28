@@ -195,13 +195,15 @@ function getDescendantNoteIds(notes: Note[], rootId: string): string[] {
 }
 
 export function AppShell() {
-  // Detect pop-out mode from URL params
-  const [popoutNoteId] = useState(() => {
-    if (typeof window === "undefined") return null;
+  // Detect pop-out mode from URL params (deferred to avoid hydration mismatch)
+  const [popoutNoteId, setPopoutNoteId] = useState<string | null>(null);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("popout") === "true") return params.get("noteId");
-    return null;
-  });
+    if (params.get("popout") === "true") {
+      setPopoutNoteId(params.get("noteId"));
+    }
+  }, []);
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [listItems, setListItems] = useState<ListItem[]>([]);
@@ -1027,6 +1029,7 @@ export function AppShell() {
           setChatOpenStates={setChatOpenStates}
           allChatMessages={allChatMessages}
           setAllChatMessages={setAllChatMessages}
+          isPopout
         />
       </div>
     );
