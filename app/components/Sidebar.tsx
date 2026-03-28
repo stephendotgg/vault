@@ -1131,7 +1131,8 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
             className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
             onClick={() => {
               const noteForLink = notes.find(n => n.id === contextMenu.noteId);
-              const label = noteForLink?.title || "Untitled";
+              const isSheet = noteForLink && (noteForLink.icon === "sheet" || noteForLink.icon === "📊" || noteForLink.content.startsWith(SPREADSHEET_CONTENT_PREFIX));
+              const label = noteForLink?.title && noteForLink.title !== "Untitled" ? noteForLink.title : (isSheet ? "New sheet" : "New page");
               navigator.clipboard.writeText(`[${label}](vault://note/${contextMenu.noteId})`);
               setContextMenu(null);
             }}
