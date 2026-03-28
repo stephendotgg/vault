@@ -2700,7 +2700,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
             <button
               onClick={() => {
                 const url = `${window.location.origin}/?noteId=${note.id}&popout=true`;
-                window.open(url, `note-${note.id}`, "width=800,height=700");
+                window.open(url);
               }}
               className="p-1 rounded transition-colors text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f]"
               title="Pop out into separate window"
