@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { EMOJI_INSERT_OPTIONS } from "@/app/data/emojis";
 
 interface IconPickerProps {
   currentIcon: string;
@@ -9,27 +10,24 @@ interface IconPickerProps {
   onClose: () => void;
 }
 
-// Common emoji icons for pages
-const EMOJI_OPTIONS = [
-  "📄", "📝", "📋", "📌", "📎", "📁", "📂", "🗂️", "📚", "📖",
-  "🔖", "📑", "📰", "🗞️", "🏷️", "💡", "💭", "💬", "✨", "⭐",
-  "🌟", "💫", "🔥", "❤️", "💜", "💙", "💚", "💛", "🧡", "🖤",
-  "🎯", "🎨", "🎭", "🎪", "🎬", "🎤", "🎧", "🎵", "🎶", "🎸",
-  "🏠", "🏢", "🏗️", "🌍", "🌎", "🌏", "🌲", "🌳", "🌴", "🌵",
-  "🐱", "🐶", "🦊", "🦁", "🐯", "🐻", "🐼", "🐨", "🐰", "🦄",
-  "🍎", "🍊", "🍋", "🍇", "🍓", "🍕", "🍔", "🍟", "🍩", "🍪",
-  "☕", "🍵", "🥤", "🍷", "🍸", "🍹", "🥂", "🧃", "🧊", "🍶",
-  "🚀", "✈️", "🚗", "🚕", "🚌", "🚂", "🛸", "🚁", "⛵", "🚲",
-  "💻", "🖥️", "📱", "⌨️", "🖱️", "💾", "📀", "🔌", "💡", "🔋",
-];
-
 export function IconPicker({ currentIcon, noteId, onIconChange, onClose }: IconPickerProps) {
   const [activeTab, setActiveTab] = useState<"emoji" | "custom">("emoji");
-  const [emojiInput, setEmojiInput] = useState("");
+  const [emojiSearch, setEmojiSearch] = useState("");
   const [uploading, setUploading] = useState(false);
   const [existingIcons, setExistingIcons] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredEmojis = useMemo(() => {
+    const query = emojiSearch.trim().toLowerCase();
+    if (!query) return EMOJI_INSERT_OPTIONS;
+    return EMOJI_INSERT_OPTIONS.filter((opt) =>
+      opt.emoji.includes(query) ||
+      opt.name.includes(query) ||
+      opt.keywords.some((kw) => kw.includes(query))
+    );
+  }, [emojiSearch]);
 
   // Fetch existing custom icons
   useEffect(() => {
@@ -173,40 +171,36 @@ export function IconPicker({ currentIcon, noteId, onIconChange, onClose }: IconP
       {/* Content */}
       <div className="p-3">
         {activeTab === "emoji" ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={emojiInput}
-                onChange={(e) => setEmojiInput(e.target.value)}
-                placeholder="Any emoji (paste or Win+.)"
-                className="flex-1 bg-[#1a1a1a] border border-[#3f3f3f] rounded px-2 py-1.5 text-sm text-[#ebebeb] outline-none"
-              />
-              <button
-                onClick={() => {
-                  const value = emojiInput.trim();
-                  if (value) {
-                    void handleEmojiSelect(value);
-                  }
-                }}
-                className="px-2 py-1.5 text-xs bg-[#3f3f3f] hover:bg-[#4f4f4f] text-[#ebebeb] rounded transition-colors"
-              >
-                Use
-              </button>
-            </div>
-            <div className="grid grid-cols-10 gap-1">
-              {EMOJI_OPTIONS.map((emoji, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleEmojiSelect(emoji)}
-                  className={`w-7 h-7 flex items-center justify-center text-[20px] leading-none bg-transparent hover:bg-[#3f3f3f] rounded transition-colors ${
-                    currentIcon === emoji ? "ring-1 ring-[#7eb8f7]" : ""
-                  }`}
-                  style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif' }}
-                >
-                  {emoji}
-                </button>
-              ))}
+          <div className="space-y-2">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={emojiSearch}
+              onChange={(e) => setEmojiSearch(e.target.value)}
+              placeholder="Search emojis..."
+              className="w-full bg-[#1a1a1a] border border-[#3f3f3f] rounded px-2 py-1.5 text-sm text-[#ebebeb] outline-none placeholder-[#6b6b6b]"
+              autoFocus
+            />
+            <div className="max-h-52 overflow-auto">
+              {filteredEmojis.length === 0 ? (
+                <p className="text-xs text-[#6b6b6b] text-center py-4">No emojis found</p>
+              ) : (
+                <div className="grid grid-cols-10 gap-1">
+                  {filteredEmojis.map((opt) => (
+                    <button
+                      key={`${opt.emoji}-${opt.name}`}
+                      onClick={() => handleEmojiSelect(opt.emoji)}
+                      className={`w-7 h-7 flex items-center justify-center text-[20px] leading-none bg-transparent hover:bg-[#3f3f3f] rounded transition-colors ${
+                        currentIcon === opt.emoji ? "ring-1 ring-[#7eb8f7]" : ""
+                      }`}
+                      title={opt.name}
+                      style={{ fontFamily: '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif' }}
+                    >
+                      {opt.emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : (
