@@ -506,8 +506,7 @@ export const EMOJI_INSERT_OPTIONS: EmojiInsertOption[] = [
   { emoji: "🏷️", name: "label", keywords: ["tag", "label", "price"] },
   { emoji: "📌", name: "pushpin", keywords: ["pin", "important", "location"] },
   { emoji: "📍", name: "round pushpin", keywords: ["pin", "location"] },
-  { emoji: "📎", name: "paperclip", keywords: ["clip", "attach"] },
-  { emoji: "📓", name: "notebook", keywords: ["notebook", "journal"] },
+  { emoji: "", name: "notebook", keywords: ["notebook", "journal"] },
   { emoji: "📔", name: "notebook with decorative cover", keywords: ["notebook", "diary"] },
   { emoji: "📒", name: "ledger", keywords: ["notebook", "ledger"] },
   { emoji: "📕", name: "closed book", keywords: ["book", "red"] },
@@ -608,7 +607,6 @@ export const EMOJI_INSERT_OPTIONS: EmojiInsertOption[] = [
   { emoji: "⏳", name: "hourglass not done", keywords: ["time", "loading", "wait"] },
 
   // Misc
-  { emoji: "🎗️", name: "reminder ribbon", keywords: ["ribbon", "awareness"] },
   { emoji: "🧸", name: "teddy bear", keywords: ["teddy", "bear", "toy"] },
   { emoji: "🪄", name: "magic wand", keywords: ["magic", "wand", "wizard"] },
   { emoji: "🔮", name: "crystal ball", keywords: ["magic", "fortune", "predict"] },
@@ -623,8 +621,7 @@ export const EMOJI_INSERT_OPTIONS: EmojiInsertOption[] = [
   { emoji: "🪆", name: "nesting dolls", keywords: ["matryoshka", "russian"] },
   { emoji: "🛒", name: "shopping cart", keywords: ["shopping", "cart", "buy"] },
   { emoji: "💎", name: "gem stone", keywords: ["diamond", "gem", "jewel"] },
-  { emoji: "🧲", name: "magnet", keywords: ["magnet", "attract"] },
-  { emoji: "🪞", name: "mirror", keywords: ["mirror", "reflection"] },
+  { emoji: "", name: "mirror", keywords: ["mirror", "reflection"] },
   { emoji: "🪟", name: "window", keywords: ["window", "frame"] },
   { emoji: "🛡️", name: "shield", keywords: ["shield", "protect", "defense"] },
   { emoji: "⚔️", name: "crossed swords", keywords: ["swords", "battle", "fight"] },
