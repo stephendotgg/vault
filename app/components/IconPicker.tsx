@@ -181,7 +181,7 @@ export function IconPicker({ currentIcon, noteId, onIconChange, onClose }: IconP
               className="w-full bg-[#1a1a1a] border border-[#3f3f3f] rounded px-2 py-1.5 text-sm text-[#ebebeb] outline-none placeholder-[#6b6b6b]"
               autoFocus
             />
-            <div className="max-h-52 overflow-auto">
+            <div className="max-h-52 overflow-y-auto overflow-x-hidden">
               {filteredEmojis.length === 0 ? (
                 <p className="text-xs text-[#6b6b6b] text-center py-4">No emojis found</p>
               ) : (
