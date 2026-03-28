@@ -1099,6 +1099,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
             src: `/api/icons/${filename}`,
             alt: filename,
             width: 18,
+            inlineIcon: true,
           },
         },
         {
@@ -1123,7 +1124,8 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           src: `/api/icons/${filename}`,
           alt: filename,
           width: 18,
-        })
+          inlineIcon: true,
+        } as Record<string, unknown>)
         .insertContent(" ")
         .run();
     }
