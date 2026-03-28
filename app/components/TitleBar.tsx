@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function TitleBar() {
-  const [isElectron] = useState(() => typeof window !== "undefined" && !!window.electronAPI);
+  const [isElectron, setIsElectron] = useState(false);
+
+  useEffect(() => {
+    setIsElectron(!!window.electronAPI);
+  }, []);
+
+  if (!isElectron) {
+    return null;
+  }
 
   const handleMinimize = () => {
     window.electronAPI?.minimize();
@@ -16,11 +24,6 @@ export function TitleBar() {
   const handleClose = () => {
     window.electronAPI?.close();
   };
-
-  // Don't render until we know if we're in Electron
-  if (!isElectron) {
-    return null;
-  }
 
   return (
     <div className="h-8 bg-[#202020] flex items-center justify-between select-none shrink-0"
