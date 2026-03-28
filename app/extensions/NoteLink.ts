@@ -1,4 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
 
 export interface NoteLinkOptions {
   onNavigate: (noteId: string) => void;
@@ -100,5 +101,51 @@ export const NoteLink = Node.create<NoteLinkOptions>({
           });
         },
     };
+  },
+
+  addProseMirrorPlugins() {
+    const type = this.type;
+
+    return [
+      new Plugin({
+        key: new PluginKey("noteLinkPaste"),
+        props: {
+          handlePaste(view, event) {
+            const clipboard = event.clipboardData;
+            if (!clipboard) return false;
+
+            const plainText = clipboard.getData("text/plain").trim();
+
+            // Match [Title](vault://note/id) format
+            const markdownMatch = plainText.match(
+              /^\[([^\]]+)\]\(vault:\/\/note\/([a-zA-Z0-9_-]+)\)$/
+            );
+            if (markdownMatch) {
+              event.preventDefault();
+              const [, title, noteId] = markdownMatch;
+              const node = type.create({ noteId, title });
+              const { from, to } = view.state.selection;
+              view.dispatch(view.state.tr.replaceWith(from, to, node));
+              return true;
+            }
+
+            // Match plain vault://note/id format
+            const plainMatch = plainText.match(
+              /^vault:\/\/note\/([a-zA-Z0-9_-]+)$/
+            );
+            if (plainMatch) {
+              event.preventDefault();
+              const noteId = plainMatch[1];
+              const node = type.create({ noteId, title: "Untitled" });
+              const { from, to } = view.state.selection;
+              view.dispatch(view.state.tr.replaceWith(from, to, node));
+              return true;
+            }
+
+            return false;
+          },
+        },
+      }),
+    ];
   },
 });

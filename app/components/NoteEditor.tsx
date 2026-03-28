@@ -2015,6 +2015,11 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       Placeholder.configure({
         placeholder: "Start typing...",
       }),
+      NoteLink.configure({
+        onNavigate: (noteId: string) => {
+          onSelectNoteRef.current(noteId);
+        },
+      }),
       Link.configure({
         openOnClick: true,
         autolink: true,
@@ -2036,11 +2041,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         },
       }),
       AutoCorrect,
-      NoteLink.configure({
-        onNavigate: (noteId: string) => {
-          onSelectNoteRef.current(noteId);
-        },
-      }),
     ],
     content: isSpreadsheetNote ? "<p></p>" : note.content,
     editable: !isSpreadsheetNote && !isLocked,
@@ -2195,30 +2195,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         }
 
         const plainText = clipboard.getData("text/plain").trim();
-
-        // Handle pasting a note deep link — insert as a NoteLink node
-        const noteLinkMatch = plainText.match(/^\[([^\]]+)\]\(vault:\/\/note\/([a-zA-Z0-9_-]+)\)$/);
-        if (noteLinkMatch) {
-          event.preventDefault();
-          const [, linkTitle, noteId] = noteLinkMatch;
-          const noteLinkNode = view.state.schema.nodes.noteLink.create({ noteId, title: linkTitle });
-          const { from, to } = view.state.selection;
-          view.dispatch(view.state.tr.replaceWith(from, to, noteLinkNode));
-          return true;
-        }
-
-        // Handle pasting a plain vault://note/id URL
-        const plainNoteLinkMatch = plainText.match(/^vault:\/\/note\/([a-zA-Z0-9_-]+)$/);
-        if (plainNoteLinkMatch) {
-          event.preventDefault();
-          const noteId = plainNoteLinkMatch[1];
-          const linkedNote = allNotesRef.current.find(n => n.id === noteId);
-          const linkTitle = linkedNote?.title || "Untitled";
-          const noteLinkNode = view.state.schema.nodes.noteLink.create({ noteId, title: linkTitle });
-          const { from, to } = view.state.selection;
-          view.dispatch(view.state.tr.replaceWith(from, to, noteLinkNode));
-          return true;
-        }
 
         if (isImageUrl(plainText)) {
           event.preventDefault();
