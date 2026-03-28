@@ -2254,6 +2254,26 @@ function createWindow() {
 
   // Open external links in the default browser, not in the app
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    // Allow pop-out note windows to open as new Electron windows
+    if (url.startsWith(`http://localhost:${PORT}`) && url.includes("popout=true")) {
+      return {
+        action: "allow",
+        overrideBrowserWindowOptions: {
+          width: 800,
+          height: 700,
+          minWidth: 500,
+          minHeight: 400,
+          backgroundColor: "#191919",
+          autoHideMenuBar: true,
+          frame: false,
+          webPreferences: {
+            preload: path.join(__dirname, "preload.js"),
+            nodeIntegration: false,
+            contextIsolation: true,
+          },
+        },
+      };
+    }
     // Only open http/https URLs in external browser
     if (url.startsWith("http://") || url.startsWith("https://")) {
       shell.openExternal(url);

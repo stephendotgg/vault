@@ -2697,6 +2697,18 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                 </svg>
               )}
             </button>
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/?noteId=${note.id}&popout=true`;
+                window.open(url, `note-${note.id}`, "width=800,height=700");
+              }}
+              className="p-1 rounded transition-colors text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f]"
+              title="Pop out into separate window"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </button>
             {allowAIChat && (
               <button
                 onClick={() => {

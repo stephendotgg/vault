@@ -195,6 +195,14 @@ function getDescendantNoteIds(notes: Note[], rootId: string): string[] {
 }
 
 export function AppShell() {
+  // Detect pop-out mode from URL params
+  const [popoutNoteId] = useState(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("popout") === "true") return params.get("noteId");
+    return null;
+  });
+
   const [notes, setNotes] = useState<Note[]>([]);
   const [listItems, setListItems] = useState<ListItem[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -991,8 +999,35 @@ export function AppShell() {
   if (!hydrated || !migrationsReady) {
     return (
       <div className="flex flex-1 overflow-hidden bg-[#191919]">
-        <div className="w-64 border-r border-[#2f2f2f] bg-[#1e1e1e]" />
+        {!popoutNoteId && <div className="w-64 border-r border-[#2f2f2f] bg-[#1e1e1e]" />}
         <main className="flex-1" />
+      </div>
+    );
+  }
+
+  // Pop-out mode: render only the note editor, no sidebar
+  if (popoutNoteId) {
+    const popoutNote = notes.find((n) => n.id === popoutNoteId);
+    if (!popoutNote) {
+      return (
+        <div className="flex flex-1 items-center justify-center bg-[#191919] text-[#6b6b6b]">
+          Note not found
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-1 overflow-hidden bg-[#191919]">
+        <NoteEditor
+          key={popoutNote.id}
+          note={popoutNote}
+          allNotes={notes}
+          onUpdate={handleUpdateNote}
+          onSelectNote={handleSelectNote}
+          chatOpenStates={chatOpenStates}
+          setChatOpenStates={setChatOpenStates}
+          allChatMessages={allChatMessages}
+          setAllChatMessages={setAllChatMessages}
+        />
       </div>
     );
   }
