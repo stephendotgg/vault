@@ -124,8 +124,9 @@ export const NoteLink = Node.create<NoteLinkOptions>({
               event.preventDefault();
               const [, title, noteId] = markdownMatch;
               const node = type.create({ noteId, title });
+              const space = view.state.schema.text(" ");
               const { from, to } = view.state.selection;
-              view.dispatch(view.state.tr.replaceWith(from, to, node));
+              view.dispatch(view.state.tr.replaceWith(from, to, [node, space]));
               return true;
             }
 
@@ -137,8 +138,9 @@ export const NoteLink = Node.create<NoteLinkOptions>({
               event.preventDefault();
               const noteId = plainMatch[1];
               const node = type.create({ noteId, title: "Untitled" });
+              const space = view.state.schema.text(" ");
               const { from, to } = view.state.selection;
-              view.dispatch(view.state.tr.replaceWith(from, to, node));
+              view.dispatch(view.state.tr.replaceWith(from, to, [node, space]));
               return true;
             }
 
