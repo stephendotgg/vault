@@ -1855,8 +1855,9 @@ ipcMain.on("popout-note", (_event, payload) => {
   const popoutWindow = new BrowserWindow({
     width: 700,
     height: 850,
-    minWidth: 420,
-    minHeight: 400,
+    minWidth: 700,
+    minHeight: 850,
+    resizable: false,
     backgroundColor: "#191919",
     autoHideMenuBar: true,
     frame: false,
