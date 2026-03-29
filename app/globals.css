@@ -456,9 +456,10 @@ a {
 .note-audio-info {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0px;
   min-width: 0;
   flex-shrink: 0;
+  line-height: 1.2;
 }
 .note-audio-name {
   font-size: 12px;
