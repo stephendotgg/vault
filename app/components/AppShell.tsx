@@ -464,6 +464,24 @@ export function AppShell() {
     fetchListItems();
   }, [fetchNotes, fetchListItems]);
 
+  // Listen for note changes from other windows (pop-out sync)
+  useEffect(() => {
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel("vault-note-sync");
+      channel.onmessage = (event) => {
+        if (event.data?.type === "note-saved") {
+          fetchNotes();
+        }
+      };
+    } catch {
+      // BroadcastChannel not supported
+    }
+    return () => {
+      channel?.close();
+    };
+  }, [fetchNotes]);
+
   useEffect(() => {
     if (!hydrated) {
       return;

@@ -1904,6 +1904,15 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       if (!skipParentUpdate) {
         onUpdate(updatedNote);
       }
+
+      // Notify other windows that this note changed
+      try {
+        const channel = new BroadcastChannel("vault-note-sync");
+        channel.postMessage({ type: "note-saved", noteId: note.id });
+        channel.close();
+      } catch {
+        // BroadcastChannel not supported — ignore
+      }
     } catch (error) {
       console.error("Failed to save note:", error);
     }
