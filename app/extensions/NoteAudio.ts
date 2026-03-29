@@ -86,8 +86,18 @@ export const NoteAudio = Node.create({
         if (!audio) return;
         const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
         progressFill.style.width = `${pct}%`;
-        timeEl.textContent = formatTime(audio.currentTime);
+        timeEl.textContent = playing ? formatTime(audio.currentTime) : formatTime(audio.duration);
       }
+
+      // Preload metadata to show total duration immediately
+      const preloadAudio = new Audio();
+      preloadAudio.preload = "metadata";
+      preloadAudio.addEventListener("loadedmetadata", () => {
+        if (!playing) {
+          timeEl.textContent = formatTime(preloadAudio.duration);
+        }
+      });
+      preloadAudio.src = src;
 
       playBtn.addEventListener("click", (e) => {
         e.preventDefault();
