@@ -43,13 +43,20 @@ if (!fs.existsSync(standaloneDir)) {
   process.exit(1);
 }
 
-// Remove better-sqlite3 from standalone node_modules so that at runtime
-// Node's module resolution falls through to the root node_modules copy,
-// which is rebuilt for Electron's ABI by @electron/rebuild.
+// For electron-packager (install:local): remove better-sqlite3 from standalone
+// so Node.js falls through to the root copy rebuilt for Electron's ABI.
+// For electron-builder (release:win): keep standalone copy but replace the native
+// binary after electron-builder rebuilds (handled by --afterAllArtifactBuild or
+// by the sync-native-modules step in the release script).
 const standaloneBetterSqlite3 = path.join(standaloneDir, "node_modules", "better-sqlite3");
-if (fs.existsSync(standaloneBetterSqlite3)) {
-  fs.rmSync(standaloneBetterSqlite3, { recursive: true, force: true });
-  console.log("Removed standalone better-sqlite3 (will use electron-rebuilt root copy)");
+const keepStandaloneModules = process.argv.includes("--keep-native") || process.env.VAULT_KEEP_STANDALONE_MODULES === "1";
+if (!keepStandaloneModules) {
+  if (fs.existsSync(standaloneBetterSqlite3)) {
+    fs.rmSync(standaloneBetterSqlite3, { recursive: true, force: true });
+    console.log("Removed standalone better-sqlite3 (will use electron-rebuilt root copy)");
+  }
+} else {
+  console.log("Keeping standalone better-sqlite3 (electron-builder mode)");
 }
 
 // Copy static files
