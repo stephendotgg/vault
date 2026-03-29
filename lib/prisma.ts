@@ -14,7 +14,7 @@ try {
   serverError("[CRITICAL] This usually means the native binary was built for a different Node/Electron ABI.");
   serverError("[CRITICAL] require.resolve paths:", (module as NodeModule & { paths?: string[] }).paths);
   // Create a stub so the module still exports something (routes will fail with a clear error)
-  Database = (() => { throw new Error("better-sqlite3 failed to load: " + (err instanceof Error ? err.message : String(err))); }) as unknown as typeof import("better-sqlite3").default;
+  Database = (() => { throw new Error("better-sqlite3 failed to load: " + (err instanceof Error ? err.message : String(err))); }) as unknown as typeof Database;
 }
 
 let dbPath: string;
