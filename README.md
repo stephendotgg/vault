@@ -1,6 +1,6 @@
 # Vault
 
-A note-taking desktop app with rich text, spreadsheet notes, and hierarchical organization. It also includes opinionated everyday extras like a key-value vault, voice log, dream journal, file cleaner, plus Quick Note and Quick AI Chat for busy moments. Everything runs locally. No account, no subscription.
+A note-taking desktop app with rich text, spreadsheets, lists, AI chat, voice recordings, and more. Fully modular, with global hotkeys for quick capture. Your data stays on your machine — no account, no subscription.
 
 <img width="2068" height="1239" alt="image" src="https://github.com/user-attachments/assets/f8e978cd-1042-4a38-a033-29c0e25a2583" />
 
@@ -15,19 +15,40 @@ I also wanted total control, so Vault is local-first by design: everything is st
 ### Notes
 - Hierarchical pages with drag-and-drop reordering
 - Rich text editing, custom icons, archive, and full-text search
+- Note deep links — paste @mention-style clickable references between notes
+- Pop-out notes into separate resizable windows
+- Inline voice recordings via `/voice` slash command
+- Inline emoji picker (`/emoji`) with ~500 searchable emojis
+- Inline icon insertion (`/icon`) with searchable custom icons
+- Native spellcheck with right-click suggestions and Add to Dictionary
 
 ### Spreadsheets
 - Spreadsheet notes with inline editing and formatting
 - Resizable grid with optional AI help in context
 
+### Lists
+- Quick-access list items with optional links and tags
+- Tag-based filtering and search
+
 ### AI Chat
 - Multi-session chat with auto-generated titles
-- [OpenRouter](https://openrouter.ai) integration, streaming responses, image support, and custom instructions
-- Context-aware in-note and global modes with vector search
+- OpenRouter and Azure Foundry integration, streaming responses, image support, and custom instructions
+- Context-aware in-note and global modes
+- Blur/scramble chat history titles for privacy
 
 ### Quick Windows (Global Hotkeys)
 - **Ctrl+Q** — floating Quick Note window, saves to your notes with AI-generated title
 - **Ctrl+Space** — floating Quick AI window for instant queries without opening the full app
+
+### Search
+- Full-text search across notes and lists
+- Filter by Notes, Lists, and toggle Include Archived
+
+### Other
+- Fully modular — enable or disable any feature (Notes, Lists, AI Chat, File Cleaner) from Settings
+- Teams call transcription that auto-transcribes and summarises calls, saved as notes
+- File Cleaner with Tinder-style swipe interface for cleaning up files on your machine
+- One-click export of all data (notes, lists, audio, icons) as a zip
 
 ## Tech Stack
 
@@ -35,9 +56,10 @@ I also wanted total control, so Vault is local-first by design: everything is st
 |---|---|
 | Desktop shell | Electron 29 |
 | Frontend | Next.js 16 (App Router, Turbopack), React 19, Tailwind CSS 4 |
+| Backend | Next.js API Routes, Prisma ORM |
 | Database | SQLite via Prisma |
-| AI (cloud) | OpenRouter API (OpenAI-compatible, user-supplied key) |
-| Transcription | Azure Speech live transcription (user-supplied key) |
+| AI (cloud) | OpenRouter or Azure Foundry (user-supplied key) |
+| Transcription (cloud) | Azure Speech live transcription (user-supplied key) |
 
 ## Data Storage
 
@@ -48,8 +70,9 @@ All user data lives in:
 | Windows | `%APPDATA%\Vault\data\` |
 
 This folder contains:
-- `mothership.db` — the SQLite database (notes, vault, memories, chat history, settings)
+- `mothership.db` — the SQLite database (notes, lists, chat history, settings)
 - `icons/` — custom note icons
+- `audio/` — voice recordings
 - `.trash/` — stores the last deleted file to power the undo system (before final empty)
 
 Data persists independently of the app installation, so reinstalling or updating doesn't touch it.
