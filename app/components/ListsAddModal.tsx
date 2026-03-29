@@ -195,7 +195,7 @@ export function ListsAddModal({
             />
           </div>
           <div>
-            <label className="block text-xs text-[#9b9b9b] mb-1.5">Tags <span className="text-[#6b6b6b]">(comma-separated, optional)</span></label>
+            <label className="block text-xs text-[#9b9b9b] mb-1.5">Tags <span className="text-[#6b6b6b]">(optional, comma-separated)</span></label>
             <input
               type="text"
               placeholder="e.g. api, github, work"
