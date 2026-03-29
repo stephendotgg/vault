@@ -797,6 +797,10 @@ interface NoteEditorProps {
 export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true, isPopout = false }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
   const isLocked = Boolean(note.isLocked);
+  const [spellcheckEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("vault-setting-spellcheck-enabled") !== "false";
+  });
   const parentNote = useMemo(
     () => (note.parentId ? allNotes.find((entry) => entry.id === note.parentId) ?? null : null),
     [allNotes, note.parentId]
@@ -2078,6 +2082,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     editorProps: {
       attributes: {
         class: "prose prose-invert max-w-full focus:outline-none h-full min-h-[120px] text-[#e3e3e3] text-base leading-relaxed",
+        spellcheck: spellcheckEnabled ? "true" : "false",
       },
       handleKeyDown: (view, event) => {
         if (isLocked) {

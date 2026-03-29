@@ -73,6 +73,7 @@ const sectionLabels: Record<SidebarVisibilityKey, string> = {
 
 export function SettingsView() {
   const [sidebarVisibility, setSidebarVisibility] = useState<SidebarVisibilityState>(defaultSidebarVisibility);
+  const [spellcheckEnabled, setSpellcheckEnabled] = useState(true);
   const [teamsCallTranscriptionEnabled, setTeamsCallTranscriptionEnabled] = useState(false);
   const [quickNoteEnabled, setQuickNoteEnabled] = useState(true);
   const [quickAiEnabled, setQuickAiEnabled] = useState(true);
@@ -138,6 +139,9 @@ export function SettingsView() {
         setSidebarVisibility(defaultSidebarVisibility);
       }
     }
+
+    const savedSpellcheck = localStorage.getItem("vault-setting-spellcheck-enabled");
+    setSpellcheckEnabled(savedSpellcheck !== "false");
 
     const savedTeamsCallTranscriptionEnabled = localStorage.getItem(TEAMS_CALL_TRANSCRIPTION_ENABLED_STORAGE_KEY);
     setTeamsCallTranscriptionEnabled(savedTeamsCallTranscriptionEnabled === "true");
@@ -388,6 +392,11 @@ export function SettingsView() {
   }, [teamsCallTranscriptionEnabled, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem("vault-setting-spellcheck-enabled", String(spellcheckEnabled));
+  }, [spellcheckEnabled, hydrated]);
+
+  useEffect(() => {
     if (!hydrated) {
       return;
     }
@@ -526,6 +535,15 @@ export function SettingsView() {
             <h2 className="text-lg text-[#e3e3e3] font-medium">Notes</h2>
             <p className="text-sm text-[#9b9b9b]">Note editor preferences.</p>
             <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-3">
+              <label className="flex items-center gap-2 text-sm text-[#d1d1d1] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={spellcheckEnabled}
+                  onChange={() => setSpellcheckEnabled((prev) => !prev)}
+                  className="h-4 w-4 accent-[#7eb8f7]"
+                />
+                <span>Enable spellcheck</span>
+              </label>
               <label className="flex items-center gap-2 text-sm text-[#d1d1d1] cursor-pointer">
                 <input
                   type="checkbox"
