@@ -71,19 +71,6 @@ async function getRelevantContext(query: string, limit: number = 5): Promise<str
     context.push(`[List: ${item.key}]\n${item.value.slice(0, 200)}`);
   }
 
-  // Search memories
-  const memories = await prisma.memory.findMany({
-    where: {
-      OR: keywords.map(kw => ({ content: { contains: kw } })),
-    },
-    include: { occasion: true },
-    take: limit,
-  });
-
-  for (const memory of memories) {
-    context.push(`[Memory from ${memory.occasion.title}]\n${memory.content.slice(0, 300)}`);
-  }
-
   return context;
 }
 
