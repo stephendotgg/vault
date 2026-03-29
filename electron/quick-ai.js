@@ -71,7 +71,8 @@ function renderMarkdown(value) {
     }
   };
 
-  for (const rawLine of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
     const line = rawLine.trimEnd();
     const trimmed = line.trim();
 
@@ -93,6 +94,18 @@ function renderMarkdown(value) {
     }
 
     if (!trimmed) {
+      // Peek ahead: don't close lists if next non-empty line continues the list
+      if (inOl || inUl) {
+        let nextNonEmpty = "";
+        for (let j = i + 1; j < lines.length; j++) {
+          const peek = lines[j].trim();
+          if (peek) { nextNonEmpty = peek; break; }
+        }
+        const continuesList = inOl
+          ? /^\d+\.\s+/.test(nextNonEmpty)
+          : /^[-*+]\s+/.test(nextNonEmpty);
+        if (continuesList) continue;
+      }
       closeLists();
       continue;
     }
