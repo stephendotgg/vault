@@ -33,7 +33,6 @@ import { EMOJI_INSERT_OPTIONS } from "@/app/data/emojis";
 import type { EmojiInsertOption } from "@/app/data/emojis";
 import { NoteLink } from "@/app/extensions/NoteLink";
 import { NoteAudio } from "@/app/extensions/NoteAudio";
-import { Note } from "@/types/models";
 
 // Storage keys
 const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
