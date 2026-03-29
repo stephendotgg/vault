@@ -9,7 +9,6 @@ type SidebarVisibilityState = Record<SidebarVisibilityKey, boolean>;
 
 const SIDEBAR_VISIBILITY_STORAGE_KEY = "sidebar-visible-sections";
 const SIDEBAR_VISIBILITY_EVENT = "vault-sidebar-visibility-updated";
-const AUTOCORRECT_ENABLED_STORAGE_KEY = "vault-setting-autocorrect-enabled";
 const TEAMS_CALL_TRANSCRIPTION_ENABLED_STORAGE_KEY = "vault-setting-teams-call-transcription-enabled";
 const TEAMS_CALL_TRANSCRIPTION_EVENT = "vault-teams-call-transcription-updated";
 const QUICK_NOTE_ENABLED_STORAGE_KEY = "vault-setting-quick-note-enabled";
@@ -72,7 +71,6 @@ const sectionLabels: Record<SidebarVisibilityKey, string> = {
 
 export function SettingsView() {
   const [sidebarVisibility, setSidebarVisibility] = useState<SidebarVisibilityState>(defaultSidebarVisibility);
-  const [autocorrectEnabled, setAutocorrectEnabled] = useState(true);
   const [teamsCallTranscriptionEnabled, setTeamsCallTranscriptionEnabled] = useState(false);
   const [quickNoteEnabled, setQuickNoteEnabled] = useState(true);
   const [quickAiEnabled, setQuickAiEnabled] = useState(true);
@@ -138,9 +136,6 @@ export function SettingsView() {
         setSidebarVisibility(defaultSidebarVisibility);
       }
     }
-
-    const savedAutocorrectEnabled = localStorage.getItem(AUTOCORRECT_ENABLED_STORAGE_KEY);
-    setAutocorrectEnabled(savedAutocorrectEnabled !== "false");
 
     const savedTeamsCallTranscriptionEnabled = localStorage.getItem(TEAMS_CALL_TRANSCRIPTION_ENABLED_STORAGE_KEY);
     setTeamsCallTranscriptionEnabled(savedTeamsCallTranscriptionEnabled === "true");
@@ -379,14 +374,6 @@ export function SettingsView() {
       return;
     }
 
-    localStorage.setItem(AUTOCORRECT_ENABLED_STORAGE_KEY, String(autocorrectEnabled));
-  }, [autocorrectEnabled, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
-
     localStorage.setItem(
       TEAMS_CALL_TRANSCRIPTION_ENABLED_STORAGE_KEY,
       String(teamsCallTranscriptionEnabled)
@@ -537,15 +524,6 @@ export function SettingsView() {
             <h2 className="text-lg text-[#e3e3e3] font-medium">Notes</h2>
             <p className="text-sm text-[#9b9b9b]">Note editor preferences.</p>
             <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-3">
-              <label className="flex items-center gap-2 text-sm text-[#d1d1d1] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autocorrectEnabled}
-                  onChange={() => setAutocorrectEnabled((prev) => !prev)}
-                  className="h-4 w-4 accent-[#7eb8f7]"
-                />
-                <span>Enable autocorrect</span>
-              </label>
               <label className="flex items-center gap-2 text-sm text-[#d1d1d1] cursor-pointer">
                 <input
                   type="checkbox"

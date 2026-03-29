@@ -28,10 +28,10 @@ import type {
 } from "react-spreadsheet";
 import { EmptySelection } from "react-spreadsheet";
 import ReactMarkdown from "react-markdown";
-import { AutoCorrect } from "@/app/extensions/AutoCorrect";
-import { NoteLink } from "@/app/extensions/NoteLink";
+import { Note } from "@/types/models";
 import { EMOJI_INSERT_OPTIONS } from "@/app/data/emojis";
 import type { EmojiInsertOption } from "@/app/data/emojis";
+import { NoteLink } from "@/app/extensions/NoteLink";
 import { Note } from "@/types/models";
 
 // Storage keys
@@ -1987,7 +1987,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           class: "mothership-note-image",
         },
       }),
-      AutoCorrect,
     ],
     content: isSpreadsheetNote ? "<p></p>" : note.content,
     editable: !isSpreadsheetNote && !isLocked,
