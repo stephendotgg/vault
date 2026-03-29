@@ -55,26 +55,30 @@ function renderInlineMarkdown(value) {
 function renderMarkdown(value) {
   const lines = value.replace(/\r\n/g, "\n").split("\n");
   const blocks = [];
-  let inUl = false;
-  let inOl = false;
   let inCode = false;
   let codeLines = [];
+  // Stack of { type: "ul"|"ol", indent }
+  const listStack = [];
 
-  const closeLists = () => {
-    if (inUl) {
-      blocks.push("</ul>");
-      inUl = false;
+  function closeListsToIndent(indent) {
+    while (listStack.length > 0 && listStack[listStack.length - 1].indent >= indent) {
+      const last = listStack.pop();
+      blocks.push(`</${last.type}>`);
     }
-    if (inOl) {
-      blocks.push("</ol>");
-      inOl = false;
+  }
+
+  function closeAllLists() {
+    while (listStack.length > 0) {
+      const last = listStack.pop();
+      blocks.push(`</${last.type}>`);
     }
-  };
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const rawLine = lines[i];
     const line = rawLine.trimEnd();
     const trimmed = line.trim();
+    const indent = line.length - line.trimStart().length;
 
     if (trimmed.startsWith("```")) {
       if (inCode) {
@@ -82,7 +86,7 @@ function renderMarkdown(value) {
         codeLines = [];
         inCode = false;
       } else {
-        closeLists();
+        closeAllLists();
         inCode = true;
       }
       continue;
@@ -94,38 +98,34 @@ function renderMarkdown(value) {
     }
 
     if (!trimmed) {
-      // Peek ahead: don't close lists if next non-empty line continues the list
-      if (inOl || inUl) {
+      // Peek ahead: don't close lists if next non-empty line is a list item
+      if (listStack.length > 0) {
         let nextNonEmpty = "";
         for (let j = i + 1; j < lines.length; j++) {
           const peek = lines[j].trim();
           if (peek) { nextNonEmpty = peek; break; }
         }
-        const continuesList = inOl
-          ? /^\d+\.\s+/.test(nextNonEmpty)
-          : /^[-*+]\s+/.test(nextNonEmpty);
-        if (continuesList) continue;
+        if (/^\d+\.\s+/.test(nextNonEmpty) || /^[-*+]\s+/.test(nextNonEmpty)) continue;
       }
-      closeLists();
+      closeAllLists();
       continue;
     }
 
     const blockquoteMatch = trimmed.match(/^>\s?(.*)$/);
     if (blockquoteMatch) {
-      closeLists();
+      closeAllLists();
       blocks.push(`<blockquote>${renderInlineMarkdown(blockquoteMatch[1])}</blockquote>`);
       continue;
     }
 
     const ulMatch = trimmed.match(/^[-*+]\s+(.+)$/);
     if (ulMatch) {
-      if (inOl) {
-        blocks.push("</ol>");
-        inOl = false;
-      }
-      if (!inUl) {
+      // Close deeper or same-level ol lists, open ul if needed
+      closeListsToIndent(indent + 1);
+      const currentTop = listStack.length > 0 ? listStack[listStack.length - 1] : null;
+      if (!currentTop || currentTop.indent < indent || currentTop.type !== "ul") {
         blocks.push("<ul>");
-        inUl = true;
+        listStack.push({ type: "ul", indent });
       }
       blocks.push(`<li>${renderInlineMarkdown(ulMatch[1])}</li>`);
       continue;
@@ -133,19 +133,17 @@ function renderMarkdown(value) {
 
     const olMatch = trimmed.match(/^\d+\.\s+(.+)$/);
     if (olMatch) {
-      if (inUl) {
-        blocks.push("</ul>");
-        inUl = false;
-      }
-      if (!inOl) {
+      closeListsToIndent(indent + 1);
+      const currentTop = listStack.length > 0 ? listStack[listStack.length - 1] : null;
+      if (!currentTop || currentTop.indent < indent || currentTop.type !== "ol") {
         blocks.push("<ol>");
-        inOl = true;
+        listStack.push({ type: "ol", indent });
       }
       blocks.push(`<li>${renderInlineMarkdown(olMatch[1])}</li>`);
       continue;
     }
 
-    closeLists();
+    closeAllLists();
     blocks.push(`<p>${renderInlineMarkdown(trimmed)}</p>`);
   }
 
@@ -153,7 +151,7 @@ function renderMarkdown(value) {
     blocks.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
   }
 
-  closeLists();
+  closeAllLists();
   return blocks.join("");
 }
 
