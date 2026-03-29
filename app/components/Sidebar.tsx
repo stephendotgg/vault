@@ -647,6 +647,29 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
     }
   }, [expandedNotes, hydrated]);
 
+  // Auto-expand ancestor notes when selecting a child note
+  useEffect(() => {
+    if (!selectedNoteId || !hydrated) return;
+    const ancestors: string[] = [];
+    let current = notes.find((n) => n.id === selectedNoteId);
+    while (current?.parentId) {
+      ancestors.push(current.parentId);
+      current = notes.find((n) => n.id === current!.parentId);
+    }
+    if (ancestors.length === 0) return;
+    setExpandedNotes((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      for (const id of ancestors) {
+        if (!next.has(id)) {
+          next.add(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [selectedNoteId, notes, hydrated]);
+
   // Persist hidden note names to localStorage
   useEffect(() => {
     if (hydrated) {
