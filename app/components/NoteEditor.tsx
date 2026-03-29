@@ -1804,10 +1804,12 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       titleInputRef.current?.focus();
     }
     // Auto-resize title textarea on mount
-    if (titleInputRef.current) {
-      titleInputRef.current.style.height = "auto";
-      titleInputRef.current.style.height = titleInputRef.current.scrollHeight + "px";
-    }
+    requestAnimationFrame(() => {
+      if (titleInputRef.current) {
+        titleInputRef.current.style.height = "auto";
+        titleInputRef.current.style.height = titleInputRef.current.scrollHeight + "px";
+      }
+    });
   }, [isSpreadsheetNote, note.id, note.title, note.content]);
 
   useEffect(() => {
@@ -2869,7 +2871,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                 rows={1}
                 ref={titleInputRef}
                 placeholder="New page"
-                className={`w-full text-4xl font-bold text-[#e3e3e3] bg-transparent border-none outline-none placeholder-[#4a4a4a] mb-4 leading-tight resize-none overflow-hidden ${isLocked ? "cursor-default" : ""}`}
+                className={`w-full text-4xl font-bold text-[#e3e3e3] bg-transparent border-none outline-none placeholder-[#4a4a4a] mb-4 leading-tight resize-none overflow-hidden min-h-[1.2em] ${isLocked ? "cursor-default" : ""}`}
                 value={title}
                 onChange={(e) => {
                   handleTitleChange(e);
