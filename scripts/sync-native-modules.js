@@ -8,8 +8,10 @@ const fs = require("fs");
 const path = require("path");
 
 module.exports = async function afterPack(context) {
-  const appDir = context.packager.appOutDir;
-  const resourcesApp = path.join(appDir, "resources", "app");
+  const appOutDir = context.appOutDir;
+  console.log("afterPack: appOutDir =", appOutDir);
+  
+  const resourcesApp = path.join(appOutDir, "resources", "app");
   
   const rootNative = path.join(resourcesApp, "node_modules", "better-sqlite3", "build", "Release", "better_sqlite3.node");
   const standaloneNative = path.join(resourcesApp, ".next", "standalone", "node_modules", "better-sqlite3", "build", "Release");
