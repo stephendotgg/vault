@@ -1956,7 +1956,13 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         nested: true,
       }),
       Placeholder.configure({
-        placeholder: "Start typing...",
+        placeholder: ({ editor }) => {
+          // Only show placeholder when the entire document is empty
+          if (editor.state.doc.textContent.length > 0) return "";
+          if (editor.state.doc.childCount > 1) return "";
+          return "Start typing...";
+        },
+        showOnlyCurrent: false,
       }),
       NoteLink.configure({
         onNavigate: (noteId: string) => {
