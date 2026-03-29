@@ -186,11 +186,6 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectLists }: Se
                       <p className="text-sm text-[#9b9b9b] mt-1 line-clamp-1">
                         {result.snippet}
                       </p>
-                      {result.parentTitle && result.type === "memory" && (
-                        <p className="text-xs text-[#6b6b6b] mt-1">
-                          in {result.parentTitle}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
