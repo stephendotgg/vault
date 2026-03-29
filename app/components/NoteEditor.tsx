@@ -32,6 +32,7 @@ import { Note } from "@/types/models";
 import { EMOJI_INSERT_OPTIONS } from "@/app/data/emojis";
 import type { EmojiInsertOption } from "@/app/data/emojis";
 import { NoteLink } from "@/app/extensions/NoteLink";
+import { NoteAudio } from "@/app/extensions/NoteAudio";
 import { Note } from "@/types/models";
 
 // Storage keys
@@ -921,6 +922,12 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         description: "Insert an uploaded icon image inline",
         keywords: ["icon", "image", "uploaded"],
       },
+      {
+        id: "voice",
+        label: "Voice",
+        description: "Record a voice clip inline",
+        keywords: ["voice", "audio", "record", "microphone", "mic"],
+      },
     ];
   }, []);
 
@@ -1223,8 +1230,72 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
     if (command.id === "icon") {
       openInlineInsertPicker("icon", { left: currentSlashMenuState.left, top: currentSlashMenuState.top }, insertPos);
+      return;
+    }
+
+    if (command.id === "voice") {
+      startVoiceRecording(insertPos);
     }
   }, [openInlineInsertPicker]);
+
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingInsertPosRef = useRef<number | null>(null);
+
+  const startVoiceRecording = useCallback((insertPos: number) => {
+    recordingInsertPosRef.current = insertPos;
+
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      const mediaRecorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setIsRecording(false);
+
+        const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
+        const formData = new FormData();
+        formData.append("audio", blob, `voice-${Date.now()}.webm`);
+
+        try {
+          const res = await fetch("/api/audio", { method: "POST", body: formData });
+          if (!res.ok) return;
+          const data = await res.json();
+
+          const currentEditor = editorRef.current;
+          if (!currentEditor) return;
+
+          const pos = recordingInsertPosRef.current ?? currentEditor.state.selection.from;
+          const docSize = currentEditor.state.doc.content.size;
+          const targetPos = Math.max(1, Math.min(pos, docSize));
+
+          currentEditor.chain().focus().insertContentAt(targetPos, {
+            type: "noteAudio",
+            attrs: { src: data.url, filename: `Voice ${new Date().toLocaleTimeString()}` },
+          }).run();
+        } catch (error) {
+          console.error("Failed to upload voice recording:", error);
+        }
+      };
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+      setIsRecording(true);
+    }).catch((err) => {
+      console.error("Microphone access denied:", err);
+    });
+  }, []);
+
+  const stopVoiceRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
 
 
   const syncSlashMenu = useCallback((currentEditor: Editor | null) => {
@@ -1989,6 +2060,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           class: "mothership-note-image",
         },
       }),
+      NoteAudio,
     ],
     content: isSpreadsheetNote ? "<p></p>" : note.content,
     editable: !isSpreadsheetNote && !isLocked,
@@ -2964,6 +3036,15 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                   className="flex-1"
                   
                 />
+                {isRecording && (
+                  <div className="note-audio-recording" style={{ marginLeft: 64 }}>
+                    <div className="note-audio-recording-dot" />
+                    <span className="note-audio-recording-text">Recording...</span>
+                    <button className="note-audio-recording-stop" onClick={stopVoiceRecording}>
+                      Stop
+                    </button>
+                  </div>
+                )}
                 {slashMenuState && filteredSlashCommands.length > 0 && (
                   <div
                     className="fixed z-[80] w-80 rounded-lg border border-[#3f3f3f] bg-[#252525] p-1 shadow-xl"

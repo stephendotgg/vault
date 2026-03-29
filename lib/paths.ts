@@ -76,3 +76,14 @@ export function getIconsDir(): string {
   
   return iconsDir;
 }
+
+export function getAudioDir(): string {
+  const dataDir = getDataDir();
+  const audioDir = path.join(dataDir, "data", "audio");
+  
+  if (!existsSync(audioDir)) {
+    mkdirSync(audioDir, { recursive: true });
+  }
+  
+  return audioDir;
+}
