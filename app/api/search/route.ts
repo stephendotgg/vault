@@ -149,6 +149,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim();
   const types = searchParams.get("types")?.split(",") || ["note", "list"];
+  const includeArchived = searchParams.get("includeArchived") === "true";
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
 
   if (!query || query.length < 2) {
@@ -166,7 +167,7 @@ export async function GET(request: NextRequest) {
     if (types.includes("note")) {
       const notes = await prisma.note.findMany({
         where: {
-          archived: false,
+          ...(includeArchived ? {} : { archived: false }),
           OR: [
             ...queryCandidates.map((token) => ({ title: { contains: token } })),
             ...queryCandidates.map((token) => ({ content: { contains: token } })),

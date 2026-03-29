@@ -15,6 +15,9 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectLists }: Se
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [filterNotes, setFilterNotes] = useState(true);
+  const [filterLists, setFilterLists] = useState(true);
+  const [filterArchived, setFilterArchived] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -36,9 +39,24 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectLists }: Se
       return;
     }
 
+    const types: string[] = [];
+    if (filterNotes) types.push("note");
+    if (filterLists) types.push("list");
+    if (types.length === 0) {
+      setResults([]);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=20`);
+      const params = new URLSearchParams({
+        q: searchQuery,
+        limit: "20",
+        types: types.join(","),
+      });
+      if (filterArchived) params.set("includeArchived", "true");
+
+      const res = await fetch(`/api/search?${params}`);
       if (res.ok) {
         const data = await res.json();
         setResults(data.results);
@@ -49,7 +67,7 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectLists }: Se
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [filterNotes, filterLists, filterArchived]);
 
   // Debounced search
   useEffect(() => {
@@ -140,7 +158,7 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectLists }: Se
         className="relative w-full max-w-xl bg-[#202020] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] border border-[#2f2f2f] overflow-hidden"
       >
         {/* Search input */}
-        <div className={`flex items-center gap-3 px-5 py-4 ${hasResults ? "border-b border-[#2f2f2f]" : ""}`}>
+        <div className="flex items-center gap-3 px-5 py-4">
           <svg className="w-5 h-5 text-[#6b6b6b]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -158,8 +176,32 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectLists }: Se
           )}
         </div>
 
+        {/* Filters */}
+        <div className="flex items-center gap-2 px-5 pb-3">
+          <button
+            onClick={() => setFilterNotes((p) => !p)}
+            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${filterNotes ? "bg-[#3f3f3f] text-[#e3e3e3]" : "bg-transparent text-[#6b6b6b] hover:text-[#9b9b9b]"}`}
+          >
+            Notes
+          </button>
+          <button
+            onClick={() => setFilterLists((p) => !p)}
+            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${filterLists ? "bg-[#3f3f3f] text-[#e3e3e3]" : "bg-transparent text-[#6b6b6b] hover:text-[#9b9b9b]"}`}
+          >
+            Lists
+          </button>
+          <div className="w-px h-3.5 bg-[#2f2f2f] mx-0.5" />
+          <button
+            onClick={() => setFilterArchived((p) => !p)}
+            className={`px-2.5 py-1 text-xs rounded-md transition-colors ${filterArchived ? "bg-[#3f3f3f] text-[#e3e3e3]" : "bg-transparent text-[#6b6b6b] hover:text-[#9b9b9b]"}`}
+          >
+            Include archived
+          </button>
+        </div>
+
         {hasResults && (
           <>
+            <div className="border-t border-[#2f2f2f]" />
             <div
               ref={resultsRef}
               className="max-h-[60vh] overflow-auto p-2"
