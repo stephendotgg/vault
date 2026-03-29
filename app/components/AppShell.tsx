@@ -468,16 +468,30 @@ export function AppShell() {
   // Listen for pop-out lifecycle events (undock/redock)
   useEffect(() => {
     if (popoutNoteId) {
-      // This is a pop-out window — broadcast close on unload
+      // This is a pop-out window — broadcast close on unload, and listen for force-close
       const handleUnload = () => {
         try {
-          const channel = new BroadcastChannel("vault-popout-lifecycle");
-          channel.postMessage({ type: "popout-closed", noteId: popoutNoteId });
-          channel.close();
+          const ch = new BroadcastChannel("vault-popout-lifecycle");
+          ch.postMessage({ type: "popout-closed", noteId: popoutNoteId });
+          ch.close();
         } catch { /* ignore */ }
       };
       window.addEventListener("beforeunload", handleUnload);
-      return () => window.removeEventListener("beforeunload", handleUnload);
+
+      let forceCloseChannel: BroadcastChannel | null = null;
+      try {
+        forceCloseChannel = new BroadcastChannel("vault-popout-lifecycle");
+        forceCloseChannel.onmessage = (event) => {
+          if (event.data?.type === "popout-force-close" && event.data?.noteId === popoutNoteId) {
+            window.close();
+          }
+        };
+      } catch { /* ignore */ }
+
+      return () => {
+        window.removeEventListener("beforeunload", handleUnload);
+        forceCloseChannel?.close();
+      };
     }
 
     // Main window — listen for popout open/close
@@ -1110,15 +1124,24 @@ export function AppShell() {
             <p className="text-sm text-[#6b6b6b]">This note is open in a separate window</p>
             <button
               onClick={() => {
+                try {
+                  const channel = new BroadcastChannel("vault-popout-lifecycle");
+                  channel.postMessage({ type: "popout-force-close", noteId: selectedNoteId });
+                  channel.close();
+                } catch { /* ignore */ }
                 setPoppedOutNoteIds((prev) => {
                   const next = new Set(prev);
                   next.delete(selectedNoteId);
                   return next;
                 });
+                fetchNotes();
               }}
-              className="text-xs text-[#7eb8f7] hover:text-[#9ecbff] transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#ebebeb] bg-[#2f2f2f] hover:bg-[#3f3f3f] rounded-md transition-colors cursor-pointer"
             >
-              Open here anyway
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 12H5m0 0l7 7m-7-7l7-7" />
+              </svg>
+              Close window and return here
             </button>
           </div>
         ) : currentView === "note" && selectedNoteId && notes.find(n => n.id === selectedNoteId) ? (
