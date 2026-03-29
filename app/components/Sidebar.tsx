@@ -329,6 +329,7 @@ function NoteItem({
             <span 
               className={`note-title-text truncate ${hiddenNoteNames.has(note.id) ? "note-title-blurred select-none" : ""}`}
               onDoubleClick={(e) => {
+                if (isProtectedRootCategory) return;
                 e.stopPropagation();
                 onStartRename(note.id);
               }}
