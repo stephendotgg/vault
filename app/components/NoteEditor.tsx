@@ -3070,11 +3070,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                           }}
                           className={`w-full rounded px-2 py-1.5 text-left transition-colors ${selected ? "bg-[#3f3f3f]" : "hover:bg-[#2f2f2f]"}`}
                         >
-                          <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
                             <span className={`text-sm ${selected ? "text-[#ebebeb]" : "text-[#d0d0d0]"}`}>
                               /{command.id}
                             </span>
-                            <span className="text-xs text-[#6b6b6b]">{command.label}</span>
                           </div>
                           <div className="text-xs text-[#8a8a8a] truncate">{command.description}</div>
                         </button>
