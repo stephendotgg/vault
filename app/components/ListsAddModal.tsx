@@ -175,7 +175,7 @@ export function ListsAddModal({
             <input
               ref={keyInputRef}
               type="text"
-              placeholder="e.g. My GitHub Token"
+              placeholder="e.g. Weekly standup notes"
               value={key}
               onChange={(e) => setKey(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -198,7 +198,7 @@ export function ListsAddModal({
             <label className="block text-xs text-[#9b9b9b] mb-1.5">Tags <span className="text-[#6b6b6b]">(optional, comma-separated)</span></label>
             <input
               type="text"
-              placeholder="e.g. api, github, work"
+              placeholder="e.g. work, personal, ideas"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               onKeyDown={handleKeyDown}
