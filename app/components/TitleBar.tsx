@@ -29,7 +29,11 @@ export function TitleBar() {
     <div className="h-8 bg-[#202020] flex items-center justify-between select-none shrink-0"
          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}>
       {/* App title */}
-      <div className="px-3 text-xs text-[#9b9b9b] font-medium">
+      <div 
+        className="px-3 text-xs text-[#9b9b9b] font-medium cursor-pointer hover:text-[#e3e3e3] transition-colors"
+        style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+        onClick={() => window.dispatchEvent(new CustomEvent("vault-navigate-home"))}
+      >
         Vault
       </div>
       

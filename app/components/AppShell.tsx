@@ -942,6 +942,16 @@ export function AppShell() {
     setCurrentView("settings");
   };
 
+  // Navigate home when clicking Vault title in title bar
+  useEffect(() => {
+    const handleNavigateHome = () => {
+      setSelectedNoteId(null);
+      setCurrentView("home");
+    };
+    window.addEventListener("vault-navigate-home", handleNavigateHome);
+    return () => window.removeEventListener("vault-navigate-home", handleNavigateHome);
+  }, []);
+
   useEffect(() => {
     const handleSearchShortcut = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
