@@ -72,9 +72,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   : "bg-[#1a1a2a] border-[#20204a] text-[#7eb8f7]"
               }`}
             >
-              <span className="mt-0.5 shrink-0">
-                {toast.type === "error" ? "✕" : toast.type === "warning" ? "⚠" : toast.type === "success" ? "✓" : "ℹ"}
-              </span>
               <span className="flex-1 leading-snug">{toast.message}</span>
               <button
                 onClick={() => removeToast(toast.id)}
