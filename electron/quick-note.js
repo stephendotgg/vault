@@ -96,8 +96,54 @@ window.addEventListener("focus", () => {
   void applyThemeMode();
 });
 
+// Track Ctrl key for archive → delete swap
+let isCtrlPressed = false;
+const archiveSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14"/><path d="M5 8a2 2 0 1 1 0-4h14a2 2 0 1 1 0 4"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>';
+const trashSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
+function updateArchiveBtn() {
+  if (!archiveBtn) return;
+  if (isCtrlPressed) {
+    archiveBtn.innerHTML = trashSvg;
+    archiveBtn.title = "Discard";
+    archiveBtn.setAttribute("aria-label", "Discard");
+    archiveBtn.style.color = "#f87171";
+  } else {
+    archiveBtn.innerHTML = archiveSvg;
+    archiveBtn.title = "Archive";
+    archiveBtn.setAttribute("aria-label", "Archive");
+    archiveBtn.style.color = "";
+  }
+}
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Control" && !isCtrlPressed) {
+    isCtrlPressed = true;
+    updateArchiveBtn();
+  }
+});
+
+window.addEventListener("keyup", (event) => {
+  if (event.key === "Control" && isCtrlPressed) {
+    isCtrlPressed = false;
+    updateArchiveBtn();
+  }
+});
+
+window.addEventListener("blur", () => {
+  if (isCtrlPressed) {
+    isCtrlPressed = false;
+    updateArchiveBtn();
+  }
+});
+
 archiveBtn?.addEventListener("click", () => {
-  void handleArchive();
+  if (isCtrlPressed) {
+    // Discard — just close without saving
+    window.electronAPI.closeQuickNote();
+  } else {
+    void handleArchive();
+  }
 });
 
 saveBtn?.addEventListener("click", () => {
