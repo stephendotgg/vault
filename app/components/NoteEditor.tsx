@@ -3044,10 +3044,10 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                   className="flex-1"
                   
                 />
-                {isRecording && recordingPositionRef.current && (
+                {isRecording && (
                   <div
-                    className="note-audio-recording fixed z-[80]"
-                    style={{ left: recordingPositionRef.current.left, top: recordingPositionRef.current.top }}
+                    className="note-audio-recording fixed z-[80] left-1/2 -translate-x-1/2"
+                    style={{ bottom: 24 }}
                   >
                     <div className="note-audio-recording-dot" />
                     <span className="note-audio-recording-text">Recording...</span>
