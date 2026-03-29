@@ -394,7 +394,7 @@ a {
 /* Scrambled + blurred text for hidden titles */
 .note-title-blurred {
   color: transparent !important;
-  text-shadow: 0 0 8px rgba(155, 155, 155, 0.7);
+  text-shadow: 0 0 8px rgba(200, 200, 200, 0.9);
   user-select: none;
   pointer-events: none;
   text-overflow: clip !important;
