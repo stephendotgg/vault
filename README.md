@@ -8,6 +8,9 @@ A note-taking desktop app with rich text, spreadsheets, lists, AI chat, voice re
 
 > [!NOTE]  
 > **To install**, grab the latest `.exe` from the [Releases](https://github.com/stephendotgg/vault/releases) tab on the right and run it.
+>
+> 
+> Windows may show a SmartScreen warning because the app isn't code-signed. Click "More info" → "Run anyway" to proceed. The app is fully open-source — you can inspect every line of code in this repo.
 
 ## Why
 
