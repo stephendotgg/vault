@@ -1,12 +1,12 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@prisma/client";
 import Database from "better-sqlite3";
-import { getDatabasePath } from "./paths";
+import { getDatabasePath, serverLog, serverError } from "./paths";
 
-console.log("[db] Loading prisma module, better-sqlite3 resolved from:", require.resolve("better-sqlite3"));
+serverLog("[db] Loading prisma module, better-sqlite3 resolved from:", require.resolve("better-sqlite3"));
 
 const dbPath = getDatabasePath();
-console.log("[db] Database path:", dbPath);
+serverLog("[db] Database path:", dbPath);
 const globalForDbInit = globalThis as unknown as {
   __mothershipDbInitialized?: boolean;
 };
@@ -19,11 +19,11 @@ function logDbMigrationInfo(message: string, payload?: unknown) {
   }
 
   if (payload === undefined) {
-    console.info(message);
+    serverLog(message);
     return;
   }
 
-  console.info(message, payload);
+  serverLog(message, payload);
 }
 
 function logDbMigrationWarn(message: string) {
@@ -31,7 +31,7 @@ function logDbMigrationWarn(message: string) {
     return;
   }
 
-  console.warn(message);
+  serverLog("[warn]", message);
 }
 
 // Initialize the database and create tables if they don't exist
@@ -107,9 +107,9 @@ if (!globalForDbInit.__mothershipDbInitialized) {
     initializeDatabase();
     globalForDbInit.__mothershipDbInitialized = true;
   } catch (err) {
-    console.error("[CRITICAL] Database initialization failed:", err);
-    console.error("[CRITICAL] DB path:", dbPath);
-    console.error("[CRITICAL] better-sqlite3 loaded from:", require.resolve("better-sqlite3"));
+    serverError("[CRITICAL] Database initialization failed:", err);
+    serverError("[CRITICAL] DB path:", dbPath);
+    serverError("[CRITICAL] better-sqlite3 loaded from:", require.resolve("better-sqlite3"));
   }
 }
 
@@ -119,8 +119,8 @@ try {
     url: `file:${dbPath}`,
   });
 } catch (err) {
-  console.error("[CRITICAL] PrismaBetterSqlite3 adapter creation failed:", err);
-  console.error("[CRITICAL] DB path:", dbPath);
+  serverError("[CRITICAL] PrismaBetterSqlite3 adapter creation failed:", err);
+  serverError("[CRITICAL] DB path:", dbPath);
   throw err;
 }
 

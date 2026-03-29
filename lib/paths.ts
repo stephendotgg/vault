@@ -1,5 +1,43 @@
 import path from "path";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, appendFileSync } from "fs";
+
+// Simple file logger for production debugging
+let logFilePath: string | null = null;
+
+export function serverLog(...args: unknown[]) {
+  const msg = `[${new Date().toISOString()}] ${args.map(a => (typeof a === "string" ? a : JSON.stringify(a, null, 0))).join(" ")}\n`;
+  console.log(...args);
+  try {
+    if (!logFilePath) {
+      const dir = getDataDir();
+      const dataDir = path.join(dir, "data");
+      if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+      logFilePath = path.join(dataDir, "vault.log");
+    }
+    appendFileSync(logFilePath, msg);
+  } catch {
+    // ignore file write errors
+  }
+}
+
+export function serverError(...args: unknown[]) {
+  const msg = `[${new Date().toISOString()}] [ERROR] ${args.map(a => {
+    if (a instanceof Error) return `${a.message}\n${a.stack}`;
+    return typeof a === "string" ? a : JSON.stringify(a, null, 0);
+  }).join(" ")}\n`;
+  console.error(...args);
+  try {
+    if (!logFilePath) {
+      const dir = getDataDir();
+      const dataDir = path.join(dir, "data");
+      if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+      logFilePath = path.join(dataDir, "vault.log");
+    }
+    appendFileSync(logFilePath, msg);
+  } catch {
+    // ignore file write errors
+  }
+}
 
 // Get the persistent data directory
 // In development: use project folder
