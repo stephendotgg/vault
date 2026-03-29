@@ -2227,6 +2227,59 @@ ipcMain.handle("startup-set-open-at-login", async (_event, payload) => {
   return setOpenAtStartupEnabled(enabled);
 });
 
+ipcMain.handle("download-and-install-update", async (_event, payload) => {
+  const { downloadUrl } = payload || {};
+  if (!downloadUrl || typeof downloadUrl !== "string") {
+    return { success: false, error: "No download URL provided" };
+  }
+
+  // Only allow downloads from GitHub releases
+  if (!downloadUrl.startsWith("https://github.com/stephendotgg/vault/releases/")) {
+    return { success: false, error: "Invalid download URL" };
+  }
+
+  const https = require("https");
+  const os = require("os");
+  const tempDir = os.tmpdir();
+  const tempPath = path.join(tempDir, "Vault.Setup.exe");
+
+  try {
+    // Download with redirect following
+    const download = (url) => new Promise((resolve, reject) => {
+      https.get(url, { headers: { "User-Agent": "Vault-Updater" } }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          resolve(download(res.headers.location));
+          return;
+        }
+        if (res.statusCode !== 200) {
+          reject(new Error(`Download failed: ${res.statusCode}`));
+          return;
+        }
+        const fs = require("fs");
+        const file = fs.createWriteStream(tempPath);
+        res.pipe(file);
+        file.on("finish", () => file.close(() => resolve(tempPath)));
+        file.on("error", reject);
+      }).on("error", reject);
+    });
+
+    await download(downloadUrl);
+
+    // Launch installer detached and quit
+    const { spawn } = require("child_process");
+    spawn(tempPath, [], { detached: true, stdio: "ignore" }).unref();
+
+    // Give it a moment to start, then quit
+    setTimeout(() => {
+      app.quit();
+    }, 500);
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || "Download failed" };
+  }
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,

@@ -31,6 +31,7 @@ export interface ElectronAPI {
   onCallsTranscriberStart: (callback: (payload: { chunkMs?: number }) => void) => () => void;
   onCallsTranscriberStop: (callback: () => void) => () => void;
   popoutNote: (noteId: string) => void;
+  downloadAndInstallUpdate: (downloadUrl: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

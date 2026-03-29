@@ -118,4 +118,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   
   // Add more IPC methods here as needed
   popoutNote: (noteId) => ipcRenderer.send("popout-note", { noteId }),
+  downloadAndInstallUpdate: (downloadUrl) => ipcRenderer.invoke("download-and-install-update", { downloadUrl }),
 });

@@ -101,8 +101,9 @@ export function SettingsView() {
   const [speechHealthMessage, setSpeechHealthMessage] = useState("");
   const [appVersion, setAppVersion] = useState("-");
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
-  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "error">("idle");
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "downloading" | "error">("idle");
   const [releaseUrl, setReleaseUrl] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -136,13 +137,15 @@ export function SettingsView() {
     try {
       const res = await fetch("https://api.github.com/repos/stephendotgg/vault/releases/latest");
       if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
-      const data = (await res.json()) as { tag_name?: string; html_url?: string };
+      const data = (await res.json()) as { tag_name?: string; html_url?: string; assets?: Array<{ name?: string; browser_download_url?: string }> };
       const tag = data.tag_name ?? "";
       const remote = tag.replace(/^v/, "");
       const local = appVersion.replace(/^v/, "");
       if (!remote) throw new Error("No version tag found");
       setLatestVersion(`v${remote}`);
       setReleaseUrl(data.html_url ?? null);
+      const exeAsset = data.assets?.find((a) => a.name?.endsWith(".exe"));
+      setDownloadUrl(exeAsset?.browser_download_url ?? null);
       if (remote === local) {
         setUpdateStatus("up-to-date");
       } else {
@@ -150,6 +153,24 @@ export function SettingsView() {
       }
     } catch {
       setUpdateStatus("error");
+    }
+  };
+
+  const installUpdate = async () => {
+    if (!downloadUrl) {
+      window.open(releaseUrl ?? "https://github.com/stephendotgg/vault/releases", "_blank");
+      return;
+    }
+    setUpdateStatus("downloading");
+    try {
+      const result = await window.electronAPI?.downloadAndInstallUpdate(downloadUrl);
+      if (!result?.success) {
+        showError("Update failed", new Error(result?.error ?? "Unknown error"));
+        setUpdateStatus("available");
+      }
+    } catch {
+      showError("Update failed", new Error("Could not download update"));
+      setUpdateStatus("available");
     }
   };
 
@@ -858,25 +879,28 @@ export function SettingsView() {
                   {updateStatus === "available" && latestVersion && (
                     <p className="text-xs text-[#7eb8f7]">{latestVersion} is available.</p>
                   )}
+                  {updateStatus === "downloading" && (
+                    <p className="text-xs text-[#7eb8f7]">Downloading update...</p>
+                  )}
                   {updateStatus === "error" && (
                     <p className="text-xs text-[#e69a9a]">Couldn&apos;t check for updates. Try again later.</p>
                   )}
                 </div>
                 <div className="flex gap-2">
-                  {updateStatus === "available" && releaseUrl && (
+                  {updateStatus === "available" && (
                     <button
-                      onClick={() => window.open(releaseUrl, "_blank")}
+                      onClick={() => void installUpdate()}
                       className="px-3 py-1.5 text-xs bg-[#1a1a2a] border border-[#20204a] text-[#7eb8f7] rounded-md hover:bg-[#252540] transition-colors"
                     >
-                      Download
+                      {downloadUrl ? "Install update" : "Download"}
                     </button>
                   )}
                   <button
                     onClick={() => void checkForUpdates()}
-                    disabled={updateStatus === "checking"}
+                    disabled={updateStatus === "checking" || updateStatus === "downloading"}
                     className="px-3 py-1.5 text-xs bg-[#222] border border-[#2f2f2f] text-[#d1d1d1] rounded-md hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
                   >
-                    {updateStatus === "checking" ? "Checking..." : "Check for updates"}
+                    {updateStatus === "checking" ? "Checking..." : updateStatus === "downloading" ? "Downloading..." : "Check for updates"}
                   </button>
                 </div>
               </div>
