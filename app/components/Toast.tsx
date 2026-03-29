@@ -62,7 +62,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           {toasts.map((toast) => (
             <div
               key={toast.id}
-              className={`flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm animate-slide-in-right ${
+              onClick={() => removeToast(toast.id)}
+              className={`flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm animate-slide-in-right cursor-pointer ${
                 toast.type === "error"
                   ? "bg-[#2a1a1a] border-[#4a2020] text-[#f87171]"
                   : toast.type === "warning"
