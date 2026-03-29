@@ -1127,12 +1127,13 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       currentEditor
         .chain()
         .focus()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .setImage({
           src: `/api/icons/${filename}`,
           alt: filename,
           width: 18,
           inlineIcon: true,
-        } as Record<string, unknown>)
+        } as any)
         .insertContent(" ")
         .run();
     }
