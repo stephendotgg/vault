@@ -53,7 +53,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ filename, url: `/api/audio/${filename}` });
   } catch (error) {
-    console.error("Failed to upload audio:", error);
-    return NextResponse.json({ error: "Failed to upload audio" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error("Failed to upload audio:", { message, stack });
+    return NextResponse.json({ error: "Failed to upload audio", details: message }, { status: 500 });
   }
 }
