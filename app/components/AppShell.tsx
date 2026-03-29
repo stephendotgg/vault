@@ -222,6 +222,7 @@ export function AppShell() {
   const [quickAiEnabled, setQuickAiEnabled] = useState(true);
   const [archiveAutoDeleteDays, setArchiveAutoDeleteDays] = useState<ArchiveAutoDeleteDays>("never");
   const archiveCleanupInProgressRef = useRef(false);
+  const [aiChatEnabled, setAiChatEnabled] = useState(true);
 
   // AI Chat state - persisted across note switches
   const [chatOpenStates, setChatOpenStates] = useState<Map<string, boolean>>(new Map());
@@ -255,6 +256,26 @@ export function AppShell() {
     return () => {
       window.removeEventListener(THEME_MODE_EVENT, handleThemeUpdated as EventListener);
     };
+  }, []);
+
+  // Load and track AI Chat module visibility
+  useEffect(() => {
+    const loadAiChat = () => {
+      try {
+        const saved = localStorage.getItem("sidebar-visible-sections");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (typeof parsed.aiChat === "boolean") {
+            setAiChatEnabled(parsed.aiChat);
+          }
+        }
+      } catch { /* ignore */ }
+    };
+    loadAiChat();
+
+    const handleVisibilityUpdated = () => loadAiChat();
+    window.addEventListener("vault-sidebar-visibility-updated", handleVisibilityUpdated);
+    return () => window.removeEventListener("vault-sidebar-visibility-updated", handleVisibilityUpdated);
   }, []);
 
   useEffect(() => {
@@ -1081,6 +1102,7 @@ export function AppShell() {
           allChatMessages={allChatMessages}
           setAllChatMessages={setAllChatMessages}
           isPopout
+          allowAIChat={aiChatEnabled}
         />
       </div>
     );
@@ -1155,6 +1177,7 @@ export function AppShell() {
             setChatOpenStates={setChatOpenStates}
             allChatMessages={allChatMessages}
             setAllChatMessages={setAllChatMessages}
+            allowAIChat={aiChatEnabled}
           />
         ) : currentView === "lists" ? (
           <ListsView

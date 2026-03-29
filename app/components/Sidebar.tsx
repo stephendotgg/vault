@@ -5,7 +5,7 @@ import { Note } from "@/types/models";
 import { IconPicker } from "./IconPicker";
 
 type SectionKey = "notes" | "lists";
-type SidebarVisibilityKey = SectionKey | "fileCleaner";
+type SidebarVisibilityKey = SectionKey | "fileCleaner" | "aiChat";
 
 interface NoteWithChildren extends Note {
   children: NoteWithChildren[];
@@ -449,6 +449,7 @@ const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
   lists: true,
   fileCleaner: false,
+  aiChat: true,
 };
 
 export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onDeletePermanently, onRenameNote, onMoveNote, onOpenLists, onOpenListsAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onOpenSettings, onUpdateNote, notes }: SidebarProps) {
@@ -887,19 +888,21 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
             </svg>
             <span>Search</span>
           </div>
-          <div
-            className={`sidebar-action-row flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
-              currentView === "ai"
-                ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
-                : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
-            }`}
-            onClick={onOpenAI}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            <span>AI Chat</span>
-          </div>
+          {visibleSections.aiChat && (
+            <div
+              className={`sidebar-action-row flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm transition-all ${
+                currentView === "ai"
+                  ? "text-[#ebebeb] bg-[rgba(255,255,255,0.055)]"
+                  : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
+              }`}
+              onClick={onOpenAI}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              <span>AI Chat</span>
+            </div>
+          )}
           {(visibleSections.notes || quickNoteEnabled || quickAiEnabled || visibleSections.lists) && (
             <div 
               className="sidebar-action-row flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"

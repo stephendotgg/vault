@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 type SectionKey = "notes" | "lists";
-type SidebarVisibilityKey = SectionKey | "fileCleaner";
+type SidebarVisibilityKey = SectionKey | "fileCleaner" | "aiChat";
 
 type SidebarVisibilityState = Record<SidebarVisibilityKey, boolean>;
 
@@ -61,11 +61,13 @@ const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
   lists: true,
   fileCleaner: false,
+  aiChat: true,
 };
 
 const sectionLabels: Record<SidebarVisibilityKey, string> = {
   notes: "Notes",
   lists: "Lists",
+  aiChat: "AI Chat",
   fileCleaner: "File Cleaner",
 };
 
