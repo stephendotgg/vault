@@ -21,6 +21,16 @@ export const NoteAudio = Node.create({
           "data-filename": attributes.filename as string,
         }),
       },
+      duration: {
+        default: 0,
+        parseHTML: (element) => {
+          const val = element.getAttribute("data-duration");
+          return val ? parseInt(val, 10) : 0;
+        },
+        renderHTML: (attributes) => ({
+          "data-duration": String(attributes.duration ?? 0),
+        }),
+      },
     };
   },
 
@@ -46,10 +56,18 @@ export const NoteAudio = Node.create({
       dom.contentEditable = "false";
 
       const src = node.attrs.src as string;
-      const filename = (node.attrs.filename as string) || "Voice recording";
+      const filename = (node.attrs.filename as string) || "Voice";
+      const storedDuration = Number(node.attrs.duration) || 0;
       const displayName = filename.endsWith(".webm") || filename.endsWith(".ogg")
         ? filename.replace(/\.[^.]+$/, "")
         : filename;
+
+      function fmtTime(seconds: number): string {
+        if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, "0")}`;
+      }
 
       dom.innerHTML = `
         <div class="note-audio-player">
@@ -60,7 +78,7 @@ export const NoteAudio = Node.create({
           </button>
           <div class="note-audio-info">
             <span class="note-audio-name">${displayName}</span>
-            <span class="note-audio-time">0:00</span>
+            <span class="note-audio-time">${fmtTime(storedDuration)}</span>
           </div>
           <div class="note-audio-progress-bar">
             <div class="note-audio-progress-fill"></div>
@@ -75,36 +93,20 @@ export const NoteAudio = Node.create({
 
       let audio: HTMLAudioElement | null = null;
       let playing = false;
+      const totalDuration = storedDuration;
 
-      function formatTime(seconds: number): string {
-        if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
-        const m = Math.floor(seconds / 60);
-        const s = Math.floor(seconds % 60);
-        return `${m}:${s.toString().padStart(2, "0")}`;
+      function getDuration(): number {
+        if (audio && Number.isFinite(audio.duration) && audio.duration > 0) return audio.duration;
+        return totalDuration;
       }
 
       function updateProgress() {
         if (!audio) return;
-        const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
-        const pct = duration ? (audio.currentTime / duration) * 100 : 0;
+        const dur = getDuration();
+        const pct = dur ? (audio.currentTime / dur) * 100 : 0;
         progressFill.style.width = `${pct}%`;
-        timeEl.textContent = playing ? formatTime(audio.currentTime) : formatTime(duration);
+        timeEl.textContent = playing ? fmtTime(audio.currentTime) : fmtTime(dur);
       }
-
-      // Preload to get duration — webm often reports Infinity with preload=metadata
-      // so we load the full file but don't play it
-      const preloadAudio = new Audio();
-      preloadAudio.addEventListener("loadedmetadata", () => {
-        if (Number.isFinite(preloadAudio.duration) && !playing) {
-          timeEl.textContent = formatTime(preloadAudio.duration);
-        }
-      });
-      preloadAudio.addEventListener("durationchange", () => {
-        if (Number.isFinite(preloadAudio.duration) && !playing) {
-          timeEl.textContent = formatTime(preloadAudio.duration);
-        }
-      });
-      preloadAudio.src = src;
 
       playBtn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -113,19 +115,12 @@ export const NoteAudio = Node.create({
         if (!audio) {
           audio = new Audio(src);
           audio.addEventListener("timeupdate", updateProgress);
-          audio.addEventListener("durationchange", () => {
-            if (Number.isFinite(audio!.duration) && !playing) {
-              timeEl.textContent = formatTime(audio!.duration);
-            }
-          });
           audio.addEventListener("ended", () => {
             playing = false;
             playBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21" /></svg>';
             progressFill.style.width = "0%";
-            if (audio && Number.isFinite(audio.duration)) {
-              audio.currentTime = 0;
-              timeEl.textContent = formatTime(audio.duration);
-            }
+            if (audio) audio.currentTime = 0;
+            timeEl.textContent = fmtTime(getDuration());
           });
         }
 

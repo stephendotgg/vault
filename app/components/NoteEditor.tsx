@@ -1243,6 +1243,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingInsertPosRef = useRef<number | null>(null);
   const recordingPositionRef = useRef<{ left: number; top: number } | null>(null);
+  const recordingStartTimeRef = useRef<number>(0);
 
   const startVoiceRecording = useCallback((insertPos: number) => {
     recordingInsertPosRef.current = insertPos;
@@ -1264,6 +1265,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        const durationSecs = Math.round((Date.now() - recordingStartTimeRef.current) / 1000);
         setIsRecording(false);
 
         const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
@@ -1284,7 +1286,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
           currentEditor.chain().focus().insertContentAt(targetPos, {
             type: "noteAudio",
-            attrs: { src: data.url, filename: "Voice" },
+            attrs: { src: data.url, filename: "Voice", duration: durationSecs },
           }).run();
         } catch (error) {
           console.error("Failed to upload voice recording:", error);
@@ -1293,6 +1295,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
+      recordingStartTimeRef.current = Date.now();
       setIsRecording(true);
     }).catch((err) => {
       console.error("Microphone access denied:", err);
