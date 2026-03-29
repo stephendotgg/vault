@@ -448,7 +448,7 @@ const QUICK_ACCESS_UPDATED_EVENT = "vault-quick-access-updated";
 const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
   lists: true,
-  fileCleaner: true,
+  fileCleaner: false,
 };
 
 export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNote, onArchiveNote, onDeletePermanently, onRenameNote, onMoveNote, onOpenLists, onOpenListsAddModal, onOpenArchive, onOpenFileCleaner, onOpenAI, onOpenSearch, onOpenSettings, onUpdateNote, notes }: SidebarProps) {

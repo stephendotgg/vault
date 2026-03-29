@@ -60,7 +60,7 @@ function formatShortcutFromEvent(event: ShortcutKeyboardEvent): string | null {
 const defaultSidebarVisibility: SidebarVisibilityState = {
   notes: true,
   lists: true,
-  fileCleaner: true,
+  fileCleaner: false,
 };
 
 const sectionLabels: Record<SidebarVisibilityKey, string> = {
