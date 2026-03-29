@@ -175,7 +175,7 @@ export function ListsAddModal({
             <input
               ref={keyInputRef}
               type="text"
-              placeholder="e.g. Weekly standup notes"
+              placeholder="e.g. Dentist appointment Tuesday"
               value={key}
               onChange={(e) => setKey(e.target.value)}
               onKeyDown={handleKeyDown}
