@@ -488,10 +488,6 @@ a {
   width: 0%;
   transition: width 0.1s linear;
 }
-.note-audio-wrapper.ProseMirror-selectednode .note-audio-player {
-  outline: 2px solid #5b9bd5;
-  outline-offset: 2px;
-}
 :root[data-theme="light"] .note-audio-player {
   background: #f0f0f0;
   border-color: #ddd;

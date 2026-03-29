@@ -1276,7 +1276,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
           currentEditor.chain().focus().insertContentAt(targetPos, {
             type: "noteAudio",
-            attrs: { src: data.url, filename: `Voice ${new Date().toLocaleTimeString()}` },
+            attrs: { src: data.url, filename: "Voice recording" },
           }).run();
         } catch (error) {
           console.error("Failed to upload voice recording:", error);
