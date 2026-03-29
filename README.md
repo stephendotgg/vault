@@ -4,6 +4,8 @@ A note-taking desktop app with rich text, spreadsheets, lists, AI chat, voice re
 
 <img width="2068" height="1239" alt="image" src="https://github.com/user-attachments/assets/f8e978cd-1042-4a38-a033-29c0e25a2583" />
 
+> **To install**, grab the latest `.exe` from the [Releases](https://github.com/stephendotgg/vault/releases) tab on the right and run it.
+
 ## Why
 
 I built Vault because I was unsatisfied with existing apps. One app had features another didn’t, workflows were fragmented, and AI was often locked behind premium pricing. I wanted one place that covered my real daily workflow without subscriptions deciding what I could or couldn’t do.
