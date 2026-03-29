@@ -72,15 +72,18 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={handleSave}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) (e.currentTarget as HTMLElement).dataset.backdropMousedown = "true"; }}
+      onMouseUp={(e) => { if (e.target === e.currentTarget && (e.currentTarget as HTMLElement).dataset.backdropMousedown === "true") handleSave(); delete (e.currentTarget as HTMLElement).dataset.backdropMousedown; }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+        onMouseDown={(e) => { const parent = e.currentTarget.parentElement as HTMLElement; if (parent) parent.dataset.backdropMousedown = "true"; }}
+        onMouseUp={(e) => { const parent = e.currentTarget.parentElement as HTMLElement; if (parent?.dataset.backdropMousedown === "true") handleSave(); if (parent) delete parent.dataset.backdropMousedown; }}
+      />
       
       {/* Modal */}
       <div 
         className="relative bg-[#202020] border border-[#2f2f2f] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] w-full max-w-md mx-4 max-h-[85vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2">

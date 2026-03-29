@@ -126,15 +126,18 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectLists }: Se
   return (
     <div 
       className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
-      onClick={onClose}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) (e.currentTarget as HTMLElement).dataset.backdropMousedown = "true"; }}
+      onMouseUp={(e) => { if (e.target === e.currentTarget && (e.currentTarget as HTMLElement).dataset.backdropMousedown === "true") onClose(); delete (e.currentTarget as HTMLElement).dataset.backdropMousedown; }}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+        onMouseDown={(e) => { const parent = e.currentTarget.parentElement as HTMLElement; if (parent) parent.dataset.backdropMousedown = "true"; }}
+        onMouseUp={(e) => { const parent = e.currentTarget.parentElement as HTMLElement; if (parent?.dataset.backdropMousedown === "true") onClose(); if (parent) delete parent.dataset.backdropMousedown; }}
+      />
       
       {/* Modal */}
       <div 
         className="relative w-full max-w-xl bg-[#202020] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] border border-[#2f2f2f] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
         <div className={`flex items-center gap-3 px-5 py-4 ${hasResults ? "border-b border-[#2f2f2f]" : ""}`}>

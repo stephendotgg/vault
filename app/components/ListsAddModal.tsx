@@ -143,13 +143,16 @@ export function ListsAddModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={handleClose}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) (e.currentTarget as HTMLElement).dataset.backdropMousedown = "true"; }}
+      onMouseUp={(e) => { if (e.target === e.currentTarget && (e.currentTarget as HTMLElement).dataset.backdropMousedown === "true") handleClose(); delete (e.currentTarget as HTMLElement).dataset.backdropMousedown; }}
     >
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" />
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+        onMouseDown={(e) => { const parent = e.currentTarget.parentElement as HTMLElement; if (parent) parent.dataset.backdropMousedown = "true"; }}
+        onMouseUp={(e) => { const parent = e.currentTarget.parentElement as HTMLElement; if (parent?.dataset.backdropMousedown === "true") handleClose(); if (parent) delete parent.dataset.backdropMousedown; }}
+      />
 
       <div
         className="relative bg-[#202020] border border-[#2f2f2f] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.45)] w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-2">
           <h2 className="text-sm font-medium text-[#ebebeb]">{mode === "edit" ? "Edit list item" : "Add to list"}</h2>
