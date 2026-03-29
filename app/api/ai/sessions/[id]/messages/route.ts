@@ -42,6 +42,6 @@ export async function POST(
     return NextResponse.json(message);
   } catch (error) {
     console.error("Failed to add message:", error);
-    return NextResponse.json({ error: "Failed to add message" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to add message", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

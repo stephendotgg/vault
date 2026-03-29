@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(listItems);
   } catch (error) {
     console.error("Failed to fetch list items:", error);
-    return NextResponse.json({ error: "Failed to fetch list items" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch list items", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -46,6 +46,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(listItem);
   } catch (error) {
     console.error("Failed to create list item:", error);
-    return NextResponse.json({ error: "Failed to create list item" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create list item", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

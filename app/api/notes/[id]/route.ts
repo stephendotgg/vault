@@ -20,7 +20,7 @@ export async function GET(
     return NextResponse.json(note);
   } catch (error) {
     console.error("Failed to fetch note:", error);
-    return NextResponse.json({ error: "Failed to fetch note" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch note", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -76,7 +76,7 @@ export async function PATCH(
     return NextResponse.json(note);
   } catch (error) {
     console.error("Failed to update note:", error);
-    return NextResponse.json({ error: "Failed to update note" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update note", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -137,6 +137,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete note:", error);
-    return NextResponse.json({ error: "Failed to delete note" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete note", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

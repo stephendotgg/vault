@@ -60,7 +60,7 @@ export async function POST(
     return NextResponse.json({ icon: updatedNote.icon }, { status: 201 });
   } catch (error) {
     console.error("Failed to upload icon:", error);
-    return NextResponse.json({ error: "Failed to upload icon" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to upload icon", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -96,6 +96,6 @@ export async function DELETE(
     return NextResponse.json({ icon: updatedNote.icon });
   } catch (error) {
     console.error("Failed to delete icon:", error);
-    return NextResponse.json({ error: "Failed to delete icon" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete icon", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

@@ -25,7 +25,7 @@ export async function GET(
     return NextResponse.json(session);
   } catch (error) {
     console.error("Failed to fetch chat session:", error);
-    return NextResponse.json({ error: "Failed to fetch session" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch session", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -52,7 +52,7 @@ export async function PATCH(
     return NextResponse.json(session);
   } catch (error) {
     console.error("Failed to update chat session:", error);
-    return NextResponse.json({ error: "Failed to update session" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update session", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -97,6 +97,6 @@ export async function DELETE(
       return NextResponse.json({ success: true }); // Already deleted, treat as success
     }
     console.error("Failed to delete chat session:", error);
-    return NextResponse.json({ error: "Failed to delete session" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete session", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

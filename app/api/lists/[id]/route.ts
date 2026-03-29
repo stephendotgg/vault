@@ -17,7 +17,7 @@ export async function GET(
     return NextResponse.json(listItem);
   } catch (error) {
     console.error("Failed to fetch list item:", error);
-    return NextResponse.json({ error: "Failed to fetch list item" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch list item", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -37,7 +37,7 @@ export async function PATCH(
     return NextResponse.json(listItem);
   } catch (error) {
     console.error("Failed to update list item:", error);
-    return NextResponse.json({ error: "Failed to update list item" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update list item", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -54,6 +54,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete list item:", error);
-    return NextResponse.json({ error: "Failed to delete list item" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete list item", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

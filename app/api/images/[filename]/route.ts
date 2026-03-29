@@ -42,6 +42,6 @@ export async function GET(
     });
   } catch (error) {
     console.error("Failed to serve image:", error);
-    return NextResponse.json({ error: "Failed to serve image" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to serve image", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

@@ -3,7 +3,10 @@ import { PrismaClient } from "@prisma/client";
 import Database from "better-sqlite3";
 import { getDatabasePath } from "./paths";
 
+console.log("[db] Loading prisma module, better-sqlite3 resolved from:", require.resolve("better-sqlite3"));
+
 const dbPath = getDatabasePath();
+console.log("[db] Database path:", dbPath);
 const globalForDbInit = globalThis as unknown as {
   __mothershipDbInitialized?: boolean;
 };
@@ -100,13 +103,26 @@ function initializeDatabase() {
 
 // Ensure tables exist before Prisma connects (once per process)
 if (!globalForDbInit.__mothershipDbInitialized) {
-  initializeDatabase();
-  globalForDbInit.__mothershipDbInitialized = true;
+  try {
+    initializeDatabase();
+    globalForDbInit.__mothershipDbInitialized = true;
+  } catch (err) {
+    console.error("[CRITICAL] Database initialization failed:", err);
+    console.error("[CRITICAL] DB path:", dbPath);
+    console.error("[CRITICAL] better-sqlite3 loaded from:", require.resolve("better-sqlite3"));
+  }
 }
 
-const adapter = new PrismaBetterSqlite3({
-  url: `file:${dbPath}`,
-});
+let adapter: PrismaBetterSqlite3;
+try {
+  adapter = new PrismaBetterSqlite3({
+    url: `file:${dbPath}`,
+  });
+} catch (err) {
+  console.error("[CRITICAL] PrismaBetterSqlite3 adapter creation failed:", err);
+  console.error("[CRITICAL] DB path:", dbPath);
+  throw err;
+}
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

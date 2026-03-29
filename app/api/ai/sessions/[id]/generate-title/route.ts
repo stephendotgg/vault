@@ -140,6 +140,6 @@ ${conversationSnippet}`;
     return NextResponse.json({ title: updatedSession.title });
   } catch (error) {
     console.error("Failed to generate title:", error);
-    return NextResponse.json({ error: "Failed to generate title" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to generate title", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

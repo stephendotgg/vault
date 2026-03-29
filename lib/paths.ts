@@ -7,6 +7,7 @@ import { existsSync, mkdirSync } from "fs";
 export function getDataDir(): string {
   const explicitDataDir = process.env.MOTHERSHIP_DATA_DIR?.trim();
   if (explicitDataDir) {
+    console.log("[paths] Using explicit data dir:", explicitDataDir);
     if (!existsSync(explicitDataDir)) {
       mkdirSync(explicitDataDir, { recursive: true });
     }
@@ -15,6 +16,7 @@ export function getDataDir(): string {
 
   // Check if we're in a packaged Electron app using environment variable set by main.js
   const isPackaged = process.env.NEXT_PRIVATE_STANDALONE === "1";
+  console.log("[paths] isPackaged:", isPackaged, "MOTHERSHIP_DATA_DIR:", process.env.MOTHERSHIP_DATA_DIR, "cwd:", process.cwd());
   
   if (isPackaged) {
     // Use a persistent folder in user's app data

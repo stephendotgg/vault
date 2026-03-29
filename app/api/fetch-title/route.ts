@@ -56,6 +56,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ title: title || null });
   } catch (error) {
     console.error("Failed to fetch page title:", error);
-    return NextResponse.json({ error: "Failed to fetch page title" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch page title", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error reading directory:", error);
-    return NextResponse.json({ error: "Failed to read directory" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to read directory", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -146,7 +146,7 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error deleting file:", error);
-    return NextResponse.json({ error: "Failed to delete file" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to delete file", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -185,6 +185,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, oldPath: normalizedOldPath, newPath, newName });
   } catch (error) {
     console.error("Error renaming file:", error);
-    return NextResponse.json({ error: "Failed to rename file" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to rename file", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

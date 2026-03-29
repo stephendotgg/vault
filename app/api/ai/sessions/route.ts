@@ -16,7 +16,7 @@ export async function GET() {
     return NextResponse.json(sessions);
   } catch (error) {
     console.error("Failed to fetch chat sessions:", error);
-    return NextResponse.json({ error: "Failed to fetch sessions" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch sessions", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -35,6 +35,6 @@ export async function POST() {
     return NextResponse.json(session);
   } catch (error) {
     console.error("Failed to create chat session:", error);
-    return NextResponse.json({ error: "Failed to create session" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create session", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

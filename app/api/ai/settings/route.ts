@@ -28,7 +28,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Failed to fetch AI settings:", error);
-    return NextResponse.json({ error: "Failed to fetch settings" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch settings", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -58,6 +58,6 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to update AI settings:", error);
-    return NextResponse.json({ error: "Failed to update settings" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update settings", details: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
