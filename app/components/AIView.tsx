@@ -1088,7 +1088,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                       : "text-[#9b9b9b] hover:bg-[#2f2f2f]"
                   }`}
                 >
-                  <span className="text-sm truncate flex-1">
+                  <span className={`text-sm truncate flex-1 ${blurTitles ? "!text-overflow-clip" : ""}`} style={blurTitles ? { textOverflow: "clip" } : undefined}>
                     {blurTitles ? (
                       <span className="note-title-blurred select-none">
                         {session.title.replace(/[a-zA-Z]/g, () => String.fromCharCode(97 + Math.floor(Math.random() * 26)))}
