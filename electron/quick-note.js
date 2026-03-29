@@ -60,7 +60,9 @@ async function handleArchive() {
 
 input.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
-    window.electronAPI.closeQuickNote();
+    event.preventDefault();
+    void handleSave();
+    return;
   }
 
   if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
@@ -84,8 +86,9 @@ window.addEventListener("keydown", (event) => {
     void handleSave();
   }
 
-  if (event.key === "Escape") {
-    window.electronAPI.closeQuickNote();
+  if (event.key === "Escape" && !isInput) {
+    event.preventDefault();
+    void handleSave();
   }
 });
 
