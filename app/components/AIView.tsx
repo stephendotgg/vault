@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import { AISettingsModal } from "./AISettingsModal";
+import { useToast } from "./Toast";
 
 interface PendingImage {
   file: File;
@@ -116,6 +117,7 @@ function buildUploadFilename(file: Blob & { name?: string }, prefix: string): st
 }
 
 export function AIView({ onBack: _onBack }: AIViewProps) {
+  const { showError: showToastError } = useToast();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [input, setInput] = useState("");
@@ -150,6 +152,11 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
 
   const isNearBottom = (element: HTMLDivElement) =>
     element.scrollHeight - element.scrollTop - element.clientHeight < 96;
+
+  // Show errors as toasts
+  useEffect(() => {
+    if (error) showToastError(error);
+  }, [error, showToastError]);
 
   // Get current session
   const currentSession = sessions.find((s) => s.id === currentSessionId);

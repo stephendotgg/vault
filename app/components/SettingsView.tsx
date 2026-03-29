@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useToast } from "./Toast";
 
 type SectionKey = "notes" | "lists";
 type SidebarVisibilityKey = SectionKey | "fileCleaner" | "aiChat";
@@ -72,6 +73,8 @@ const sectionLabels: Record<SidebarVisibilityKey, string> = {
 };
 
 export function SettingsView() {
+  const { showToast, showError } = useToast();
+  const isDev = typeof window !== "undefined" && window.location.port === "3000";
   const [sidebarVisibility, setSidebarVisibility] = useState<SidebarVisibilityState>(defaultSidebarVisibility);
   const [spellcheckEnabled, setSpellcheckEnabled] = useState(true);
   const [teamsCallTranscriptionEnabled, setTeamsCallTranscriptionEnabled] = useState(false);
@@ -843,6 +846,41 @@ export function SettingsView() {
               </div>
             </div>
           </section>
+
+          {isDev && (
+            <section className="space-y-3">
+              <h2 className="text-lg text-[#e3e3e3] font-medium">Dev</h2>
+              <p className="text-sm text-[#9b9b9b]">Developer tools — only visible in dev mode.</p>
+              <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => showToast("This is an info toast", "info")}
+                    className="px-3 py-1.5 text-xs bg-[#1a1a2a] border border-[#20204a] text-[#7eb8f7] rounded-md hover:bg-[#252540] transition-colors"
+                  >
+                    Info Toast
+                  </button>
+                  <button
+                    onClick={() => showToast("Action completed successfully", "success")}
+                    className="px-3 py-1.5 text-xs bg-[#1a2a1a] border border-[#204a20] text-[#4ade80] rounded-md hover:bg-[#254025] transition-colors"
+                  >
+                    Success Toast
+                  </button>
+                  <button
+                    onClick={() => showToast("Careful with that setting", "warning")}
+                    className="px-3 py-1.5 text-xs bg-[#2a2415] border border-[#4a3d20] text-[#fbbf24] rounded-md hover:bg-[#403520] transition-colors"
+                  >
+                    Warning Toast
+                  </button>
+                  <button
+                    onClick={() => showError("Something went wrong", new Error("Test error for dev debugging"))}
+                    className="px-3 py-1.5 text-xs bg-[#2a1a1a] border border-[#4a2020] text-[#f87171] rounded-md hover:bg-[#402020] transition-colors"
+                  >
+                    Error Toast
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
 
           <p className="text-sm text-[#9b9b9b]">Vault {appVersion}</p>
         </div>

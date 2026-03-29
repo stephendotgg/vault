@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { TitleBar } from "./components/TitleBar";
 import { AppShell } from "./components/AppShell";
+import { ToastProvider } from "./components/Toast";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -22,11 +23,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} antialiased`}>
-        <div className="flex flex-col h-screen w-screen overflow-hidden">
-          <TitleBar />
-          <div className="h-px bg-[#2f2f2f] shrink-0" />
-          <AppShell />
-        </div>
+        <ToastProvider>
+          <div className="flex flex-col h-screen w-screen overflow-hidden">
+            <TitleBar />
+            <div className="h-px bg-[#2f2f2f] shrink-0" />
+            <AppShell />
+          </div>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -33,6 +33,7 @@ import { EMOJI_INSERT_OPTIONS } from "@/app/data/emojis";
 import type { EmojiInsertOption } from "@/app/data/emojis";
 import { NoteLink } from "@/app/extensions/NoteLink";
 import { NoteAudio } from "@/app/extensions/NoteAudio";
+import { useToast } from "./Toast";
 
 // Storage keys
 const OPENROUTER_API_KEY_STORAGE_KEY = "vault-openrouter-api-key";
@@ -795,6 +796,7 @@ interface NoteEditorProps {
 }
 
 export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true, isPopout = false }: NoteEditorProps) {
+  const { showError: showToastError } = useToast();
   const [title, setTitle] = useState(note.title);
   const isLocked = Boolean(note.isLocked);
   const [spellcheckEnabled] = useState(() => {
@@ -859,6 +861,12 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [copiedChatMessageId, setCopiedChatMessageId] = useState<string | null>(null);
+
+  // Show chat errors as toasts
+  useEffect(() => {
+    if (chatError) showToastError(chatError);
+  }, [chatError, showToastError]);
+
   const allNotesRef = useRef(allNotes);
   allNotesRef.current = allNotes;
   const onSelectNoteRef = useRef(onSelectNote);

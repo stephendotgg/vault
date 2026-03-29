@@ -392,6 +392,16 @@ a {
 }
 
 /* Scrambled + blurred text for hidden titles */
+
+/* Toast slide-in animation */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.2s ease-out;
+}
+
 .note-title-blurred {
   color: transparent !important;
   text-shadow: 0 0 8px rgba(200, 200, 200, 0.9);
