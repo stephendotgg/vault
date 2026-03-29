@@ -1091,7 +1091,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                   <span className={`text-sm truncate flex-1 ${blurTitles ? "!text-overflow-clip" : ""}`} style={blurTitles ? { textOverflow: "clip" } : undefined}>
                     {blurTitles ? (
                       <span className="note-title-blurred select-none">
-                        {session.title.replace(/[a-zA-Z]/g, () => String.fromCharCode(97 + Math.floor(Math.random() * 26)))}
+                        {session.title.replace(/[a-zA-Z]/g, (_, i) => { const c = session.title.charCodeAt(i % session.title.length); return String.fromCharCode(97 + ((c * 7 + i * 13) % 26)); })}
                       </span>
                     ) : (
                       session.title

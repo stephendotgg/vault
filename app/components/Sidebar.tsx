@@ -700,9 +700,13 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
   };
 
   // Obfuscate a title with scrambled text (rendered with CSS blur)
-  const obfuscateTitle = (title: string): string => {
-    return title.replace(/[a-zA-Z]/g, () => String.fromCharCode(97 + Math.floor(Math.random() * 26)));
-  };
+  // Uses deterministic scramble based on character position to avoid visual bouncing on re-renders
+  const obfuscateTitle = useCallback((title: string): string => {
+    return title.replace(/[a-zA-Z]/g, (_, i) => {
+      const code = title.charCodeAt(i % title.length);
+      return String.fromCharCode(97 + ((code * 7 + i * 13) % 26));
+    });
+  }, []);
 
   // Filter out archived notes before building tree
   const activeNotes = useMemo(() => {
