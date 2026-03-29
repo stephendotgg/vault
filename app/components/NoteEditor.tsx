@@ -792,10 +792,9 @@ interface NoteEditorProps {
   headerActions?: React.ReactNode;
   allowAIChat?: boolean;
   isPopout?: boolean;
-  windowId?: string;
 }
 
-export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true, isPopout = false, windowId }: NoteEditorProps) {
+export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true, isPopout = false }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
   const isLocked = Boolean(note.isLocked);
   const parentNote = useMemo(
@@ -1905,15 +1904,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       if (!skipParentUpdate) {
         onUpdate(updatedNote);
       }
-
-      // Notify other windows that this note changed
-      try {
-        const channel = new BroadcastChannel("vault-note-sync");
-        channel.postMessage({ type: "note-saved", noteId: note.id, windowId });
-        channel.close();
-      } catch {
-        // BroadcastChannel not supported — ignore
-      }
     } catch (error) {
       console.error("Failed to save note:", error);
     }
@@ -2711,6 +2701,13 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
             {!isPopout && (
               <button
                 onClick={() => {
+                  // Notify main window this note is being popped out
+                  try {
+                    const channel = new BroadcastChannel("vault-popout-lifecycle");
+                    channel.postMessage({ type: "popout-opened", noteId: note.id });
+                    channel.close();
+                  } catch { /* ignore */ }
+
                   if (window.electronAPI?.popoutNote) {
                     window.electronAPI.popoutNote(note.id);
                   } else {

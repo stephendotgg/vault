@@ -205,9 +205,6 @@ export function AppShell() {
     }
   }, []);
 
-  // Unique ID for this window to filter out own BroadcastChannel messages
-  const [windowId] = useState(() => Math.random().toString(36).slice(2));
-
   const [notes, setNotes] = useState<Note[]>([]);
   const [listItems, setListItems] = useState<ListItem[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -215,6 +212,7 @@ export function AppShell() {
   const [selectedArchivedNoteId, setSelectedArchivedNoteId] = useState<string | null>(null);
   const [isListsModalOpen, setIsListsModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [poppedOutNoteIds, setPoppedOutNoteIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
   const [migrationsReady, setMigrationsReady] = useState(false);
@@ -467,23 +465,41 @@ export function AppShell() {
     fetchListItems();
   }, [fetchNotes, fetchListItems]);
 
-  // Listen for note changes from other windows (pop-out sync)
+  // Listen for pop-out lifecycle events (undock/redock)
   useEffect(() => {
+    if (popoutNoteId) {
+      // This is a pop-out window — broadcast close on unload
+      const handleUnload = () => {
+        try {
+          const channel = new BroadcastChannel("vault-popout-lifecycle");
+          channel.postMessage({ type: "popout-closed", noteId: popoutNoteId });
+          channel.close();
+        } catch { /* ignore */ }
+      };
+      window.addEventListener("beforeunload", handleUnload);
+      return () => window.removeEventListener("beforeunload", handleUnload);
+    }
+
+    // Main window — listen for popout open/close
     let channel: BroadcastChannel | null = null;
     try {
-      channel = new BroadcastChannel("vault-note-sync");
+      channel = new BroadcastChannel("vault-popout-lifecycle");
       channel.onmessage = (event) => {
-        if (event.data?.type === "note-saved" && event.data?.windowId !== windowId) {
+        const { type, noteId } = event.data || {};
+        if (type === "popout-opened" && noteId) {
+          setPoppedOutNoteIds((prev) => new Set(prev).add(noteId));
+        } else if (type === "popout-closed" && noteId) {
+          setPoppedOutNoteIds((prev) => {
+            const next = new Set(prev);
+            next.delete(noteId);
+            return next;
+          });
           fetchNotes();
         }
       };
-    } catch {
-      // BroadcastChannel not supported
-    }
-    return () => {
-      channel?.close();
-    };
-  }, [fetchNotes, windowId]);
+    } catch { /* ignore */ }
+    return () => { channel?.close(); };
+  }, [popoutNoteId, fetchNotes]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -1051,7 +1067,6 @@ export function AppShell() {
           allChatMessages={allChatMessages}
           setAllChatMessages={setAllChatMessages}
           isPopout
-          windowId={windowId}
         />
       </div>
     );
@@ -1087,7 +1102,26 @@ export function AppShell() {
         onUpdateNote={handleUpdateNote}
       />
       <main className="flex-1 overflow-auto bg-[#191919]">
-        {currentView === "note" && selectedNoteId && notes.find(n => n.id === selectedNoteId) ? (
+        {currentView === "note" && selectedNoteId && poppedOutNoteIds.has(selectedNoteId) ? (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-3">
+            <svg className="w-10 h-10 text-[#4f4f4f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            <p className="text-sm text-[#6b6b6b]">This note is open in a separate window</p>
+            <button
+              onClick={() => {
+                setPoppedOutNoteIds((prev) => {
+                  const next = new Set(prev);
+                  next.delete(selectedNoteId);
+                  return next;
+                });
+              }}
+              className="text-xs text-[#7eb8f7] hover:text-[#9ecbff] transition-colors cursor-pointer"
+            >
+              Open here anyway
+            </button>
+          </div>
+        ) : currentView === "note" && selectedNoteId && notes.find(n => n.id === selectedNoteId) ? (
           <NoteEditor
             key={selectedNoteId}
             note={notes.find(n => n.id === selectedNoteId)!}
@@ -1098,7 +1132,6 @@ export function AppShell() {
             setChatOpenStates={setChatOpenStates}
             allChatMessages={allChatMessages}
             setAllChatMessages={setAllChatMessages}
-            windowId={windowId}
           />
         ) : currentView === "lists" ? (
           <ListsView
@@ -1116,7 +1149,6 @@ export function AppShell() {
             allowAIChat={false}
             breadcrumbPrefixLabel="Archive"
             onBreadcrumbPrefixClick={() => setSelectedArchivedNoteId(null)}
-            windowId={windowId}
             headerActions={(
               <>
                 <button
