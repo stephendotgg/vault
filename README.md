@@ -2,7 +2,8 @@
 
 A note-taking desktop app with rich text, spreadsheets, lists, AI chat, voice recordings, and more. Fully modular, with global hotkeys for quick capture. Your data stays on your machine — no account, no subscription.
 
-<img width="2068" height="1239" alt="image" src="https://github.com/user-attachments/assets/f8e978cd-1042-4a38-a033-29c0e25a2583" />
+<img width="1846" height="1098" alt="image" src="https://github.com/user-attachments/assets/818cb96b-bad5-46d4-a637-9af02afe4af6" />
+
 
 ## Why
 
