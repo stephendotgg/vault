@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut, desktopCapturer, Notification } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut, desktopCapturer, Notification, Menu } = require("electron");
 const path = require("path");
 const { execFile } = require("child_process");
 const fs = require("fs");
@@ -1864,10 +1864,32 @@ ipcMain.on("popout-note", (_event, payload) => {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
+      spellcheck: true,
     },
   });
 
   installStandardZoomShortcuts(popoutWindow);
+
+  // Spellcheck context menu for pop-out windows
+  popoutWindow.webContents.on("context-menu", (_event, params) => {
+    if (params.misspelledWord) {
+      const menuItems = params.dictionarySuggestions.slice(0, 5).map((suggestion) => ({
+        label: suggestion,
+        click: () => popoutWindow.webContents.replaceMisspelling(suggestion),
+      }));
+
+      if (menuItems.length > 0) {
+        menuItems.push({ type: "separator" });
+      }
+
+      menuItems.push({
+        label: "Add to dictionary",
+        click: () => popoutWindow.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
+      });
+
+      Menu.buildFromTemplate(menuItems).popup();
+    }
+  });
 
   const popoutUrl = `http://localhost:${PORT}/?noteId=${encodeURIComponent(noteId)}&popout=true`;
   popoutWindow.loadURL(popoutUrl);
@@ -2220,10 +2242,32 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
+      spellcheck: true,
     },
   });
 
   installStandardZoomShortcuts(mainWindow);
+
+  // Spellcheck context menu — show spelling suggestions on right-click
+  mainWindow.webContents.on("context-menu", (_event, params) => {
+    if (params.misspelledWord) {
+      const menuItems = params.dictionarySuggestions.slice(0, 5).map((suggestion) => ({
+        label: suggestion,
+        click: () => mainWindow.webContents.replaceMisspelling(suggestion),
+      }));
+
+      if (menuItems.length > 0) {
+        menuItems.push({ type: "separator" });
+      }
+
+      menuItems.push({
+        label: "Add to dictionary",
+        click: () => mainWindow.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
+      });
+
+      Menu.buildFromTemplate(menuItems).popup();
+    }
+  });
 
   // Show window when ready to avoid flash
   mainWindow.once("ready-to-show", () => {
