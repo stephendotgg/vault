@@ -1269,11 +1269,22 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         setIsRecording(false);
 
         const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
-        const formData = new FormData();
-        formData.append("audio", blob, `voice-${Date.now()}.webm`);
 
         try {
-          const res = await fetch("/api/audio", { method: "POST", body: formData });
+          // Convert to base64 and send as JSON (FormData broken in standalone production)
+          const arrayBuffer = await blob.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = "";
+          for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = btoa(binary);
+
+          const res = await fetch("/api/audio", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ base64, mimeType: mediaRecorder.mimeType }),
+          });
           if (!res.ok) return;
           const data = await res.json();
 

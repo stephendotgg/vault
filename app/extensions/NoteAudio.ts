@@ -31,14 +31,6 @@ export const NoteAudio = Node.create({
           "data-duration": String(attributes.duration ?? 0),
         }),
       },
-      transcript: {
-        default: "",
-        parseHTML: (element) => element.getAttribute("data-transcript") || "",
-        renderHTML: (attributes) => {
-          const val = attributes.transcript as string;
-          return val ? { "data-transcript": val } : {};
-        },
-      },
     };
   },
 
@@ -57,7 +49,7 @@ export const NoteAudio = Node.create({
   },
 
   addNodeView() {
-    return ({ node, getPos, editor }) => {
+    return ({ node }) => {
       const dom = document.createElement("div");
       dom.classList.add("note-audio-wrapper");
       dom.setAttribute("data-note-audio", "");
@@ -66,7 +58,6 @@ export const NoteAudio = Node.create({
       const src = node.attrs.src as string;
       const filename = (node.attrs.filename as string) || "Voice";
       const storedDuration = Number(node.attrs.duration) || 0;
-      const storedTranscript = (node.attrs.transcript as string) || "";
       const displayName = filename.endsWith(".webm") || filename.endsWith(".ogg")
         ? filename.replace(/\.[^.]+$/, "")
         : filename;
@@ -92,9 +83,7 @@ export const NoteAudio = Node.create({
           <div class="note-audio-progress-bar">
             <div class="note-audio-progress-fill"></div>
           </div>
-          ${!storedTranscript ? '<button class="note-audio-transcribe-btn" title="Transcribe">Transcribe</button>' : ''}
         </div>
-        ${storedTranscript ? `<div class="note-audio-transcript">${storedTranscript}</div>` : ''}
       `;
 
       const playBtn = dom.querySelector(".note-audio-play-btn") as HTMLButtonElement;
@@ -155,72 +144,6 @@ export const NoteAudio = Node.create({
         audio.currentTime = pct * audio.duration;
         updateProgress();
       });
-
-      // Transcribe button handler
-      const transcribeBtn = dom.querySelector(".note-audio-transcribe-btn") as HTMLButtonElement | null;
-      if (transcribeBtn) {
-        transcribeBtn.addEventListener("click", async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          transcribeBtn.textContent = "Transcribing...";
-          transcribeBtn.disabled = true;
-
-          try {
-            // Fetch the audio file
-            const audioRes = await fetch(src);
-            if (!audioRes.ok) throw new Error("Failed to fetch audio");
-            const audioBlob = await audioRes.blob();
-
-            // Get speech config from localStorage
-            const speechKey = localStorage.getItem("vault-azure-speech-key") || localStorage.getItem("mothership-azure-speech-key") || "";
-            const speechRegion = localStorage.getItem("vault-azure-speech-region") || localStorage.getItem("mothership-azure-speech-region") || "";
-            const speechLanguage = localStorage.getItem("vault-azure-speech-language") || localStorage.getItem("mothership-azure-speech-language") || "en-US";
-
-            const formData = new FormData();
-            formData.append("audio", audioBlob, "voice.webm");
-
-            const res = await fetch("/api/transcribe", {
-              method: "POST",
-              headers: {
-                "x-vault-azure-speech-key": speechKey,
-                "x-vault-azure-speech-region": speechRegion,
-                "x-vault-azure-speech-language": speechLanguage,
-              },
-              body: formData,
-            });
-
-            const data = await res.json();
-            const transcript = (data.text || "").trim();
-
-            if (!transcript) {
-              transcribeBtn.textContent = "No speech detected";
-              setTimeout(() => { transcribeBtn.textContent = "Transcribe"; transcribeBtn.disabled = false; }, 2000);
-              return;
-            }
-
-            // Update the node attribute with the transcript
-            const pos = getPos();
-            if (typeof pos === "number") {
-              editor.chain().focus().command(({ tr }) => {
-                tr.setNodeAttribute(pos, "transcript", transcript);
-                return true;
-              }).run();
-            }
-
-            // Update DOM immediately
-            transcribeBtn.remove();
-            const transcriptEl = document.createElement("div");
-            transcriptEl.className = "note-audio-transcript";
-            transcriptEl.textContent = transcript;
-            dom.appendChild(transcriptEl);
-          } catch (err) {
-            console.error("Transcription failed:", err);
-            transcribeBtn.textContent = "Failed";
-            setTimeout(() => { transcribeBtn.textContent = "Transcribe"; transcribeBtn.disabled = false; }, 2000);
-          }
-        });
-      }
 
       return { dom };
     };
