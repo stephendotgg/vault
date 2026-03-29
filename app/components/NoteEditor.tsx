@@ -3350,7 +3350,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                         </div>
                       )}
                     </div>
-                    {isLastAssistantMessage && msg.content && (
+                    {isLastAssistantMessage && msg.content && !isChatLoading && (
                       <div className="flex gap-3 mt-2.5">
                         <button
                           onClick={() => {

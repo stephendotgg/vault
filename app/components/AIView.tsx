@@ -1252,7 +1252,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                           }}
                         >{message.content}</ReactMarkdown>
                       </div>
-                      {isLastAssistantMessage && (
+                      {isLastAssistantMessage && !isLoading && (
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => {

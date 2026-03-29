@@ -186,7 +186,7 @@ function render() {
     }
 
     const hasLaterAssistant = state.messages.slice(index + 1).some((item) => item.role === "assistant");
-    const showActions = !hasLaterAssistant;
+    const showActions = !hasLaterAssistant && !state.loading && message.content;
 
     html.push(`
       <div class="assistant-wrap">
