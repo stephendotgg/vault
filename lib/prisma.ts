@@ -3,7 +3,8 @@ import { PrismaClient } from "@prisma/client";
 import { getDatabasePath, serverLog, serverError } from "./paths";
 
 // Dynamic require so we can catch native module load failures
-let Database: typeof import("better-sqlite3").default;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Database: any;
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   Database = require("better-sqlite3");
