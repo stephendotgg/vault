@@ -169,13 +169,13 @@ export function ListsAddModal({
         <div className="px-5 pb-4 space-y-3">
           <div>
             <label className="block text-xs text-[#9b9b9b] mb-1.5">
-              Key
+              Value
               {isFetchingTitle && <span className="ml-2 text-[#6b6b6b]">Fetching title...</span>}
             </label>
             <input
               ref={keyInputRef}
               type="text"
-              placeholder="e.g. GitHub Personal Access Token"
+              placeholder="e.g. My GitHub Token"
               value={key}
               onChange={(e) => setKey(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -183,10 +183,10 @@ export function ListsAddModal({
             />
           </div>
           <div>
-            <label className="block text-xs text-[#9b9b9b] mb-1.5">Value <span className="text-[#6b6b6b]">(paste URL to auto-fill title)</span></label>
+            <label className="block text-xs text-[#9b9b9b] mb-1.5">Link <span className="text-[#6b6b6b]">(optional — paste URL to auto-fill title)</span></label>
             <input
               type="text"
-              placeholder="The actual secret or value"
+              placeholder="https://..."
               value={value}
               onChange={(e) => setValue(e.target.value)}
               onPaste={handleValuePaste}
