@@ -100,6 +100,9 @@ export function SettingsView() {
   const [speechHealthStatus, setSpeechHealthStatus] = useState<"idle" | "ok" | "error">("idle");
   const [speechHealthMessage, setSpeechHealthMessage] = useState("");
   const [appVersion, setAppVersion] = useState("-");
+  const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "up-to-date" | "available" | "error">("idle");
+  const [releaseUrl, setReleaseUrl] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -127,6 +130,28 @@ export function SettingsView() {
       cancelled = true;
     };
   }, []);
+
+  const checkForUpdates = async () => {
+    setUpdateStatus("checking");
+    try {
+      const res = await fetch("https://api.github.com/repos/stephendotgg/vault/releases/latest");
+      if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+      const data = (await res.json()) as { tag_name?: string; html_url?: string };
+      const tag = data.tag_name ?? "";
+      const remote = tag.replace(/^v/, "");
+      const local = appVersion.replace(/^v/, "");
+      if (!remote) throw new Error("No version tag found");
+      setLatestVersion(`v${remote}`);
+      setReleaseUrl(data.html_url ?? null);
+      if (remote === local) {
+        setUpdateStatus("up-to-date");
+      } else {
+        setUpdateStatus("available");
+      }
+    } catch {
+      setUpdateStatus("error");
+    }
+  };
 
   useEffect(() => {
     const savedSidebar = localStorage.getItem(SIDEBAR_VISIBILITY_STORAGE_KEY);
@@ -821,7 +846,42 @@ export function SettingsView() {
             </section>
           )}
 
-          <p className="text-sm text-[#9b9b9b]">Vault {appVersion}</p>
+          <section className="space-y-3">
+            <h2 className="text-lg text-[#e3e3e3] font-medium">Updates</h2>
+            <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-[#e3e3e3]">Current version: <span className="text-[#9b9b9b]">{appVersion}</span></p>
+                  {updateStatus === "up-to-date" && (
+                    <p className="text-xs text-[#8fd18f]">You&apos;re on the latest version.</p>
+                  )}
+                  {updateStatus === "available" && latestVersion && (
+                    <p className="text-xs text-[#7eb8f7]">{latestVersion} is available.</p>
+                  )}
+                  {updateStatus === "error" && (
+                    <p className="text-xs text-[#e69a9a]">Couldn&apos;t check for updates. Try again later.</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {updateStatus === "available" && releaseUrl && (
+                    <button
+                      onClick={() => window.open(releaseUrl, "_blank")}
+                      className="px-3 py-1.5 text-xs bg-[#1a1a2a] border border-[#20204a] text-[#7eb8f7] rounded-md hover:bg-[#252540] transition-colors"
+                    >
+                      Download
+                    </button>
+                  )}
+                  <button
+                    onClick={() => void checkForUpdates()}
+                    disabled={updateStatus === "checking"}
+                    className="px-3 py-1.5 text-xs bg-[#222] border border-[#2f2f2f] text-[#d1d1d1] rounded-md hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+                  >
+                    {updateStatus === "checking" ? "Checking..." : "Check for updates"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
