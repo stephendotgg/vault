@@ -77,6 +77,7 @@ export const NoteAudio = Node.create({
       let playing = false;
 
       function formatTime(seconds: number): string {
+        if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
         const m = Math.floor(seconds / 60);
         const s = Math.floor(seconds % 60);
         return `${m}:${s.toString().padStart(2, "0")}`;
@@ -84,16 +85,22 @@ export const NoteAudio = Node.create({
 
       function updateProgress() {
         if (!audio) return;
-        const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+        const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+        const pct = duration ? (audio.currentTime / duration) * 100 : 0;
         progressFill.style.width = `${pct}%`;
-        timeEl.textContent = playing ? formatTime(audio.currentTime) : formatTime(audio.duration);
+        timeEl.textContent = playing ? formatTime(audio.currentTime) : formatTime(duration);
       }
 
-      // Preload metadata to show total duration immediately
+      // Preload to get duration — webm often reports Infinity with preload=metadata
+      // so we load the full file but don't play it
       const preloadAudio = new Audio();
-      preloadAudio.preload = "metadata";
       preloadAudio.addEventListener("loadedmetadata", () => {
-        if (!playing) {
+        if (Number.isFinite(preloadAudio.duration) && !playing) {
+          timeEl.textContent = formatTime(preloadAudio.duration);
+        }
+      });
+      preloadAudio.addEventListener("durationchange", () => {
+        if (Number.isFinite(preloadAudio.duration) && !playing) {
           timeEl.textContent = formatTime(preloadAudio.duration);
         }
       });
@@ -106,14 +113,16 @@ export const NoteAudio = Node.create({
         if (!audio) {
           audio = new Audio(src);
           audio.addEventListener("timeupdate", updateProgress);
-          audio.addEventListener("loadedmetadata", () => {
-            timeEl.textContent = formatTime(audio!.duration);
+          audio.addEventListener("durationchange", () => {
+            if (Number.isFinite(audio!.duration) && !playing) {
+              timeEl.textContent = formatTime(audio!.duration);
+            }
           });
           audio.addEventListener("ended", () => {
             playing = false;
             playBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21" /></svg>';
             progressFill.style.width = "0%";
-            if (audio) {
+            if (audio && Number.isFinite(audio.duration)) {
               audio.currentTime = 0;
               timeEl.textContent = formatTime(audio.duration);
             }
