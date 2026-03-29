@@ -19,6 +19,7 @@
 
 # production
 /build
+!/build/installer.nsh
 /dist
 
 # misc

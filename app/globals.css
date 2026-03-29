@@ -776,6 +776,30 @@ a {
   padding-left: 1em !important;
   margin: 0.5em 0 !important;
   color: #9b9b9b;
+  font-style: normal !important;
+}
+
+.tiptap blockquote p {
+  font-style: normal !important;
+}
+
+.tiptap blockquote p::before,
+.tiptap blockquote p::after,
+.prose .tiptap blockquote p:first-of-type::before,
+.prose .tiptap blockquote p:last-of-type::after,
+.prose :where(blockquote p:first-of-type)::before,
+.prose :where(blockquote p:last-of-type)::after {
+  content: none !important;
+}
+
+.prose .tiptap blockquote,
+.prose :where(blockquote) {
+  font-style: normal !important;
+}
+
+.prose .tiptap blockquote p,
+.prose :where(blockquote) p {
+  font-style: normal !important;
 }
 
 .tiptap hr {
