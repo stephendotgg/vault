@@ -2275,9 +2275,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
       // Set new timeout for auto-save (500ms debounce)
       saveTimeoutRef.current = setTimeout(() => {
-        void saveNote(titleRef.current, html, {
-          skipParentUpdate: true,
-        });
+        void saveNote(titleRef.current, html);
       }, 500);
     },
   }, [insertImageWithParagraph, isLocked, isSpreadsheetNote, note.content, note.id, runSlashCommand, saveNote, syncSlashMenu]);
