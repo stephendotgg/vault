@@ -723,7 +723,7 @@ type SaveOptions = {
 };
 
 type SlashCommand = {
-  id: "table" | "emoji" | "icon";
+  id: "table" | "emoji" | "icon" | "voice";
   label: string;
   description: string;
   keywords: string[];
