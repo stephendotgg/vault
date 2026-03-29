@@ -1986,7 +1986,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     editable: !isSpreadsheetNote && !isLocked,
     editorProps: {
       attributes: {
-        class: "prose prose-invert max-w-none focus:outline-none h-full min-h-[120px] text-[#e3e3e3] text-base leading-relaxed",
+        class: "prose prose-invert max-w-full focus:outline-none h-full min-h-[120px] text-[#e3e3e3] text-base leading-relaxed",
       },
       handleKeyDown: (view, event) => {
         if (isLocked) {
@@ -2628,7 +2628,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-full min-w-0">
       {/* Left side - Editor with header */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
@@ -2735,7 +2735,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
         </div>
 
         {/* Editor content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
           <div className={isSpreadsheetNote ? "h-full flex flex-col" : "max-w-3xl mx-auto px-16 py-12 h-full flex flex-col"}>
             {/* Title */}
             {!isSpreadsheetNote && (
