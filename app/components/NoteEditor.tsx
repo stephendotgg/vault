@@ -1901,7 +1901,11 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       }
 
       const updatedNote = await res.json();
-      if (!skipParentUpdate) {
+      if (skipParentUpdate) {
+        // Still keep AppShell in sync with what we sent (not API response
+        // which may normalize HTML differently and trigger a content-sync loop).
+        onUpdate({ ...updatedNote, content: newContent });
+      } else {
         onUpdate(updatedNote);
       }
     } catch (error) {
@@ -2275,7 +2279,9 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
       // Set new timeout for auto-save (500ms debounce)
       saveTimeoutRef.current = setTimeout(() => {
-        void saveNote(titleRef.current, html);
+        void saveNote(titleRef.current, html, {
+          skipParentUpdate: true,
+        });
       }, 500);
     },
   }, [insertImageWithParagraph, isLocked, isSpreadsheetNote, note.content, note.id, runSlashCommand, saveNote, syncSlashMenu]);
