@@ -1242,9 +1242,17 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingInsertPosRef = useRef<number | null>(null);
+  const recordingPositionRef = useRef<{ left: number; top: number } | null>(null);
 
   const startVoiceRecording = useCallback((insertPos: number) => {
     recordingInsertPosRef.current = insertPos;
+
+    // Capture screen position from the editor cursor
+    const currentEditor = editorRef.current;
+    if (currentEditor) {
+      const coords = currentEditor.view.coordsAtPos(insertPos);
+      recordingPositionRef.current = { left: coords.left, top: coords.bottom + 4 };
+    }
 
     navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
       const mediaRecorder = new MediaRecorder(stream);
@@ -1276,7 +1284,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
           currentEditor.chain().focus().insertContentAt(targetPos, {
             type: "noteAudio",
-            attrs: { src: data.url, filename: "Voice recording" },
+            attrs: { src: data.url, filename: "Voice" },
           }).run();
         } catch (error) {
           console.error("Failed to upload voice recording:", error);
@@ -3036,8 +3044,11 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                   className="flex-1"
                   
                 />
-                {isRecording && (
-                  <div className="note-audio-recording" style={{ marginLeft: 64 }}>
+                {isRecording && recordingPositionRef.current && (
+                  <div
+                    className="note-audio-recording fixed z-[80]"
+                    style={{ left: recordingPositionRef.current.left, top: recordingPositionRef.current.top }}
+                  >
                     <div className="note-audio-recording-dot" />
                     <span className="note-audio-recording-text">Recording...</span>
                     <button className="note-audio-recording-stop" onClick={stopVoiceRecording}>
