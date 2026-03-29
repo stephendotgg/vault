@@ -1901,11 +1901,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       }
 
       const updatedNote = await res.json();
-      if (skipParentUpdate) {
-        // Still keep AppShell in sync with what we sent (not API response
-        // which may normalize HTML differently and trigger a content-sync loop).
-        onUpdate({ ...updatedNote, content: newContent });
-      } else {
+      if (!skipParentUpdate) {
         onUpdate(updatedNote);
       }
     } catch (error) {
@@ -2301,6 +2297,9 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     closeInlineInsertPicker();
   }, [closeInlineInsertPicker, note.id, isSpreadsheetNote, isLocked, showCallNoteView]);
 
+  // Track the last content prop value from AppShell to detect genuine external changes
+  const lastIncomingContentRef = useRef(note.content || "");
+
   // Update editor content when note changes, including external updates to same note
   useEffect(() => {
     if (isSpreadsheetNote || !editor) {
@@ -2308,8 +2307,14 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     }
 
     const incomingHtml = note.content || "";
-    const currentHtml = editor.getHTML();
 
+    // Only update if AppShell actually gave us NEW content (not a re-render with same stale value)
+    if (incomingHtml === lastIncomingContentRef.current) {
+      return;
+    }
+    lastIncomingContentRef.current = incomingHtml;
+
+    const currentHtml = editor.getHTML();
     if (incomingHtml === currentHtml) {
       return;
     }
