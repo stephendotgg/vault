@@ -900,17 +900,19 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
             </svg>
             <span>AI Chat</span>
           </div>
-          <div 
-            className="sidebar-action-row flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
-            onClick={(e) => {
-              setCreateMenu({ x: e.clientX, y: e.clientY });
-            }}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span>New</span>
-          </div>
+          {(visibleSections.notes || quickNoteEnabled || quickAiEnabled || visibleSections.lists) && (
+            <div 
+              className="sidebar-action-row flex items-center gap-2 px-2 py-1.5 text-[#9b9b9b] hover:bg-[#2f2f2f] rounded cursor-pointer text-sm"
+              onClick={(e) => {
+                setCreateMenu({ x: e.clientX, y: e.clientY });
+              }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>New</span>
+            </div>
+          )}
         </div>
       </div>
 
