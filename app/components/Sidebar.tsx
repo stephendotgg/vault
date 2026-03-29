@@ -327,7 +327,7 @@ function NoteItem({
             />
           ) : (
             <span 
-              className={`note-title-text truncate ${hiddenNoteNames.has(note.id) ? "tracking-[0.15em] text-[#6b6b6b]" : ""}`}
+              className={`note-title-text truncate ${hiddenNoteNames.has(note.id) ? "note-title-blurred select-none" : ""}`}
               onDoubleClick={(e) => {
                 e.stopPropagation();
                 onStartRename(note.id);
@@ -699,10 +699,9 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
     });
   };
 
-  // Obfuscate a title with bullets (same formula as AI chat)
+  // Obfuscate a title with scrambled text (rendered with CSS blur)
   const obfuscateTitle = (title: string): string => {
-    const bulletCount = Math.min(Math.max(Math.round(title.length * 0.75), 3), 15);
-    return "●".repeat(bulletCount);
+    return title.replace(/[a-zA-Z]/g, () => String.fromCharCode(97 + Math.floor(Math.random() * 26)));
   };
 
   // Filter out archived notes before building tree

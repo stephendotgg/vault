@@ -391,6 +391,13 @@ a {
   background-clip: padding-box;
 }
 
+/* Scrambled + blurred text for hidden titles */
+.note-title-blurred {
+  filter: blur(5px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* TipTap Editor Styles - outside @layer to override prose */
 .tiptap {
   outline: none;

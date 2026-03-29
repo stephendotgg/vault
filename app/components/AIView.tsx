@@ -1090,8 +1090,8 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                 >
                   <span className="text-sm truncate flex-1">
                     {blurTitles ? (
-                      <span className="tracking-[0.15em] text-[#6b6b6b]">
-                        {"●".repeat(Math.min(Math.max(Math.round(session.title.length * 0.75), 3), 15))}
+                      <span className="note-title-blurred select-none">
+                        {session.title.replace(/[a-zA-Z]/g, () => String.fromCharCode(97 + Math.floor(Math.random() * 26)))}
                       </span>
                     ) : (
                       session.title
