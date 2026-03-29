@@ -1,12 +1,29 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@prisma/client";
-import Database from "better-sqlite3";
 import { getDatabasePath, serverLog, serverError } from "./paths";
 
-serverLog("[db] Loading prisma module, better-sqlite3 resolved from:", require.resolve("better-sqlite3"));
+// Dynamic require so we can catch native module load failures
+let Database: typeof import("better-sqlite3").default;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Database = require("better-sqlite3");
+  serverLog("[db] better-sqlite3 loaded from:", require.resolve("better-sqlite3"));
+} catch (err) {
+  serverError("[CRITICAL] Failed to load better-sqlite3 native module:", err);
+  serverError("[CRITICAL] This usually means the native binary was built for a different Node/Electron ABI.");
+  serverError("[CRITICAL] require.resolve paths:", (module as NodeModule & { paths?: string[] }).paths);
+  // Create a stub so the module still exports something (routes will fail with a clear error)
+  Database = (() => { throw new Error("better-sqlite3 failed to load: " + (err instanceof Error ? err.message : String(err))); }) as unknown as typeof import("better-sqlite3").default;
+}
 
-const dbPath = getDatabasePath();
-serverLog("[db] Database path:", dbPath);
+let dbPath: string;
+try {
+  dbPath = getDatabasePath();
+  serverLog("[db] Database path:", dbPath);
+} catch (err) {
+  serverError("[CRITICAL] Failed to get database path:", err);
+  dbPath = "";
+}
 const globalForDbInit = globalThis as unknown as {
   __mothershipDbInitialized?: boolean;
 };
