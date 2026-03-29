@@ -1246,6 +1246,18 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
                 </svg>
                 Quick Note
               </button>
+              <button
+                className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
+                onClick={() => {
+                  window.electronAPI?.openQuickAi?.();
+                  setCreateMenu(null);
+                }}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Quick AI Chat
+              </button>
             </>
           )}
 
