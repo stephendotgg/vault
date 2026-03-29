@@ -717,11 +717,11 @@ export function AppShell() {
   };
 
   // Update note in list
-  const handleUpdateNote = (updatedNote: Note) => {
+  const handleUpdateNote = useCallback((updatedNote: Note) => {
     setNotes((prev) =>
       prev.map((n) => (n.id === updatedNote.id ? updatedNote : n))
     );
-  };
+  }, []);
 
   // Archive note (hide without deleting) - if note is empty, delete instead
   const handleArchiveNote = async (id: string) => {
