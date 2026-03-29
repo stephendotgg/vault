@@ -2300,11 +2300,6 @@ function createWindow() {
     }
   });
 
-  // Only open DevTools in development
-  if (isDev) {
-    mainWindow.webContents.openDevTools();
-  }
-
   mainWindow.on("closed", () => {
     mainWindow = null;
     // When the main window is closed, quit the app.
