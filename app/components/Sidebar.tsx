@@ -468,6 +468,7 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
   const [hiddenNoteNames, setHiddenNoteNames] = useState<Set<string>>(new Set());
   const [teamsCallTranscriptionEnabled, setTeamsCallTranscriptionEnabled] = useState(false);
   const [quickNoteEnabled, setQuickNoteEnabled] = useState(true);
+  const [quickAiEnabled, setQuickAiEnabled] = useState(true);
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
   const getClampedIconPickerPosition = (x: number, y: number) => {
@@ -527,6 +528,9 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
     const savedQuickNoteEnabled = localStorage.getItem(QUICK_NOTE_ENABLED_STORAGE_KEY);
     setQuickNoteEnabled(savedQuickNoteEnabled !== "false");
 
+    const savedQuickAiEnabled = localStorage.getItem("vault-setting-quick-ai-enabled");
+    setQuickAiEnabled(savedQuickAiEnabled !== "false");
+
     setHydrated(true);
   }, []);
 
@@ -547,10 +551,14 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
 
   useEffect(() => {
     const handleQuickAccessUpdated = (event: Event) => {
-      const customEvent = event as CustomEvent<{ quickNoteEnabled?: boolean }>;
+      const customEvent = event as CustomEvent<{ quickNoteEnabled?: boolean; quickAiEnabled?: boolean }>;
       const enabled = customEvent.detail?.quickNoteEnabled;
       if (typeof enabled === "boolean") {
         setQuickNoteEnabled(enabled);
+      }
+      const aiEnabled = customEvent.detail?.quickAiEnabled;
+      if (typeof aiEnabled === "boolean") {
+        setQuickAiEnabled(aiEnabled);
       }
     };
 
@@ -1232,32 +1240,36 @@ export function Sidebar({ currentView, selectedNoteId, onSelectNote, onCreateNot
                 </svg>
                 Sheet
               </button>
-              <button
-                className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
-                onClick={() => {
-                  window.electronAPI?.openQuickNote?.();
-                  setCreateMenu(null);
-                }}
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/>
-                  <path d="M8 9h8"/>
-                  <path d="M8 13h5"/>
-                </svg>
-                Quick Note
-              </button>
-              <button
-                className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
-                onClick={() => {
-                  window.electronAPI?.openQuickAi?.();
-                  setCreateMenu(null);
-                }}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-                Quick AI Chat
-              </button>
+              {quickNoteEnabled && (
+                <button
+                  className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
+                  onClick={() => {
+                    window.electronAPI?.openQuickNote?.();
+                    setCreateMenu(null);
+                  }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="3" y="4" width="18" height="16" rx="2" ry="2"/>
+                    <path d="M8 9h8"/>
+                    <path d="M8 13h5"/>
+                  </svg>
+                  Quick Note
+                </button>
+              )}
+              {quickAiEnabled && (
+                <button
+                  className="w-full flex items-center gap-2 px-2 py-[3px] text-sm text-[#ebebeb80] hover:bg-[rgba(255,255,255,0.055)] hover:text-[#ebebeb] rounded-[6px] transition-all text-left cursor-pointer"
+                  onClick={() => {
+                    window.electronAPI?.openQuickAi?.();
+                    setCreateMenu(null);
+                  }}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                  Quick AI Chat
+                </button>
+              )}
             </>
           )}
 
