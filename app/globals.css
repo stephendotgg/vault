@@ -506,6 +506,47 @@ a {
 :root[data-theme="light"] .note-audio-progress-fill {
   background: #2563eb;
 }
+.note-audio-transcribe-btn {
+  border: none;
+  background: #3f3f3f;
+  color: #9b9b9b;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.note-audio-transcribe-btn:hover {
+  background: #4f4f4f;
+  color: #e3e3e3;
+}
+.note-audio-transcribe-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.note-audio-transcript {
+  font-size: 13px;
+  color: #b0b0b0;
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  line-height: 1.5;
+  max-width: 360px;
+}
+:root[data-theme="light"] .note-audio-transcribe-btn {
+  background: #e0e0e0;
+  color: #666;
+}
+:root[data-theme="light"] .note-audio-transcribe-btn:hover {
+  background: #d0d0d0;
+  color: #333;
+}
+:root[data-theme="light"] .note-audio-transcript {
+  background: #f5f5f5;
+  color: #444;
+}
 
 /* Recording indicator */
 .note-audio-recording {

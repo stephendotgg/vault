@@ -42,22 +42,26 @@ async function transcribeWithAzureSpeech(params: {
   region: string;
   language: string;
   requestId: number;
+  audioContentType?: string;
 }) {
-  const { audioBuffer, key, region, language, requestId } = params;
+  const { audioBuffer, key, region, language, requestId, audioContentType } = params;
   const endpoint = `https://${region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language=${encodeURIComponent(language)}&format=simple`;
+
+  const contentType = audioContentType || "audio/wav; codecs=audio/pcm; samplerate=16000";
 
   debugLog("azure transcription request", {
     requestId,
     region,
     language,
     bytes: audioBuffer.byteLength,
+    contentType,
   });
 
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Ocp-Apim-Subscription-Key": key,
-      "Content-Type": "audio/wav; codecs=audio/pcm; samplerate=16000",
+      "Content-Type": contentType,
       Accept: "application/json",
     },
     body: new Uint8Array(audioBuffer),
@@ -107,6 +111,7 @@ export async function POST(request: NextRequest) {
 
     const contentType = request.headers.get("content-type") || "";
     let nodeBuffer: Buffer;
+    let audioMimeType: string | undefined;
 
     if (contentType.includes("application/json")) {
       const body = await request.json().catch(() => ({}));
@@ -128,9 +133,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "No audio file provided" }, { status: 400 });
       }
 
-      debugLog("audio file size", { requestId, bytes: audioFile.size });
+      debugLog("audio file size", { requestId, bytes: audioFile.size, type: audioFile.type });
       nodeBuffer = Buffer.from(await audioFile.arrayBuffer());
       debugLog("read arrayBuffer", { requestId, bytes: nodeBuffer.byteLength });
+
+      // Detect audio content type for Azure Speech
+      const fileType = audioFile.type || "";
+      if (fileType.includes("webm")) {
+        audioMimeType = "audio/webm";
+      } else if (fileType.includes("ogg")) {
+        audioMimeType = "audio/ogg";
+      } else if (fileType.includes("mp4") || fileType.includes("m4a")) {
+        audioMimeType = "audio/mp4";
+      }
     }
 
     const text = await transcribeWithAzureSpeech({
@@ -139,6 +154,7 @@ export async function POST(request: NextRequest) {
       region,
       language,
       requestId,
+      audioContentType: audioMimeType,
     });
 
     debugLog("transcription result", { requestId, textLength: text.length });
