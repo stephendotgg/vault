@@ -792,9 +792,10 @@ interface NoteEditorProps {
   headerActions?: React.ReactNode;
   allowAIChat?: boolean;
   isPopout?: boolean;
+  windowId?: string;
 }
 
-export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true, isPopout = false }: NoteEditorProps) {
+export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenStates, setChatOpenStates, allChatMessages, setAllChatMessages, breadcrumbPrefixLabel, onBreadcrumbPrefixClick, headerActions, allowAIChat = true, isPopout = false, windowId }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title);
   const isLocked = Boolean(note.isLocked);
   const parentNote = useMemo(
@@ -1908,7 +1909,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
       // Notify other windows that this note changed
       try {
         const channel = new BroadcastChannel("vault-note-sync");
-        channel.postMessage({ type: "note-saved", noteId: note.id });
+        channel.postMessage({ type: "note-saved", noteId: note.id, windowId });
         channel.close();
       } catch {
         // BroadcastChannel not supported — ignore

@@ -205,6 +205,9 @@ export function AppShell() {
     }
   }, []);
 
+  // Unique ID for this window to filter out own BroadcastChannel messages
+  const [windowId] = useState(() => Math.random().toString(36).slice(2));
+
   const [notes, setNotes] = useState<Note[]>([]);
   const [listItems, setListItems] = useState<ListItem[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -470,7 +473,7 @@ export function AppShell() {
     try {
       channel = new BroadcastChannel("vault-note-sync");
       channel.onmessage = (event) => {
-        if (event.data?.type === "note-saved") {
+        if (event.data?.type === "note-saved" && event.data?.windowId !== windowId) {
           fetchNotes();
         }
       };
@@ -480,7 +483,7 @@ export function AppShell() {
     return () => {
       channel?.close();
     };
-  }, [fetchNotes]);
+  }, [fetchNotes, windowId]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -1048,6 +1051,7 @@ export function AppShell() {
           allChatMessages={allChatMessages}
           setAllChatMessages={setAllChatMessages}
           isPopout
+          windowId={windowId}
         />
       </div>
     );
@@ -1094,6 +1098,7 @@ export function AppShell() {
             setChatOpenStates={setChatOpenStates}
             allChatMessages={allChatMessages}
             setAllChatMessages={setAllChatMessages}
+            windowId={windowId}
           />
         ) : currentView === "lists" ? (
           <ListsView
@@ -1111,6 +1116,7 @@ export function AppShell() {
             allowAIChat={false}
             breadcrumbPrefixLabel="Archive"
             onBreadcrumbPrefixClick={() => setSelectedArchivedNoteId(null)}
+            windowId={windowId}
             headerActions={(
               <>
                 <button
