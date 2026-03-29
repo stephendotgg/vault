@@ -67,8 +67,20 @@ export function ListsView({ listItems, onDeleteListItem, onOpenAddModal, onOpenE
     }
   };
 
-  const handleCopy = (id: string, value: string) => {
-    navigator.clipboard.writeText(value);
+  const handleCopy = (id: string, key: string, value: string) => {
+    const textToCopy = value.trim() || key.trim();
+    if (!textToCopy) return;
+    navigator.clipboard.writeText(textToCopy).catch(() => {
+      // Fallback for contexts where clipboard API isn't available
+      const textarea = document.createElement("textarea");
+      textarea.value = textToCopy;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    });
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -208,7 +220,7 @@ export function ListsView({ listItems, onDeleteListItem, onOpenAddModal, onOpenE
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => handleCopy(item.id, item.value)}
+                        onClick={() => handleCopy(item.id, item.key, item.value)}
                         className="p-2 text-[#6b6b6b] hover:text-[#ebebeb] hover:bg-[#3f3f3f] rounded transition-colors"
                         title="Copy value"
                       >
