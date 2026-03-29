@@ -840,7 +840,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     parseSpreadsheetContent(note.content || "")
   );
   const lastSpreadsheetNoteIdRef = useRef(note.id);
-  const titleInputRef = useRef<HTMLInputElement>(null);
+  const titleInputRef = useRef<HTMLTextAreaElement>(null);
   const editorRef = useRef<Editor | null>(null);
   const uploadNoteImageRef = useRef<(file: File) => Promise<string | null>>(async () => null);
   const lastLocalEditorHtmlRef = useRef(note.content || "");
@@ -1791,6 +1791,11 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     if (note.title === "" && (note.content === "" || isSpreadsheetNote)) {
       titleInputRef.current?.focus();
     }
+    // Auto-resize title textarea on mount
+    if (titleInputRef.current) {
+      titleInputRef.current.style.height = "auto";
+      titleInputRef.current.style.height = titleInputRef.current.scrollHeight + "px";
+    }
   }, [isSpreadsheetNote, note.id, note.title, note.content]);
 
   useEffect(() => {
@@ -2418,7 +2423,7 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
   }, [title]);
 
   // Debounced auto-save on title change
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (isLocked) {
       return;
     }
@@ -2847,10 +2852,23 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
           <div className={isSpreadsheetNote ? "h-full flex flex-col" : "max-w-3xl mx-auto px-16 py-12 h-full flex flex-col"}>
             {/* Title */}
             {!isSpreadsheetNote && (
-              <input
-                type="text"
+              <textarea
+                rows={1}
+                ref={titleInputRef}
+                placeholder="New page"
+                className={`w-full text-4xl font-bold text-[#e3e3e3] bg-transparent border-none outline-none placeholder-[#4a4a4a] mb-4 leading-tight resize-none overflow-hidden ${isLocked ? "cursor-default" : ""}`}
                 value={title}
-                onChange={handleTitleChange}
+                onChange={(e) => {
+                  handleTitleChange(e);
+                  // Auto-resize
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "auto";
+                  target.style.height = target.scrollHeight + "px";
+                }}
                 readOnly={isLocked}
                 onKeyDown={(e) => {
                   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -2875,9 +2893,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
                     editor?.chain().focus().setTextSelection(0).run();
                   }
                 }}
-                ref={titleInputRef}
-                placeholder="New page"
-                className={`w-full text-4xl font-bold text-[#e3e3e3] bg-transparent border-none outline-none placeholder-[#4a4a4a] mb-4 leading-tight ${isLocked ? "cursor-default" : ""}`}
               />
             )}
 
