@@ -723,7 +723,7 @@ type SaveOptions = {
 };
 
 type SlashCommand = {
-  id: "table" | "emoji" | "icon" | "voice";
+  id: "emoji" | "icon" | "voice";
   label: string;
   description: string;
   keywords: string[];
@@ -903,12 +903,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
   const slashCommands = useMemo<SlashCommand[]>(() => {
     return [
-      {
-        id: "table",
-        label: "Table",
-        description: "Insert a simple 2-column table template",
-        keywords: ["table", "grid", "columns"],
-      },
       {
         id: "emoji",
         label: "Emoji",
@@ -1212,16 +1206,6 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
 
     setSlashMenuState(null);
     setSlashMenuSelectedIndex(0);
-
-    if (command.id === "table") {
-      const insertedTable = currentEditor
-        .chain()
-        .focus()
-        .insertTable({ rows: 3, cols: 2, withHeaderRow: true })
-        .run();
-      console.log("[slash-insert] table:insert", { noteId: note.id, insertedTable });
-      return;
-    }
 
     if (command.id === "emoji") {
       openInlineInsertPicker("emoji", { left: currentSlashMenuState.left, top: currentSlashMenuState.top }, insertPos);
