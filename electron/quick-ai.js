@@ -392,7 +392,9 @@ inputEl.addEventListener("keydown", (event) => {
   }
 
   if (event.key === "Escape") {
-    window.electronAPI.closeQuickAi();
+    event.preventDefault();
+    void saveConversation();
+    return;
   }
 });
 
@@ -405,8 +407,9 @@ window.addEventListener("keydown", (event) => {
     void saveConversation();
   }
 
-  if (event.key === "Escape") {
-    window.electronAPI.closeQuickAi();
+  if (event.key === "Escape" && !isInput) {
+    event.preventDefault();
+    void saveConversation();
   }
 });
 
