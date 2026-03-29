@@ -1909,6 +1909,9 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     }
   }, [note.id, onUpdate]);
 
+  const saveNoteRef = useRef(saveNote);
+  saveNoteRef.current = saveNote;
+
   const handleToggleLock = useCallback(async () => {
     try {
       const res = await fetch(`/api/notes/${note.id}`, {
@@ -2348,11 +2351,17 @@ export function NoteEditor({ note, allNotes, onUpdate, onSelectNote, chatOpenSta
     }, 500);
   };
 
-  // Cleanup timeout on unmount
+  // Flush pending save on unmount (don't lose unsaved changes)
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        // Flush: save whatever is currently in the editor
+        const currentEditor = editorRef.current;
+        if (currentEditor && !currentEditor.isDestroyed) {
+          const html = currentEditor.getHTML();
+          void saveNoteRef.current(titleRef.current, html, { skipParentUpdate: true });
+        }
       }
       if (spreadsheetSaveTimeoutRef.current) {
         clearTimeout(spreadsheetSaveTimeoutRef.current);
