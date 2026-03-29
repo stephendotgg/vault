@@ -1103,7 +1103,7 @@ export function AIView({ onBack: _onBack }: AIViewProps) {
                       e.stopPropagation();
                       deleteSession(session.id);
                     }}
-                    className="p-1 opacity-0 group-hover:opacity-100 text-[#6b6b6b] hover:text-red-400 rounded transition-all"
+                    className="p-1 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 rounded transition-all"
                     title="Delete"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
