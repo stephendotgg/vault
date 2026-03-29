@@ -786,67 +786,6 @@ export function SettingsView() {
             </div>
           </section>
 
-          <section className="space-y-3">
-            <h2 className="text-lg text-[#e3e3e3] font-medium">Keyboard Shortcuts</h2>
-            <p className="text-sm text-[#9b9b9b]">Click a field and press the key combo you want to use.</p>
-            <div className="rounded border border-[#2f2f2f] bg-[#1e1e1e] p-4 space-y-4">
-              <div className="space-y-1">
-                <label htmlFor="quick-note-shortcut" className="text-sm text-[#d1d1d1]">
-                  Quick Note
-                </label>
-                <input
-                  id="quick-note-shortcut"
-                  type="text"
-                  readOnly
-                  value={quickNoteShortcut}
-                  disabled={!quickNoteEnabled}
-                  onKeyDown={(event) => {
-                    event.preventDefault();
-                    const shortcut = formatShortcutFromEvent(event);
-                    if (shortcut) {
-                      setQuickNoteShortcut(shortcut);
-                    }
-                  }}
-                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7] disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="quick-ai-shortcut" className="text-sm text-[#d1d1d1]">
-                  Quick AI Chat
-                </label>
-                <input
-                  id="quick-ai-shortcut"
-                  type="text"
-                  readOnly
-                  value={quickAiShortcut}
-                  disabled={!quickAiEnabled}
-                  onKeyDown={(event) => {
-                    event.preventDefault();
-                    const shortcut = formatShortcutFromEvent(event);
-                    if (shortcut) {
-                      setQuickAiShortcut(shortcut);
-                    }
-                  }}
-                  className="w-full rounded border border-[#2f2f2f] bg-[#191919] px-3 py-2 text-sm text-[#d1d1d1] focus:outline-none focus:ring-1 focus:ring-[#7eb8f7] disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuickNoteShortcut(DEFAULT_QUICK_NOTE_SHORTCUT);
-                    setQuickAiShortcut(DEFAULT_QUICK_AI_SHORTCUT);
-                  }}
-                  className="rounded border border-[#2f2f2f] bg-[#222] px-3 py-1.5 text-xs text-[#d1d1d1] hover:bg-[#2a2a2a]"
-                >
-                  Reset to defaults
-                </button>
-              </div>
-            </div>
-          </section>
-
           {isDev && (
             <section className="space-y-3">
               <h2 className="text-lg text-[#e3e3e3] font-medium">Dev</h2>
