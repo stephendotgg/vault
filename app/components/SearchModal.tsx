@@ -224,6 +224,11 @@ export function SearchModal({ isOpen, onClose, onSelectNote, onSelectLists }: Se
                         <span className="text-xs text-[#6b6b6b] bg-[#2f2f2f] px-1.5 py-0.5 rounded">
                           {getTypeLabel(result)}
                         </span>
+                        {result.archived && (
+                          <span className="text-xs text-[#9b7b5b] bg-[#2f2a24] px-1.5 py-0.5 rounded">
+                            Archived
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-[#9b9b9b] mt-1 line-clamp-1">
                         {result.snippet}

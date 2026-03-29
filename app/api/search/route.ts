@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 export interface SearchResult {
   type: "note" | "list";
   noteKind?: "note" | "sheet";
+  archived?: boolean;
   id: string;
   title: string;
   snippet: string;
@@ -190,6 +191,7 @@ export async function GET(request: NextRequest) {
         results.push({
           type: "note",
           noteKind: sheet ? "sheet" : "note",
+          archived: note.archived,
           id: note.id,
           title: note.title || (sheet ? "New sheet" : "New page"),
           snippet: matchInTitle 
