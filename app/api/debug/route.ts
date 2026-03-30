@@ -17,27 +17,6 @@ export async function GET() {
     },
   };
 
-  // Check better-sqlite3
-  try {
-    const resolved = require.resolve("better-sqlite3");
-    diag.betterSqlite3 = { resolved, status: "found" };
-    
-    // Check native binary
-    const nativePath = path.join(path.dirname(resolved), "..", "build", "Release", "better_sqlite3.node");
-    diag.betterSqlite3Native = { path: nativePath, exists: existsSync(nativePath) };
-
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Database = require("better-sqlite3");
-    diag.betterSqlite3Load = "success";
-    
-    // Try opening a temp in-memory DB
-    const testDb = new Database(":memory:");
-    testDb.close();
-    diag.betterSqlite3Memory = "success";
-  } catch (err) {
-    diag.betterSqlite3Error = err instanceof Error ? { message: err.message, stack: err.stack } : String(err);
-  }
-
   // Check data dir
   try {
     const { getDatabasePath, getDataDir } = await import("@/lib/paths");
@@ -54,7 +33,6 @@ export async function GET() {
     if (existsSync(logPath)) {
       const { readFileSync } = await import("fs");
       const content = readFileSync(logPath, "utf8");
-      // Last 2000 chars
       diag.logTail = content.slice(-2000);
     }
   } catch (err) {

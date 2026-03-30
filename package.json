@@ -13,16 +13,15 @@
     "prepare-standalone": "node scripts/prepare-standalone.js",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:build": "npm run build && npm run prepare-standalone && electron-builder",
-    "prepare-standalone:release": "node scripts/prepare-standalone.js --keep-native",
-    "release:win": "npx prisma generate && npm run build && npm run prepare-standalone:release && electron-builder --win nsis --publish never",
+    "release:win": "npx prisma generate && npm run build && npm run prepare-standalone && electron-builder --win nsis --publish never",
     "electron:start": "electron .",
-    "package": "npm rebuild better-sqlite3 && npm run build && npm run prepare-standalone && npx @electron/rebuild -f -w better-sqlite3 && npx electron-packager . Vault --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --win32metadata.CompanyName=\"stephendotgg\" --win32metadata.FileDescription=\"Vault\" --win32metadata.ProductName=\"Vault\"",
-    "install:local": "node -e \"const cp=require('child_process');for(const proc of ['Vault.exe','electron.exe']){try{cp.execSync('taskkill /F /IM '+proc,{stdio:'ignore'})}catch(e){}}\" && node -e \"const cp=require('child_process');let ok=false;for(let i=0;i<3;i++){try{cp.execSync('npm rebuild better-sqlite3',{stdio:'inherit'});ok=true;break;}catch(e){if(i<2){cp.execSync('powershell -NoProfile -Command Start-Sleep -Milliseconds 900',{stdio:'ignore'});}}}if(!ok){process.exit(1);}\" && npm run build && npm run prepare-standalone && npx @electron/rebuild -f -w better-sqlite3 && npx electron-packager . Vault --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --win32metadata.CompanyName=\"stephendotgg\" --win32metadata.FileDescription=\"Vault\" --win32metadata.ProductName=\"Vault\" && node -e \"const fs=require('fs');const path=require('path');const src='dist/Vault-win32-x64';const dest=path.join(process.env.LOCALAPPDATA,'Programs','Vault');fs.rmSync(dest,{recursive:true,force:true});fs.cpSync(src,dest,{recursive:true});console.log('Installed to '+dest)\" && npm rebuild better-sqlite3",
+    "package": "npm run build && npm run prepare-standalone && npx electron-packager . Vault --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --win32metadata.CompanyName=\"stephendotgg\" --win32metadata.FileDescription=\"Vault\" --win32metadata.ProductName=\"Vault\"",
+    "install:local": "node -e \"const cp=require('child_process');for(const proc of ['Vault.exe','electron.exe']){try{cp.execSync('taskkill /F /IM '+proc,{stdio:'ignore'})}catch(e){}}\" && npm run build && npm run prepare-standalone && npx electron-packager . Vault --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --win32metadata.CompanyName=\"stephendotgg\" --win32metadata.FileDescription=\"Vault\" --win32metadata.ProductName=\"Vault\" && node -e \"const fs=require('fs');const path=require('path');const src='dist/Vault-win32-x64';const dest=path.join(process.env.LOCALAPPDATA,'Programs','Vault');fs.rmSync(dest,{recursive:true,force:true});fs.cpSync(src,dest,{recursive:true});console.log('Installed to '+dest)\"",
     "add-startup": "powershell -Command \"$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut([Environment]::GetFolderPath('Startup') + '\\Vault.lnk'); $s.TargetPath = [Environment]::GetFolderPath('LocalApplicationData') + '\\Programs\\Vault\\Vault.exe'; $s.Save(); Write-Host 'Added to Windows startup'\"",
     "remove-startup": "powershell -Command \"Remove-Item ([Environment]::GetFolderPath('Startup') + '\\Vault.lnk') -Force -ErrorAction SilentlyContinue; Write-Host 'Removed from Windows startup'\""
   },
   "dependencies": {
-    "@prisma/adapter-better-sqlite3": "^7.3.0",
+    "@prisma/adapter-libsql": "^7.6.0",
     "@prisma/client": "^7.3.0",
     "@tiptap/extension-image": "^3.20.0",
     "@tiptap/extension-link": "^3.19.0",
@@ -38,7 +37,6 @@
     "@tiptap/starter-kit": "^3.19.0",
     "@types/archiver": "^7.0.0",
     "archiver": "^7.0.1",
-    "better-sqlite3": "^12.6.2",
     "dotenv": "^17.2.3",
     "lucide-react": "^0.563.0",
     "microsoft-cognitiveservices-speech-sdk": "^1.48.0",
@@ -53,7 +51,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.19",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -71,7 +68,6 @@
     "appId": "com.vault.app",
     "productName": "Vault",
     "artifactName": "Vault.Setup.${ext}",
-    "afterPack": "./scripts/sync-native-modules.js",
     "directories": {
       "output": "dist"
     },
